@@ -1,0 +1,3 @@
+App icons derived from Font Awesome Free 5.4.1 "quran" icon (solid).
+License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+Source: Wikimedia Commons — Font Awesome 5 solid quran.svg
