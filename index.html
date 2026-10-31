@@ -112,11 +112,45 @@
 
 <body class="bg-dark-bg text-slate-100 flex flex-col h-screen overflow-hidden antialiased">
 
+  <div id="appUpdateBanner" class="hidden fixed bottom-20 left-3 right-3 z-[70] bg-brand-700 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-brand-500 flex items-center justify-between gap-3">
+    <span>New version available</span>
+    <button type="button" id="btnApplyAppUpdate" class="shrink-0 bg-white text-brand-800 font-bold px-3 py-1.5 rounded-lg">Update</button>
+  </div>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=4').catch((err) => {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
+        navigator.serviceWorker.register('sw.js?v=5').then((registration) => {
+          registration.addEventListener('updatefound', () => {
+            const worker = registration.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                const banner = document.getElementById('appUpdateBanner');
+                if (banner) banner.classList.remove('hidden');
+              }
+            });
+          });
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            document.getElementById('appUpdateBanner')?.classList.remove('hidden');
+          }
+          setInterval(() => registration.update(), 60 * 60 * 1000);
+        }).catch((err) => {
           console.warn('Service worker registration failed', err);
+        });
+
+        document.getElementById('btnApplyAppUpdate')?.addEventListener('click', () => {
+          navigator.serviceWorker.getRegistration().then((reg) => {
+            if (reg?.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            else window.location.reload();
+          });
         });
       });
     }
@@ -512,7 +546,13 @@
       isPlayingContinuous: false,
       playbackRate: 1.0,
       deferredPwaPrompt: null,
-      bookmarks: JSON.parse(localStorage.getItem('quran_bookmarks_v2') || '[]')
+      bookmarks: (() => {
+        try {
+          return JSON.parse(localStorage.getItem('quran_bookmarks_v2') || '[]');
+        } catch {
+          return [];
+        }
+      })()
     };
 
     // DOM Elements
@@ -811,6 +851,8 @@
           state.currentSurahEnData = enData.data;
           renderSurahHeader(arData.data);
           renderVerses(arData.data.ayahs, enData.data.ayahs);
+          const searchInputEl = document.getElementById('searchInput');
+          if (searchInputEl?.value) searchInputEl.value = '';
 
           if (targetAyah) {
             setTimeout(() => {
@@ -818,6 +860,8 @@
               if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
           }
+        } else {
+          throw new Error(`Surah API ${arData.code || arRes.status}`);
         }
       } catch (err) {
         console.error('Error loading Surah:', err);
@@ -875,7 +919,7 @@
                 <button onclick="toggleBookmarkPrompt(${state.currentSurahNum}, ${ayahNum})" class="p-1.5 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark Verse">
                   <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl"></i>
                 </button>
-                <button onclick="copyVerseToClipboard('${ayah.text.replace(/'/g, "\\'")}', '${enTranslation.replace(/'/g, "\\'")}', ${state.currentSurahNum}, ${ayahNum})" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Share Ayah">
+                <button onclick="copyVerseByIndex(${i})" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Share Ayah">
                   <i class="ph ph-copy text-xl"></i>
                 </button>
                 <button onclick="toggleTafsirView(${state.currentSurahNum}, ${ayahNum})" class="px-2 py-1 bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 rounded-lg transition flex items-center space-x-1">
@@ -1037,12 +1081,37 @@
       loadSurah(surahNum, ayahNum);
     }
 
-    function copyVerseToClipboard(arText, enText, surahNum, ayahNum) {
-      const shareText = `"${arText}"\n\n"${enText}"\n\n— Quran ${surahNum}:${ayahNum}`;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareText);
-        alert('Ayah copied to clipboard!');
+    function copyVerseByIndex(index) {
+      const arAyah = state.currentSurahData?.ayahs[index];
+      const enAyah = state.currentSurahEnData?.ayahs[index];
+      if (!arAyah) return;
+      const shareText = `"${arAyah.text}"\n\n"${enAyah?.text || ''}"\n\n— Quran ${state.currentSurahNum}:${arAyah.numberInSurah}`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(shareText).then(() => showToast('Ayah copied')).catch(() => window.prompt('Copy ayah:', shareText));
+      } else {
+        window.prompt('Copy ayah:', shareText);
       }
+    }
+
+    function showToast(message) {
+      let el = document.getElementById('appToast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'appToast';
+        el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-xl border border-slate-700 shadow-lg z-[60] opacity-0 pointer-events-none transition-opacity duration-300';
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      el.classList.remove('opacity-0');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => el.classList.add('opacity-0'), 2200);
+    }
+
+    function bindModalBackdropClose(modalEl, closeFn) {
+      if (!modalEl) return;
+      modalEl.addEventListener('click', (e) => {
+        if (e.target === modalEl) closeFn();
+      });
     }
 
     // JUZ GRID POPULATION
@@ -1277,6 +1346,10 @@
 
       document.getElementById('btnOpenJuzModal')?.addEventListener('click', () => juzModal.classList.remove('hidden'));
       document.getElementById('closeJuzModal')?.addEventListener('click', () => juzModal.classList.add('hidden'));
+      bindModalBackdropClose(juzModal, () => juzModal.classList.add('hidden'));
+      bindModalBackdropClose(bookmarksModal, () => bookmarksModal.classList.add('hidden'));
+      bindModalBackdropClose(azkarModal, () => azkarModal.classList.add('hidden'));
+      bindModalBackdropClose(pwaGuideModal, () => pwaGuideModal.classList.add('hidden'));
 
       document.getElementById('btnOpenBookmarksModal')?.addEventListener('click', () => {
         renderBookmarksModalList();

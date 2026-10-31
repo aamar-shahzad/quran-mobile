@@ -1,4 +1,29 @@
-const CACHE_NAME = "quran-mobile-v4";
+const CACHE_NAME = "quran-mobile-v5";
+
+function isAppShellRequest(url) {
+  try {
+    const path = new URL(url).pathname;
+    return (
+      path.includes("/quran-mobile") &&
+      (path.endsWith("/quran-mobile/") ||
+        path.endsWith("/quran-mobile") ||
+        path.endsWith("/index.html") ||
+        path.includes("manifest.webmanifest") ||
+        path.includes("/icons/") ||
+        path.endsWith("/sw.js"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isQuranApiRequest(url) {
+  return url.includes("api.alquran.cloud");
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -20,23 +45,37 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
+  if (event.request.method !== "GET") return;
+
+  const url = event.request.url;
+
+  if (event.request.mode === "navigate" || isAppShellRequest(url)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && isAppShellRequest(url)) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
+
+  if (isQuranApiRequest(url)) {
+    event.respondWith(
+      fetch(event.request)
         .then((networkRes) => {
-          if (
-            event.request.method === "GET" &&
-            event.request.url.includes("api.alquran.cloud")
-          ) {
+          if (networkRes.ok) {
             const clone = networkRes.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return networkRes;
         })
-        .catch(() => caches.match(event.request));
-    }),
-  );
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
 });
