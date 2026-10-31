@@ -12,6 +12,9 @@
   <meta name="apple-mobile-web-app-title" content="Quran Mobile">
   <meta name="application-name" content="Quran Mobile">
   <meta name="description" content="Offline-capable Mobile Quran Reader with Audio & Translations">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3004/3004609.png">
   
   <title>Quran Mobile Reader</title>
 
@@ -108,68 +111,13 @@
 
 <body class="bg-dark-bg text-slate-100 flex flex-col h-screen overflow-hidden antialiased">
 
-  <!-- DYNAMIC PWA MANIFEST & SERVICE WORKER BLOB SETUP -->
   <script>
-    // 1. Generate & Inject Manifest dynamically so app can be installed from a single file!
-    const manifestData = {
-      "name": "Quran Reader & Multilingual Tafsir",
-      "short_name": "Quran Mobile",
-      "description": "Mobile Quran App with Multilingual Tafsirs (EN, AR, UR, RU, BN), Audio & Offline Support",
-      "start_url": "./",
-      "display": "standalone",
-      "background_color": "#0f172a",
-      "theme_color": "#10b981",
-      "orientation": "portrait",
-      "icons": [
-        {
-          "src": "https://cdn-icons-png.flaticon.com/512/3004/3004609.png",
-          "sizes": "192x192",
-          "type": "image/png",
-          "purpose": "any maskable"
-        },
-        {
-          "src": "https://cdn-icons-png.flaticon.com/512/3004/3004609.png",
-          "sizes": "512x512",
-          "type": "image/png"
-        }
-      ]
-    };
-    const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-    const manifestURL = URL.createObjectURL(manifestBlob);
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = manifestURL;
-    document.head.appendChild(manifestLink);
-
-    // 2. Inline Service Worker Registration via Blob URL
     if ('serviceWorker' in navigator) {
-      const swCode = `
-        const CACHE_NAME = 'quran-mobile-v1';
-        self.addEventListener('install', (e) => {
-          self.skipWaiting();
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+          console.warn('Service worker registration failed', err);
         });
-        self.addEventListener('activate', (e) => {
-          e.waitUntil(clients.claim());
-        });
-        self.addEventListener('fetch', (e) => {
-          // Serve from cache if available, fallback to network
-          e.respondWith(
-            caches.match(e.request).then((res) => {
-              return res || fetch(e.request).then((networkRes) => {
-                // Cache API calls locally for offline reading
-                if (e.request.url.includes('api.alquran.cloud') && e.request.method === 'GET') {
-                  const resClone = networkRes.clone();
-                  caches.open(CACHE_NAME).then(cache => cache.put(e.request, resClone));
-                }
-                return networkRes;
-              }).catch(() => caches.match(e.request));
-            })
-          );
-        });
-      `;
-      const swBlob = new Blob([swCode], { type: 'text/javascript' });
-      const swURL = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swURL).catch(err => console.log('SW Registration optional fallback', err));
+      });
     }
   </script>
 
@@ -425,12 +373,15 @@
       </div>
 
       <div class="space-y-4 overflow-y-auto flex-1 p-1 text-xs text-slate-300">
-        <!-- Host requirement warning -->
         <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-start space-x-3">
-          <i class="ph ph-lock-key text-emerald-400 text-xl shrink-0 mt-0.5"></i>
-          <div>
-            <h4 class="font-bold text-emerald-400 text-xs">HTTPS Host Required</h4>
-            <p class="text-[11px] text-slate-300">To allow installation on iOS or Android, host this file on any HTTPS server like <strong>GitHub Pages</strong>, <strong>Vercel</strong>, or <strong>Netlify</strong>.</p>
+          <i class="ph ph-globe text-emerald-400 text-xl shrink-0 mt-0.5"></i>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-bold text-emerald-400 text-xs">Official App Link</h4>
+            <p class="text-[11px] text-slate-300 mb-2">Open this HTTPS link on your phone, then follow the steps below.</p>
+            <a id="pwaOfficialLink" href="https://aamar-shahzad.github.io/quran-mobile/" class="text-[11px] text-emerald-300 break-all underline underline-offset-2">https://aamar-shahzad.github.io/quran-mobile/</a>
+            <button type="button" id="btnCopyPwaLink" class="mt-2 block w-full bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold py-2 rounded-lg transition">
+              Copy link to share
+            </button>
           </div>
         </div>
 
@@ -1225,8 +1176,22 @@
       document.getElementById('closeAzkarModal')?.addEventListener('click', () => azkarModal.classList.add('hidden'));
 
       // PWA Guide Modal Handlers
+      const pwaOfficialUrl = 'https://aamar-shahzad.github.io/quran-mobile/';
       document.getElementById('btnOpenPwaGuide')?.addEventListener('click', () => pwaGuideModal.classList.remove('hidden'));
       document.getElementById('closePwaGuideModal')?.addEventListener('click', () => pwaGuideModal.classList.add('hidden'));
+      document.getElementById('btnCopyPwaLink')?.addEventListener('click', async () => {
+        const btn = document.getElementById('btnCopyPwaLink');
+        try {
+          await navigator.clipboard.writeText(pwaOfficialUrl);
+          if (btn) {
+            const prev = btn.textContent;
+            btn.textContent = 'Link copied!';
+            setTimeout(() => { btn.textContent = prev; }, 2000);
+          }
+        } catch {
+          window.prompt('Copy this link:', pwaOfficialUrl);
+        }
+      });
 
       // Search Handler
       const btnToggleSearch = document.getElementById('btnToggleSearch');

@@ -1,0 +1,32 @@
+{
+  "id": "/quran-mobile/",
+  "name": "Quran Reader & Multilingual Tafsir",
+  "short_name": "Quran Mobile",
+  "description": "Mobile Quran App with Multilingual Tafsirs (EN, AR, UR, RU, BN), Audio & Offline Support",
+  "start_url": "/quran-mobile/",
+  "scope": "/quran-mobile/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3004/3004609.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3004/3004609.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3004/3004609.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
