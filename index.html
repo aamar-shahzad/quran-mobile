@@ -370,15 +370,29 @@
       </div>
 
       <div class="space-y-4 overflow-y-auto flex-1 p-1 text-xs text-slate-300">
-        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-start space-x-3">
-          <i class="ph ph-globe text-emerald-400 text-xl shrink-0 mt-0.5"></i>
-          <div class="min-w-0 flex-1">
-            <h4 class="font-bold text-emerald-400 text-xs">Official App Link</h4>
-            <p class="text-[11px] text-slate-300 mb-2">Open this HTTPS link on your phone, then follow the steps below.</p>
-            <a id="pwaOfficialLink" href="https://aamar-shahzad.github.io/quran-mobile/" class="text-[11px] text-emerald-300 break-all underline underline-offset-2">https://aamar-shahzad.github.io/quran-mobile/</a>
-            <button type="button" id="btnCopyPwaLink" class="mt-2 block w-full bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold py-2 rounded-lg transition">
-              Copy link to share
-            </button>
+        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+          <div class="flex gap-3 items-start">
+            <i class="ph ph-globe text-emerald-400 text-xl shrink-0 mt-0.5"></i>
+            <div class="min-w-0 flex-1">
+              <h4 class="font-bold text-emerald-400 text-xs">Official App Link</h4>
+              <p class="text-[11px] text-slate-300 mb-2">Scan the QR code or open the link on your phone, then install.</p>
+              <a id="pwaOfficialLink" href="https://aamar-shahzad.github.io/quran-mobile/" class="text-[11px] text-emerald-300 break-all underline underline-offset-2">https://aamar-shahzad.github.io/quran-mobile/</a>
+              <button type="button" id="btnCopyPwaLink" class="mt-2 block w-full bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold py-2 rounded-lg transition">
+                Copy link to share
+              </button>
+            </div>
+            <div class="shrink-0 text-center">
+              <img
+                id="pwaInstallQr"
+                src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&amp;margin=6&amp;data=https%3A%2F%2Faamar-shahzad.github.io%2Fquran-mobile%2F"
+                width="96"
+                height="96"
+                alt="QR code to open Quran Mobile"
+                class="rounded-lg border border-emerald-500/30 bg-white p-1"
+                loading="lazy"
+              >
+              <p class="text-[10px] text-slate-400 mt-1 leading-tight">Scan to<br>install</p>
+            </div>
           </div>
         </div>
 
