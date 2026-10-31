@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v9";
+const CACHE_NAME = "quran-mobile-v13";
 
 function isAppShellRequest(url) {
   try {
