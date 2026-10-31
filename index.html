@@ -4,6 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
+  <script>
+    /* Platform detection for design language: iOS -> Apple HIG, Android -> Material 3 */
+    (function () {
+      var ua = navigator.userAgent || '';
+      var isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var platform = isIos ? 'ios' : /Android/i.test(ua) ? 'android' : 'desktop';
+      document.documentElement.setAttribute('data-platform', platform);
+      var themeColors = { ios: '#000000', android: '#101512' };
+      if (themeColors[platform]) {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', themeColors[platform]);
+      }
+    })();
+  </script>
   
   <!-- Mobile & PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -333,6 +347,345 @@
         padding-bottom: 4.5rem;
       }
     }
+  
+    /* ---------- Platform design: Apple HIG (iOS/iPadOS) and Material 3 (Android) ---------- */
+    /* html[data-platform] is set by the inline script in <head>. Desktop keeps the base design. */
+
+    /* Standalone: iOS/Android report the real status-bar inset, so no 28px title-bar floor (that is for desktop PWAs). */
+    @media (display-mode: standalone) {
+      html[data-platform="ios"] body,
+      html[data-platform="android"] body {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+
+    /* ===== iOS: Human Interface Guidelines ===== */
+    html[data-platform="ios"] {
+      --ios-bg: #000000;
+      --ios-grouped: #1c1c1e;
+      --ios-fill: rgba(118, 118, 128, 0.24);
+      --ios-separator: rgba(84, 84, 88, 0.55);
+      --ios-material: rgba(28, 28, 30, 0.72);
+      background-color: var(--ios-bg);
+      -webkit-text-size-adjust: 100%;
+    }
+    html[data-platform="ios"] body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      background-color: var(--ios-bg);
+      overscroll-behavior-y: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    html[data-platform="ios"] .bg-dark-bg { background-color: var(--ios-bg); }
+    html[data-platform="ios"] .bg-dark-card,
+    html[data-platform="ios"] [class*="bg-dark-card/"] { background-color: var(--ios-grouped); }
+    html[data-platform="ios"] .border-dark-border { border-color: var(--ios-separator); }
+
+    /* Navigation bar / tab bar: translucent material with hairline separators */
+    html[data-platform="ios"] header,
+    html[data-platform="ios"] footer {
+      background-color: var(--ios-material);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      border-color: var(--ios-separator);
+    }
+    html[data-platform="ios"] header { border-bottom-width: 0.5px; }
+    html[data-platform="ios"] footer { border-top-width: 0.5px; }
+    html[data-platform="ios"] header h1 {
+      font-size: 1.0625rem; /* 17pt headline */
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* 44x44pt minimum hit area; press = dim, not scale */
+    html[data-platform="ios"] header button {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (max-width: 430px) {
+      html[data-platform="ios"] header button,
+      html[data-platform="android"] header button { min-width: 40px; }
+    }
+    html[data-platform="ios"] div[id$="Modal"] button[id^="close"] {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      background-color: rgba(120, 120, 128, 0.32);
+      color: rgba(235, 235, 245, 0.6);
+    }
+    html[data-platform="android"] div[id$="Modal"] button[id^="close"] {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    html[data-platform="ios"] button { transition: opacity 0.15s ease; }
+    html[data-platform="ios"] button:active { opacity: 0.55; transform: none; }
+    html[data-platform="ios"] .active\:scale-95:active { transform: none; }
+
+    /* Controls: continuous-corner rounded rects, tertiary fill, 17pt text avoids Safari zoom */
+    html[data-platform="ios"] select,
+    html[data-platform="ios"] input,
+    html[data-platform="ios"] textarea {
+      background-color: var(--ios-fill);
+      border: 0;
+      border-radius: 10px;
+      min-height: 36px;
+      font-size: max(16px, 1em);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    html[data-platform="ios"] select:focus,
+    html[data-platform="ios"] input:focus,
+    html[data-platform="ios"] textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(48, 209, 88, 0.55); }
+    html[data-platform="ios"] button.bg-slate-900 {
+      background-color: var(--ios-fill);
+      border-color: transparent;
+      border-radius: 10px;
+      min-height: 36px;
+    }
+    html[data-platform="ios"] button[class*="bg-brand-"],
+    html[data-platform="ios"] button[class*="bg-emerald-"] {
+      border-radius: 12px;
+      min-height: 44px;
+      font-weight: 600;
+    }
+
+    /* Grouped cards: 12pt radius, no heavy borders */
+    html[data-platform="ios"] article,
+    html[data-platform="ios"] [id^="verse-card-"] {
+      border-radius: 12px;
+      border-width: 0.5px;
+    }
+
+    html[data-platform="ios"] #surahHeaderCard {
+      background-image: none;
+      background-color: var(--ios-grouped);
+      border-radius: 12px;
+      border-width: 0.5px;
+      box-shadow: none;
+    }
+    /* Sheets: bottom sheet with grabber on phones, centered alert-style card on larger screens */
+    html[data-platform="ios"] div[id$="Modal"] {
+      background-color: rgba(0, 0, 0, 0.4);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+    }
+    html[data-platform="ios"] div[id$="Modal"] > div {
+      border-radius: 14px;
+      border-width: 0.5px;
+      background-color: rgba(44, 44, 46, 0.94);
+      box-shadow: none;
+      position: relative;
+    }
+    @media (max-width: 639px) {
+      html[data-platform="ios"] div[id$="Modal"] { align-items: flex-end; padding: 0; }
+      html[data-platform="ios"] div[id$="Modal"] > div {
+        width: 100%;
+        max-width: none;
+        border-radius: 14px 14px 0 0;
+        padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+        padding-top: 1.5rem;
+      }
+      html[data-platform="ios"] div[id$="Modal"] > div::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        width: 36px;
+        height: 5px;
+        margin-left: -18px;
+        border-radius: 3px;
+        background: rgba(235, 235, 245, 0.3);
+      }
+    }
+
+    /* Toast: capsule material */
+    html[data-platform="ios"] #appToast {
+      background-color: rgba(58, 58, 60, 0.92);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border: 0;
+      border-radius: 9999px;
+      box-shadow: none;
+    }
+
+    /* ===== Android: Material Design 3 ===== */
+    html[data-platform="android"] {
+      --md-sys-color-primary: #6bd9a4;
+      --md-sys-color-on-primary: #003824;
+      --md-sys-color-primary-container: #005237;
+      --md-sys-color-on-primary-container: #88f8bf;
+      --md-sys-color-secondary-container: #354c3f;
+      --md-sys-color-on-secondary-container: #d0e8d6;
+      --md-sys-color-surface: #101512;
+      --md-sys-color-surface-container: #1c211e;
+      --md-sys-color-surface-container-high: #262b28;
+      --md-sys-color-surface-container-highest: #313633;
+      --md-sys-color-on-surface: #dfe4de;
+      --md-sys-color-on-surface-variant: #bfc9c1;
+      --md-sys-color-outline: #89938b;
+      --md-sys-color-outline-variant: #404943;
+      --md-sys-color-inverse-surface: #dfe4de;
+      --md-sys-color-inverse-on-surface: #2c322e;
+      --md-sys-shape-corner-extra-small: 4px;
+      --md-sys-shape-corner-small: 8px;
+      --md-sys-shape-corner-medium: 12px;
+      --md-sys-shape-corner-large: 16px;
+      --md-sys-shape-corner-extra-large: 28px;
+      --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+      background-color: var(--md-sys-color-surface);
+    }
+    html[data-platform="android"] body {
+      font-family: Roboto, 'Roboto Flex', system-ui, sans-serif;
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+    }
+    html[data-platform="android"] .bg-dark-bg { background-color: var(--md-sys-color-surface); }
+    /* Tonal elevation instead of borders and shadows */
+    html[data-platform="android"] .bg-dark-card,
+    html[data-platform="android"] [class*="bg-dark-card/"] { background-color: var(--md-sys-color-surface-container); }
+    html[data-platform="android"] .border-dark-border { border-color: transparent; }
+    html[data-platform="android"] .shadow-2xl,
+    html[data-platform="android"] .shadow-xl,
+    html[data-platform="android"] .shadow-lg { box-shadow: none; }
+
+    /* Small top app bar */
+    html[data-platform="android"] header {
+      background-color: var(--md-sys-color-surface);
+      border-bottom: 0;
+    }
+    html[data-platform="android"] header h1 {
+      font-size: 1rem; /* title-medium: 5 header actions leave no room for title-large */
+      font-weight: 500;
+      line-height: 1.5rem;
+      letter-spacing: 0;
+      color: var(--md-sys-color-on-surface);
+    }
+    /* 48dp icon buttons with circular state layer */
+    html[data-platform="android"] header button {
+      min-width: 48px;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      color: var(--md-sys-color-on-surface-variant);
+      transition: background-color 0.2s var(--md-sys-motion-easing-emphasized);
+    }
+    html[data-platform="android"] header button:hover { background-color: rgba(223, 228, 222, 0.08); }
+    html[data-platform="android"] header button:active { background-color: rgba(223, 228, 222, 0.12); }
+    html[data-platform="android"] button { transition-timing-function: var(--md-sys-motion-easing-emphasized); }
+    html[data-platform="android"] button:active { transform: none; }
+    html[data-platform="android"] .active\:scale-95:active { transform: none; }
+
+    /* Text fields (outlined): 4dp corners, outline token, 2dp primary on focus */
+    html[data-platform="android"] select,
+    html[data-platform="android"] input,
+    html[data-platform="android"] textarea {
+      background-color: transparent;
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: var(--md-sys-shape-corner-small);
+      color: var(--md-sys-color-on-surface);
+      min-height: 40px;
+    }
+    html[data-platform="android"] select:focus,
+    html[data-platform="android"] input:focus,
+    html[data-platform="android"] textarea:focus {
+      outline: none;
+      border-color: var(--md-sys-color-primary);
+      box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+    }
+    html[data-platform="android"] select option { background-color: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+
+    /* Buttons: filled (primary) and tonal, fully rounded, 40dp high */
+    html[data-platform="android"] button[class*="bg-brand-"],
+    html[data-platform="android"] button[class*="bg-emerald-"] {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 9999px;
+      min-height: 40px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    html[data-platform="android"] button.bg-slate-900 {
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      border-color: transparent;
+      border-radius: 9999px;
+      min-height: 40px;
+    }
+
+    /* Cards (filled, 12dp) */
+    html[data-platform="android"] article,
+    html[data-platform="android"] [id^="verse-card-"] {
+      background-color: var(--md-sys-color-surface-container-high);
+      border-color: transparent;
+      border-radius: var(--md-sys-shape-corner-medium);
+    }
+
+    html[data-platform="android"] #surahHeaderCard {
+      background-image: none;
+      background-color: var(--md-sys-color-surface-container-high);
+      border-color: transparent;
+      border-radius: var(--md-sys-shape-corner-large);
+    }
+    /* Dialogs: 28dp radius, surface-container-high, scrim behind */
+    html[data-platform="android"] div[id$="Modal"] { background-color: rgba(0, 0, 0, 0.32); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    html[data-platform="android"] div[id$="Modal"] > div {
+      background-color: var(--md-sys-color-surface-container-high);
+      border-color: transparent;
+      border-radius: var(--md-sys-shape-corner-extra-large);
+      padding: 1.5rem;
+    }
+    @media (max-width: 639px) {
+      html[data-platform="android"] div[id$="Modal"] { align-items: flex-end; padding: 0; }
+      html[data-platform="android"] div[id$="Modal"] > div {
+        width: 100%;
+        max-width: none;
+        border-radius: 28px 28px 0 0;
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* Bottom bar: tonal surface, 28dp top corners, no hairline */
+    html[data-platform="android"] footer {
+      background-color: var(--md-sys-color-surface-container);
+      border-top: 0;
+    }
+    html[data-platform="android"] #audioPlayerBar {
+      border-radius: 28px 28px 0 0;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
+    /* Snackbar: inverse surface, 4dp corners */
+    html[data-platform="android"] #appToast,
+    html[data-platform="android"] #appUpdateBanner {
+      background-color: var(--md-sys-color-inverse-surface);
+      color: var(--md-sys-color-inverse-on-surface);
+      border: 0;
+      border-radius: var(--md-sys-shape-corner-extra-small);
+      box-shadow: none;
+    }
+    html[data-platform="android"] #btnApplyAppUpdate {
+      background-color: transparent;
+      color: #006c47;
+      font-weight: 500;
+    }
   </style>
 </head>
 
@@ -353,7 +706,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=13').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=14').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
