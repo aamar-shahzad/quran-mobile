@@ -11,7 +11,7 @@ PWA Quran reader with multiple mushaf formats, tafsir, audio, bookmarks, and azk
 | Content             | Provider                                            | Notes                                                     |
 | ------------------- | --------------------------------------------------- | --------------------------------------------------------- |
 | Arabic Quran text   | [Al Quran Cloud](https://alquran.cloud/)            | Hafs Uthmani (`quran-uthmani`) and other catalog editions |
-| Indo-Pak / 16-line  | [Quran.com API](https://quran.com)                  | `text_indopak` + 604-page `line_number` (Hafs, South Asian mushaf script) |
+| Hifzi / 16-line     | [Quran.com API](https://quran.com)                  | Indo-Pak Naskh `text_indopak`; 604 pages; fixed 16-row Hifz grid + `line_number` slots |
 | English translation | Al Quran Cloud `en.sahih`                           | Sahih International                                       |
 | Tafsir              | [Quran.com API](https://quran.com) + Al Quran Cloud | Ibn Kathir, Jalalayn, Muyassar, etc.                      |
 | Audio               | [Islamic Network CDN](https://islamic.network)      | Per-ayah recitation MP3                                   |

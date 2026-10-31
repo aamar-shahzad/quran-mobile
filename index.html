@@ -54,7 +54,7 @@
   <!-- Google Fonts for Typography & Multilingual Support -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -84,6 +84,117 @@
       text-align: justify;
       text-align-last: center;
     }
+    /* Hifzi / 16-line mushaf — Indo-Pak Naskh Arabic (not Urdu Nastaliq) */
+    .hifzi-naskh-text {
+      font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+      line-height: 1.85;
+      word-spacing: 1px;
+      direction: rtl;
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+    .mushaf-viewport {
+      position: relative;
+      perspective: 1400px;
+      overflow: hidden;
+      min-height: min(72vh, 640px);
+      touch-action: pan-y;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .mushaf-page-sheet {
+      transform-origin: 50% 50%;
+      backface-visibility: hidden;
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .mushaf-page-sheet.is-enter-forward {
+      animation: mushafEnterForward 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .mushaf-page-sheet.is-enter-back {
+      animation: mushafEnterBack 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .mushaf-page-sheet.is-exit-forward {
+      animation: mushafExitForward 0.34s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+    .mushaf-page-sheet.is-exit-back {
+      animation: mushafExitBack 0.34s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+    @keyframes mushafEnterForward {
+      from {
+        transform: translate3d(22%, 0, 0) rotateY(-14deg) scale(0.97);
+        opacity: 0.15;
+        filter: brightness(0.85);
+      }
+      to {
+        transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+        opacity: 1;
+        filter: brightness(1);
+      }
+    }
+    @keyframes mushafEnterBack {
+      from {
+        transform: translate3d(-22%, 0, 0) rotateY(14deg) scale(0.97);
+        opacity: 0.15;
+        filter: brightness(0.85);
+      }
+      to {
+        transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+        opacity: 1;
+        filter: brightness(1);
+      }
+    }
+    @keyframes mushafExitForward {
+      to {
+        transform: translate3d(-18%, 0, 0) rotateY(10deg) scale(0.96);
+        opacity: 0;
+        filter: brightness(0.7);
+      }
+    }
+    @keyframes mushafExitBack {
+      to {
+        transform: translate3d(18%, 0, 0) rotateY(-10deg) scale(0.96);
+        opacity: 0;
+        filter: brightness(0.7);
+      }
+    }
+    .mushaf-viewport.is-loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(2px);
+      pointer-events: none;
+      z-index: 2;
+      animation: mushafLoadingPulse 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes mushafLoadingPulse {
+      from { opacity: 0.35; }
+      to { opacity: 0.65; }
+    }
+    .mushaf-edge-tap {
+      position: absolute;
+      top: 3.5rem;
+      bottom: 2.5rem;
+      width: 22%;
+      max-width: 4.5rem;
+      z-index: 3;
+      opacity: 0;
+    }
+    .mushaf-edge-tap--prev { left: 0; }
+    .mushaf-edge-tap--next { right: 0; }
+    @media (prefers-reduced-motion: reduce) {
+      .mushaf-page-sheet.is-enter-forward,
+      .mushaf-page-sheet.is-enter-back,
+      .mushaf-page-sheet.is-exit-forward,
+      .mushaf-page-sheet.is-exit-back {
+        animation: none !important;
+      }
+      .mushaf-viewport.is-loading::after {
+        animation: none;
+      }
+    }
     .mushaf-page-frame {
       background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.95) 100%);
       border: 1px solid rgba(51, 65, 85, 0.9);
@@ -92,16 +203,28 @@
     }
     .mushaf-page-lines {
       display: grid;
-      grid-template-rows: repeat(16, minmax(1.65rem, auto));
-      gap: 0.15rem;
+      grid-template-rows: repeat(16, minmax(2rem, 1fr));
+      gap: 0.4rem;
     }
     .mushaf-line {
-      font-size: clamp(1.05rem, 4.2vw, 1.35rem);
-      padding: 0.1rem 0.35rem;
+      font-size: clamp(1.05rem, 4.5vw, 1.38rem);
+      min-height: 2rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
     }
-    .mushaf-line:nth-child(even) {
+    .mushaf-line--filled:nth-child(even) {
       background: rgba(15, 23, 42, 0.35);
+    }
+    .mushaf-line--blank {
+      min-height: 1.35rem;
+      opacity: 0.35;
+      border: 1px dashed rgba(51, 65, 85, 0.45);
+      background: rgba(15, 23, 42, 0.2);
     }
     .bengali-text {
       font-family: 'Noto Sans Bengali', sans-serif;
@@ -220,6 +343,33 @@
       border-color: #10b981 !important;
       background-color: rgba(16, 185, 129, 0.08) !important;
     }
+    .reader-advanced-controls {
+      max-height: 520px;
+      overflow: hidden;
+      transition: max-height 0.32s ease, opacity 0.24s ease, margin 0.24s ease;
+      opacity: 1;
+    }
+    .reader-advanced-controls.is-collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0 !important;
+      pointer-events: none;
+    }
+    @media (max-width: 640px) {
+      body.reader-focus-mode #headerSecondaryActions {
+        display: none;
+      }
+      body.reader-focus-mode #surahHeaderCard {
+        display: none !important;
+      }
+      body.reader-focus-mode #contentSourceHint {
+        display: none;
+      }
+      body.reader-focus-mode #readerControlsPanel {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+      }
+    }
   </style>
 </head>
 
@@ -240,7 +390,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=8').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=9').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -338,10 +488,14 @@
     </div>
 
     <div class="flex items-center space-x-1">
+      <button id="btnToggleReaderControlsMobile" type="button" class="sm:hidden p-2 text-brand-400 hover:text-brand-300 rounded-xl hover:bg-slate-800 transition" title="Reader controls" aria-expanded="true">
+        <i class="ph ph-sliders-horizontal text-lg"></i>
+      </button>
       <button id="btnOpenBookmarksModal" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Saved Bookmarks & Notes">
         <i class="ph ph-bookmark-simple text-lg"></i>
         <span id="bookmarkDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full"></span>
       </button>
+      <span id="headerSecondaryActions" class="flex items-center space-x-1">
       <button id="btnOpenAzkarModal" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Daily Azkar">
         <i class="ph ph-hands-praying text-lg"></i>
       </button>
@@ -354,6 +508,7 @@
       <button id="btnOpenPwaGuide" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Share link & install app">
         <i class="ph ph-share-network text-lg text-emerald-400"></i>
       </button>
+      </span>
       <button id="btnToggleSearch" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Search Quran">
         <i class="ph ph-magnifying-glass text-lg"></i>
       </button>
@@ -361,10 +516,10 @@
   </header>
 
   <!-- STICKY SURAH SELECTOR & MULTILINGUAL TAFSIR SELECTOR BAR -->
-  <div class="bg-dark-card/90 backdrop-blur border-b border-dark-border p-3 shrink-0 space-y-2 z-10">
+  <div id="readerControlsPanel" class="bg-dark-card/90 backdrop-blur border-b border-dark-border p-3 shrink-0 space-y-2 z-10">
     
     <!-- Surah / Juz / Page Selector Navigation Tabs -->
-    <div class="flex items-center space-x-2">
+    <div id="readerNavRow" class="flex items-center space-x-2">
       <div class="relative flex-1">
         <select id="surahSelect" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl py-2.5 px-3 pr-8 appearance-none focus:outline-none focus:border-brand-500 font-medium">
           <option value="" disabled selected>Loading Surahs...</option>
@@ -391,8 +546,15 @@
       </button>
     </div>
 
+    <div id="readerControlsCollapsedBar" class="hidden sm:hidden flex items-center justify-between gap-2 py-0.5">
+      <span id="readerCollapsedSummary" class="text-[10px] text-slate-500 truncate min-w-0"></span>
+      <button type="button" id="btnExpandReaderControls" class="text-[10px] font-semibold text-brand-400 shrink-0 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800">
+        Show controls
+      </button>
+    </div>
+
     <!-- Script, Reciter & Tafsir Control Toolbar -->
-    <div class="space-y-1.5">
+    <div id="readerAdvancedControls" class="space-y-1.5 reader-advanced-controls">
       <div class="relative">
         <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] rounded-xl py-2 px-2 pr-6 appearance-none focus:outline-none focus:border-brand-500 font-medium">
           <option value="quran-uthmani">Loading Quran formats…</option>
@@ -486,7 +648,7 @@
         <input id="pageNumberInput" type="number" min="1" max="604" inputmode="numeric" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500" placeholder="Page number" />
         <button id="btnGoMushafPage" type="button" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-slate-950 text-xs font-bold rounded-xl">Go</button>
       </div>
-      <p class="text-[10px] text-slate-500 mb-2">Tip: choose <span class="text-slate-400">Indo-Pak — 16-line mushaf (page view)</span> in Script for line-by-line layout.</p>
+      <p class="text-[10px] text-slate-500 mb-2">Tip: Script → <span class="text-slate-400">Hifzi — 16 lines / page</span> for madaris-style memorization layout.</p>
       <div id="pageQuickGrid" class="grid grid-cols-6 gap-1.5 overflow-y-auto flex-1 p-0.5">
         <!-- Pages 1–604 generated in JS -->
       </div>
@@ -550,7 +712,7 @@
           <ul class="list-disc pl-4 space-y-1 text-slate-400">
             <li><strong class="text-slate-300">Riwaya:</strong> Hafs &apos;an &apos;Asim — standard for Uthmani and Indo-Pak API editions.</li>
             <li><strong class="text-slate-300">Uthmani mushaf:</strong> Al Quran Cloud catalog (Tanzil / Islamic Network), e.g. <code class="text-slate-400">quran-uthmani</code>.</li>
-            <li><strong class="text-slate-300">Indo-Pak / 16-line:</strong> Quran.com <code class="text-slate-400">text_indopak</code> + page lines — same Indo-Pak dataset used by Quran.com apps.</li>
+            <li><strong class="text-slate-300">Hifzi / 16-line:</strong> Indo-Pak Naskh via Quran.com <code class="text-slate-400">text_indopak</code>; each page shown as a fixed 16-row grid (blank rows where print Hifzi mushaf has spacing). Line positions from Quran.com <code class="text-slate-400">line_number</code> on 604 pages.</li>
             <li><strong class="text-slate-300">Translation:</strong> Sahih International via <code class="text-slate-400">en.sahih</code> only (default).</li>
             <li><strong class="text-slate-300">Tafsir:</strong> Named works only; API edition IDs match scholar/work labels in the Tafsir menu.</li>
           </ul>
@@ -558,7 +720,7 @@
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Arabic Quran (Hafs Uthmani &amp; formats)</p>
           <p><a class="text-emerald-300 underline" href="https://alquran.cloud/" target="_blank" rel="noopener noreferrer">Al Quran Cloud</a> — standard editions (e.g. <code class="text-slate-400">quran-uthmani</code>, Tajweed, simple scripts). Based on widely used mushaf text (Tanzil / Islamic Network catalog).</p>
-          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com</a> — Indo-Pak / 16-line mushaf script (<code class="text-slate-400">text_indopak</code>) and 604-page line layout (<code class="text-slate-400">line_number</code>).</p>
+          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com</a> — Hifzi / Indo-Pak Naskh (<code class="text-slate-400">text_indopak</code>) and 604-page line positions (<code class="text-slate-400">line_number</code>) for 16-line Hifz-style reading.</p>
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">English translation (default)</p>
@@ -744,6 +906,11 @@
       surahLoadController: null,
       searchDebounceTimer: null,
       mushafPageNum: parseInt(localStorage.getItem('quran_mushaf_page') || '1', 10) || 1,
+      mushafPageCache: {},
+      mushafLastRenderedPage: null,
+      mushafPageTransitionId: 0,
+      readerControlsExpanded: localStorage.getItem('quran_reader_controls_expanded') !== '0',
+      readerControlsPinnedOpen: false,
       deferredPwaPrompt: null,
       bookmarks: (() => {
         try {
@@ -828,8 +995,8 @@
 
     // Quran text formats (alquran.cloud — same families as Quran-in-Word / mushaf tools)
     const QURAN_TEXT_FORMATS = [
-      { key: 'quran-indopak-16line', edition: null, group: 'Indo-Pak — 16 Line Mushaf', label: 'Indo-Pak — 16-line script (by ayah)', mode: 'indopak' },
-      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Indo-Pak — 16 Line Mushaf', label: 'Indo-Pak — 16-line mushaf (page view)', mode: 'indopak-page' },
+      { key: 'quran-indopak-16line', edition: null, group: 'Hifzi — 16-Line Mushaf (Indo-Pak Naskh)', label: 'Hifzi — Indo-Pak Naskh (by ayah)', mode: 'indopak' },
+      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Hifzi — 16-Line Mushaf (Indo-Pak Naskh)', label: 'Hifzi — 16 lines / page (Hifz layout)', mode: 'indopak-page' },
       { key: 'quran-uthmani', edition: 'quran-uthmani', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Madinah Mushaf (Hafs)', mode: 'arabic' },
       { key: 'quran-uthmani-min', edition: 'quran-uthmani-min', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — light diacritics', mode: 'arabic' },
       { key: 'quran-unicode', edition: 'quran-unicode', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Unicode computer font', mode: 'arabic' },
@@ -858,6 +1025,7 @@
     };
 
     const MUSHAF_PAGE_COUNT = 604;
+    const HIFZI_LINES_PER_PAGE = 16;
 
     function isMushafPageScript(scriptKey) {
       return getScriptFormat(scriptKey).mode === 'indopak-page';
@@ -1055,10 +1223,10 @@
     function getScriptSourceAttribution(scriptKey) {
       const fmt = getScriptFormat(scriptKey);
       if (fmt.mode === 'indopak') {
-        return 'Quran: Quran.com · Indo-Pak script (Hafs, text_indopak).';
+        return 'Quran: Quran.com · Hifzi Indo-Pak Naskh (Hafs, text_indopak).';
       }
       if (fmt.mode === 'indopak-page') {
-        return 'Quran: Quran.com · Indo-Pak 604-page mushaf (text_indopak + line_number).';
+        return 'Quran: Quran.com · Hifzi 16-line page grid (604 pages, text_indopak + line_number).';
       }
       if (fmt.mode === 'transliteration') {
         return `Quran: Al Quran Cloud · ${fmt.edition} (transliteration).`;
@@ -1087,6 +1255,67 @@
         getTafsirSourceAttribution(state.currentTafsirKey),
         'Tap ℹ️ for full source list.',
       ].join(' ');
+    }
+
+    function isMobileReaderViewport() {
+      return window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    function isAnyTafsirPanelOpen() {
+      return [...document.querySelectorAll('[id^="tafsir-box-"]')].some((box) => !box.classList.contains('hidden'));
+    }
+
+    function isMushafPageViewActive() {
+      return isMushafPageScript(state.currentScriptKey) && Boolean(document.getElementById('mushafViewport'));
+    }
+
+    function updateReaderCollapsedSummary() {
+      const summary = document.getElementById('readerCollapsedSummary');
+      if (!summary) return;
+      const surahLabel = surahSelect?.options[surahSelect.selectedIndex]?.text?.replace(/\s+/g, ' ').trim() || 'Surah';
+      const tafsirLabel = tafsirSelect?.options[tafsirSelect.selectedIndex]?.text?.trim() || 'Tafsir';
+      const mode = isMushafPageViewActive() ? `Page ${state.mushafPageNum}` : surahLabel.split('(')[0].trim();
+      summary.textContent = `${mode} · ${tafsirLabel}`;
+    }
+
+    function syncReaderFocusMode() {
+      const advanced = document.getElementById('readerAdvancedControls');
+      const collapsedBar = document.getElementById('readerControlsCollapsedBar');
+      const mobileToggle = document.getElementById('btnToggleReaderControlsMobile');
+      const expandBtn = document.getElementById('btnExpandReaderControls');
+      const mobile = isMobileReaderViewport();
+      const autoFocus = mobile && (isAnyTafsirPanelOpen() || isMushafPageViewActive());
+      const shouldCollapse = mobile && (autoFocus || !state.readerControlsExpanded) && !state.readerControlsPinnedOpen;
+
+      document.body.classList.toggle('reader-focus-mode', mobile && autoFocus);
+
+      if (advanced) {
+        advanced.classList.toggle('is-collapsed', shouldCollapse);
+      }
+      if (collapsedBar) {
+        collapsedBar.classList.toggle('hidden', !mobile || !shouldCollapse);
+      }
+      if (mobileToggle) {
+        mobileToggle.setAttribute('aria-expanded', shouldCollapse ? 'false' : 'true');
+      }
+      if (expandBtn) {
+        expandBtn.textContent = state.readerControlsPinnedOpen ? 'Hide controls' : 'Show controls';
+      }
+      updateReaderCollapsedSummary();
+    }
+
+    function setReaderControlsExpanded(expanded, { pin = false } = {}) {
+      state.readerControlsExpanded = expanded;
+      state.readerControlsPinnedOpen = pin && expanded;
+      localStorage.setItem('quran_reader_controls_expanded', expanded ? '1' : '0');
+      syncReaderFocusMode();
+    }
+
+    function closeAllTafsirPanelsExcept(exceptAyahNum = null) {
+      document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
+        if (exceptAyahNum != null && box.id === `tafsir-box-${exceptAyahNum}`) return;
+        box.classList.add('hidden');
+      });
     }
 
     function getTafsirContentClassName(lang) {
@@ -1119,7 +1348,7 @@
         return 'mb-3 dir-rtl';
       }
       if (fmt.mode === 'indopak') {
-        return 'indopak-text text-right text-xl text-emerald-200 mb-3 dir-rtl';
+        return 'hifzi-naskh-text text-right text-xl text-emerald-200 mb-3 dir-rtl';
       }
       return 'arabic-text text-right text-2xl text-emerald-300 mb-3 dir-rtl';
     }
@@ -1148,6 +1377,8 @@
       updateBookmarkIndicator();
       setupAudioPlayerEvents();
       updateContentSourceHints();
+      syncReaderFocusMode();
+      window.addEventListener('resize', () => syncReaderFocusMode(), { passive: true });
     });
 
     // PWA & IOS INSTALL PROMPT LOGIC
@@ -1315,6 +1546,8 @@
           state.currentSurahEnData = enData.data;
           renderSurahHeader(arSurahPayload);
           renderVerses(arSurahPayload.ayahs, enData.data.ayahs);
+          closeAllTafsirPanelsExcept();
+          syncReaderFocusMode();
           const searchInputEl = document.getElementById('searchInput');
           if (searchInputEl?.value) searchInputEl.value = '';
 
@@ -1339,48 +1572,179 @@
       }
     }
 
-    function renderMushafPageHeader(pageNum, lineCount) {
+    function buildHifziSixteenLineSlots(lines) {
+      const slots = Array.from({ length: HIFZI_LINES_PER_PAGE }, (_, i) => ({
+        line: i + 1,
+        text: '',
+      }));
+      for (const entry of lines) {
+        const slotIndex = entry.line - 1;
+        if (slotIndex >= 0 && slotIndex < HIFZI_LINES_PER_PAGE) {
+          slots[slotIndex].text = entry.text;
+        }
+      }
+      return slots;
+    }
+
+    function renderMushafPageHeader(pageNum, filledLineCount) {
       if (!surahHeaderCard) return;
       surahTitleAr.textContent = 'القرآن الكريم';
-      surahTitleEn.textContent = 'Indo-Pak 16-line mushaf';
-      surahMeta.textContent = `Page ${pageNum} of ${MUSHAF_PAGE_COUNT} • ${lineCount} lines on this page`;
-      headerSubtitle.textContent = `Mushaf page ${pageNum}`;
+      surahTitleEn.textContent = 'Hifzi mushaf · 16 lines per page';
+      surahMeta.textContent = `Page ${pageNum} of ${MUSHAF_PAGE_COUNT} · ${filledLineCount} / ${HIFZI_LINES_PER_PAGE} lines with text`;
+      headerSubtitle.textContent = `Indo-Pak Naskh · swipe or tap edges to turn page`;
       bismillahContainer.classList.add('hidden');
       surahHeaderCard.classList.remove('hidden');
     }
 
-    function renderMushafPage(pageNum, lineGroups) {
-      if (!versesList) return;
-      const lines = lineGroups.lines;
-      const paddedLines = [...lines];
-      while (paddedLines.length < 16) {
-        paddedLines.push({ line: paddedLines.length + 1, text: '' });
-      }
+    function resolveMushafPageDirection(targetPage, previousPage, explicitDirection) {
+      if (explicitDirection === 'forward' || explicitDirection === 'back') return explicitDirection;
+      if (targetPage > previousPage) return 'forward';
+      if (targetPage < previousPage) return 'back';
+      return 'none';
+    }
 
-      versesList.innerHTML = `
-        <div class="mushaf-page-frame">
+    function waitForMushafAnimation(el, fallbackMs = 480) {
+      return new Promise((resolve) => {
+        if (!el) {
+          resolve();
+          return;
+        }
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        el.addEventListener('animationend', finish, { once: true });
+        setTimeout(finish, fallbackMs);
+      });
+    }
+
+    function ensureMushafViewport() {
+      if (!versesList) return null;
+      let viewport = document.getElementById('mushafViewport');
+      if (!viewport) {
+        versesList.innerHTML = `
+          <div id="mushafViewport" class="mushaf-viewport">
+            <button type="button" class="mushaf-edge-tap mushaf-edge-tap--prev" aria-label="Previous page" onclick="navigateMushafPage(-1)"></button>
+            <button type="button" class="mushaf-edge-tap mushaf-edge-tap--next" aria-label="Next page" onclick="navigateMushafPage(1)"></button>
+          </div>
+        `;
+        viewport = document.getElementById('mushafViewport');
+        setupMushafSwipeHandlers(viewport);
+      }
+      return viewport;
+    }
+
+    function setupMushafSwipeHandlers(viewport) {
+      if (!viewport || viewport.dataset.swipeBound === '1') return;
+      viewport.dataset.swipeBound = '1';
+      let startX = 0;
+      let startY = 0;
+      viewport.addEventListener(
+        'touchstart',
+        (event) => {
+          if (event.touches.length !== 1) return;
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        },
+        { passive: true }
+      );
+      viewport.addEventListener(
+        'touchend',
+        (event) => {
+          const touch = event.changedTouches[0];
+          if (!touch) return;
+          const dx = touch.clientX - startX;
+          const dy = touch.clientY - startY;
+          if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+          if (dx < 0) navigateMushafPage(1);
+          else navigateMushafPage(-1);
+        },
+        { passive: true }
+      );
+    }
+
+    function buildMushafPageSheetHtml(pageNum, lineGroups) {
+      const slots = buildHifziSixteenLineSlots(lineGroups.lines);
+      const prevDisabled = pageNum <= 1;
+      const nextDisabled = pageNum >= MUSHAF_PAGE_COUNT;
+      return `
+        <div class="mushaf-page-sheet mushaf-page-frame">
           <div class="flex items-center justify-between gap-2 mb-3 px-1">
-            <button type="button" onclick="loadMushafPage(${Math.max(1, pageNum - 1)})" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${pageNum <= 1 ? 'opacity-40 pointer-events-none' : ''}" ${pageNum <= 1 ? 'disabled' : ''}>
+            <button type="button" onclick="navigateMushafPage(-1)" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${prevDisabled ? 'opacity-40 pointer-events-none' : ''}" ${prevDisabled ? 'disabled' : ''}>
               <i class="ph ph-caret-left"></i> Prev
             </button>
             <span class="text-xs font-bold text-brand-400">Page ${pageNum} / ${MUSHAF_PAGE_COUNT}</span>
-            <button type="button" onclick="loadMushafPage(${Math.min(MUSHAF_PAGE_COUNT, pageNum + 1)})" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${pageNum >= MUSHAF_PAGE_COUNT ? 'opacity-40 pointer-events-none' : ''}" ${pageNum >= MUSHAF_PAGE_COUNT ? 'disabled' : ''}>
+            <button type="button" onclick="navigateMushafPage(1)" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${nextDisabled ? 'opacity-40 pointer-events-none' : ''}" ${nextDisabled ? 'disabled' : ''}>
               Next <i class="ph ph-caret-right"></i>
             </button>
           </div>
-          <div class="mushaf-page-lines indopak-text text-emerald-100/95">
-            ${paddedLines
-              .slice(0, 16)
-              .map((ln) => `<div class="mushaf-line">${ln.text ? escapeHtml(ln.text) : '&nbsp;'}</div>`)
+          <div class="mushaf-page-lines hifzi-naskh-text text-emerald-100/95" aria-label="Hifzi mushaf sixteen line page">
+            ${slots
+              .map((ln) => {
+                const filled = Boolean(ln.text);
+                const klass = filled ? 'mushaf-line mushaf-line--filled' : 'mushaf-line mushaf-line--blank';
+                const body = filled ? escapeHtml(ln.text) : '';
+                return `<div class="${klass}" data-line="${ln.line}">${body}</div>`;
+              })
               .join('')}
           </div>
-          <p class="text-[10px] text-slate-500 text-center mt-3 px-2">Hafs · Indo-Pak script from Quran.com (text_indopak) · 604-page line layout — not edited in this app</p>
+          <p class="text-[10px] text-slate-500 text-center mt-3 px-2 leading-relaxed">Swipe left/right or tap page edges · Hifzi ${HIFZI_LINES_PER_PAGE}-line grid</p>
         </div>
       `;
     }
 
+    function mountMushafPageSheet(viewport, pageNum, lineGroups, direction) {
+      const filledCount = buildHifziSixteenLineSlots(lineGroups.lines).filter((s) => s.text).length;
+      const enterClass = direction === 'forward' ? 'is-enter-forward' : direction === 'back' ? 'is-enter-back' : '';
+      const sheetHtml = buildMushafPageSheetHtml(pageNum, lineGroups);
+      const edgePrev = viewport.querySelector('.mushaf-edge-tap--prev');
+      const edgeNext = viewport.querySelector('.mushaf-edge-tap--next');
+      viewport.querySelectorAll('.mushaf-page-sheet').forEach((node) => node.remove());
+      viewport.insertAdjacentHTML('beforeend', sheetHtml);
+      const sheet = viewport.querySelector('.mushaf-page-sheet');
+      if (sheet && enterClass) {
+        sheet.classList.add(enterClass);
+      }
+      if (edgePrev) viewport.appendChild(edgePrev);
+      if (edgeNext) viewport.appendChild(edgeNext);
+      renderMushafPageHeader(pageNum, filledCount);
+      state.mushafLastRenderedPage = pageNum;
+    }
+
+    function prefetchMushafPage(pageNum) {
+      const page = parseInt(pageNum, 10);
+      if (page < 1 || page > MUSHAF_PAGE_COUNT || state.mushafPageCache[page]) return;
+      fetchMushafPageLineGroups(page)
+        .then((data) => {
+          state.mushafPageCache[page] = data;
+        })
+        .catch(() => {});
+    }
+
+    function navigateMushafPage(delta) {
+      const step = parseInt(delta, 10);
+      if (!step) return;
+      const target = state.mushafPageNum + step;
+      if (target < 1 || target > MUSHAF_PAGE_COUNT) return;
+      loadMushafPage(target, {
+        direction: step > 0 ? 'forward' : 'back',
+        keepScript: true,
+      });
+    }
+    window.navigateMushafPage = navigateMushafPage;
+
     async function loadMushafPage(pageNum, options = {}) {
       const page = Math.min(MUSHAF_PAGE_COUNT, Math.max(1, parseInt(pageNum, 10) || 1));
+      const previousPage = state.mushafLastRenderedPage ?? state.mushafPageNum;
+      const direction = resolveMushafPageDirection(page, previousPage, options.direction);
+      const transitionId = ++state.mushafPageTransitionId;
+
+      if (page === state.mushafLastRenderedPage && options.force !== true && direction === 'none') {
+        return;
+      }
+
       state.mushafPageNum = page;
       localStorage.setItem('quran_mushaf_page', String(page));
       stopAudio();
@@ -1395,12 +1759,29 @@
       state.surahLoadController = new AbortController();
       const { signal } = state.surahLoadController;
 
+      const viewport = ensureMushafViewport();
+      if (!viewport) return;
+
+      const existingSheet = viewport.querySelector('.mushaf-page-sheet');
+      if (existingSheet && direction !== 'none') {
+        existingSheet.classList.add(direction === 'forward' ? 'is-exit-forward' : 'is-exit-back');
+        await waitForMushafAnimation(existingSheet, 360);
+        if (transitionId !== state.mushafPageTransitionId) return;
+      }
+
+      viewport.classList.add('is-loading');
       if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-      if (versesList) versesList.innerHTML = '';
       if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
 
       try {
-        const { lines, verses } = await fetchMushafPageLineGroups(page, signal);
+        let pageData = state.mushafPageCache[page];
+        if (!pageData) {
+          pageData = await fetchMushafPageLineGroups(page, signal);
+          state.mushafPageCache[page] = pageData;
+        }
+        if (transitionId !== state.mushafPageTransitionId) return;
+
+        const { lines, verses } = pageData;
         state.currentSurahData = {
           number: state.currentSurahNum,
           englishName: `Page ${page}`,
@@ -1412,16 +1793,24 @@
           })),
         };
         state.currentSurahEnData = { ayahs: [] };
-        renderMushafPageHeader(page, lines.length);
-        renderMushafPage(page, { lines });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        mountMushafPageSheet(viewport, page, { lines }, direction);
+        prefetchMushafPage(page + 1);
+        prefetchMushafPage(page - 1);
+        viewport.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (isMobileReaderViewport()) {
+          state.readerControlsExpanded = false;
+          state.readerControlsPinnedOpen = false;
+        }
+        syncReaderFocusMode();
       } catch (err) {
         if (err?.name === 'AbortError') return;
         console.error('Error loading mushaf page:', err);
         if (versesList) {
           versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load mushaf page. Check connection.</div>`;
+          state.mushafLastRenderedPage = null;
         }
       } finally {
+        viewport.classList.remove('is-loading');
         if (loadingSpinner) loadingSpinner.classList.add('hidden');
       }
     }
@@ -1729,7 +2118,13 @@
     function openMushafPageFromPicker(pageNum) {
       const pageModal = document.getElementById('pageModal');
       if (pageModal) pageModal.classList.add('hidden');
-      loadMushafPage(pageNum);
+      const target = parseInt(pageNum, 10) || 1;
+      const previous = state.mushafPageNum || 1;
+      loadMushafPage(target, {
+        direction: target > previous ? 'forward' : target < previous ? 'back' : 'none',
+        keepScript: true,
+        force: true,
+      });
     }
     window.openMushafPageFromPicker = openMushafPageFromPicker;
 
@@ -1912,10 +2307,18 @@
 
       if (!box.classList.contains('hidden')) {
         box.classList.add('hidden');
+        state.readerControlsPinnedOpen = false;
+        syncReaderFocusMode();
         return;
       }
 
+      closeAllTafsirPanelsExcept(ayahNum);
       box.classList.remove('hidden');
+      if (isMobileReaderViewport()) {
+        state.readerControlsExpanded = false;
+        state.readerControlsPinnedOpen = false;
+      }
+      syncReaderFocusMode();
       const tafsirMeta = TAFSIR_ENDPOINTS[state.currentTafsirKey] || TAFSIR_ENDPOINTS['en_ibn_kathir'];
       if (badge) badge.textContent = tafsirMeta.name;
 
@@ -1924,6 +2327,8 @@
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
       if (state.tafsirCache[cacheKey]) {
         content.innerHTML = wrapTafsirWithSourceFooter(state.tafsirCache[cacheKey]);
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        syncReaderFocusMode();
         return;
       }
 
@@ -1949,6 +2354,8 @@
 
         state.tafsirCache[cacheKey] = text;
         content.innerHTML = wrapTafsirWithSourceFooter(text);
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        syncReaderFocusMode();
       } catch (err) {
         console.warn('Tafsir load failed', err);
         content.innerHTML = `<span class="text-red-400">Failed to load Tafsir. Please check connection.</span>`;
@@ -1987,9 +2394,19 @@
             loadMushafPage(state.mushafPageNum || 1, { keepScript: true });
           } else {
             loadSurah(state.currentSurahNum);
+            syncReaderFocusMode();
           }
         });
       }
+
+      document.getElementById('btnToggleReaderControlsMobile')?.addEventListener('click', () => {
+        const advanced = document.getElementById('readerAdvancedControls');
+        const collapsed = advanced?.classList.contains('is-collapsed');
+        setReaderControlsExpanded(Boolean(collapsed), { pin: Boolean(collapsed) });
+      });
+      document.getElementById('btnExpandReaderControls')?.addEventListener('click', () => {
+        setReaderControlsExpanded(true, { pin: true });
+      });
 
       if (reciterSelect) {
         reciterSelect.addEventListener('change', (e) => {
