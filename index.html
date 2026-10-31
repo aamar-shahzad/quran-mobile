@@ -106,6 +106,92 @@
     .bengali-text {
       font-family: 'Noto Sans Bengali', sans-serif;
     }
+    .tafsir-panel {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      border-radius: 0.75rem;
+      padding: 0.75rem 0.85rem;
+    }
+    .tafsir-content {
+      user-select: text;
+      -webkit-user-select: text;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      color: #e2e8f0;
+      font-size: clamp(0.9375rem, 3.7vw, 1.0625rem);
+      line-height: 1.72;
+      letter-spacing: 0.01em;
+    }
+    .tafsir-content p {
+      margin: 0 0 1rem;
+    }
+    .tafsir-content p:last-of-type {
+      margin-bottom: 0;
+    }
+    .tafsir-content h1,
+    .tafsir-content h2,
+    .tafsir-content h3,
+    .tafsir-content h4 {
+      margin: 1.15rem 0 0.6rem;
+      line-height: 1.45;
+      font-weight: 700;
+      color: #ecfdf5;
+    }
+    .tafsir-content h1:first-child,
+    .tafsir-content h2:first-child,
+    .tafsir-content h3:first-child,
+    .tafsir-content h4:first-child {
+      margin-top: 0;
+    }
+    .tafsir-content ul,
+    .tafsir-content ol {
+      margin: 0.65rem 0 1rem;
+      padding-inline-start: 1.15rem;
+    }
+    .tafsir-content li {
+      margin-bottom: 0.55rem;
+      line-height: 1.68;
+    }
+    .tafsir-content li:last-child {
+      margin-bottom: 0;
+    }
+    .tafsir-content--ur {
+      font-size: clamp(1.0625rem, 4.4vw, 1.25rem);
+      line-height: 2.05;
+    }
+    .tafsir-content--ur p {
+      margin-bottom: 1.2rem;
+    }
+    .tafsir-content--ar {
+      font-size: clamp(1.0625rem, 4.1vw, 1.3125rem);
+      line-height: 2.05;
+      text-align: right;
+    }
+    .tafsir-content--ar p {
+      margin-bottom: 1.1rem;
+    }
+    .tafsir-content--bn {
+      font-size: clamp(0.9375rem, 3.6vw, 1.0625rem);
+      line-height: 1.82;
+    }
+    .tafsir-content--bn p {
+      margin-bottom: 1rem;
+    }
+    .tafsir-content--en {
+      line-height: 1.74;
+    }
+    .tafsir-content--en p {
+      margin-bottom: 0.95rem;
+    }
+    .tafsir-content .tafsir-source-footer {
+      margin-top: 0.85rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid rgba(51, 65, 85, 0.9);
+      font-size: 0.625rem;
+      line-height: 1.45;
+      color: #64748b;
+    }
     /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 4px;
@@ -154,7 +240,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=7').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=8').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -1003,8 +1089,24 @@
       ].join(' ');
     }
 
+    function getTafsirContentClassName(lang) {
+      const base = 'tafsir-content';
+      switch (lang) {
+        case 'ur':
+          return `${base} tafsir-content--ur urdu-text`;
+        case 'ar':
+          return `${base} tafsir-content--ar arabic-text text-right`;
+        case 'bn':
+          return `${base} tafsir-content--bn bengali-text`;
+        case 'ru':
+          return `${base} tafsir-content--en font-sans`;
+        default:
+          return `${base} tafsir-content--en font-sans`;
+      }
+    }
+
     function wrapTafsirWithSourceFooter(bodyHtml) {
-      const footer = `<p class="mt-2 pt-2 border-t border-slate-800 text-[10px] text-slate-500">${escapeHtml(getTafsirSourceAttribution(state.currentTafsirKey))}</p>`;
+      const footer = `<p class="tafsir-source-footer">${escapeHtml(getTafsirSourceAttribution(state.currentTafsirKey))}</p>`;
       return `${bodyHtml}${footer}`;
     }
 
@@ -1397,11 +1499,11 @@
             </div>
 
             <!-- Dynamic Tafsir Container -->
-            <div id="tafsir-box-${ayahNum}" class="hidden mt-4 pt-3 border-t border-slate-800">
-              <div class="flex items-center justify-between mb-2">
+            <div id="tafsir-box-${ayahNum}" class="hidden mt-4 pt-3 border-t border-slate-800 tafsir-panel">
+              <div class="flex items-center justify-between mb-2.5">
                 <span id="tafsir-badge-${ayahNum}" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider">Tafsir</span>
               </div>
-              <div id="tafsir-content-${ayahNum}" class="text-xs text-slate-300"></div>
+              <div id="tafsir-content-${ayahNum}" class="tafsir-content tafsir-content--en font-sans"></div>
             </div>
           </div>
         `;
@@ -1817,15 +1919,7 @@
       const tafsirMeta = TAFSIR_ENDPOINTS[state.currentTafsirKey] || TAFSIR_ENDPOINTS['en_ibn_kathir'];
       if (badge) badge.textContent = tafsirMeta.name;
 
-      if (tafsirMeta.lang === 'ur') {
-        content.className = 'urdu-text text-sm text-slate-200';
-      } else if (tafsirMeta.lang === 'ar') {
-        content.className = 'arabic-text text-base text-slate-200 text-right';
-      } else if (tafsirMeta.lang === 'bn') {
-        content.className = 'bengali-text text-xs text-slate-300';
-      } else {
-        content.className = 'font-sans text-xs text-slate-300 leading-relaxed';
-      }
+      content.className = getTafsirContentClassName(tafsirMeta.lang);
 
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
       if (state.tafsirCache[cacheKey]) {
