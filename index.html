@@ -236,19 +236,15 @@
       </button>
     </div>
 
-    <!-- Script, Translation, Reciter & Tafsir Control Toolbar -->
-    <div class="grid grid-cols-3 gap-1.5">
-      <!-- Script Dropdown -->
+    <!-- Script, Reciter & Tafsir Control Toolbar -->
+    <div class="space-y-1.5">
       <div class="relative">
-        <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] rounded-xl py-2 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
-          <option value="uthmani">📜 Uthmani Script</option>
-          <option value="tajweed">🎨 Color Tajweed</option>
-          <option value="simple">📝 Simple Arabic</option>
-          <option value="transliteration">🔤 Transliteration</option>
+        <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] rounded-xl py-2 px-2 pr-6 appearance-none focus:outline-none focus:border-brand-500 font-medium">
+          <option value="quran-uthmani">Loading Quran formats…</option>
         </select>
         <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
       </div>
-
+    <div class="grid grid-cols-2 gap-1.5">
       <!-- Reciter Selection Dropdown -->
       <div class="relative">
         <select id="reciterSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] rounded-xl py-2 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
@@ -287,6 +283,7 @@
         </select>
         <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
       </div>
+    </div>
     </div>
 
     <!-- Quick Search Input (Collapsible) -->
@@ -493,7 +490,7 @@
       currentSurahData: null,
       currentSurahEnData: null,
       currentTafsirKey: localStorage.getItem('quran_tafsir_pref') || 'en_ibn_kathir',
-      currentScriptKey: localStorage.getItem('quran_script_pref') || 'uthmani',
+      currentScriptKey: null,
       currentReciter: localStorage.getItem('quran_reciter_pref') || 'ar.alafasy',
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
@@ -576,6 +573,33 @@
       ]
     };
 
+    // Quran text formats (alquran.cloud — same families as Quran-in-Word / mushaf tools)
+    const QURAN_TEXT_FORMATS = [
+      { key: 'quran-uthmani', edition: 'quran-uthmani', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Madinah Mushaf (Hafs)', mode: 'arabic' },
+      { key: 'quran-uthmani-min', edition: 'quran-uthmani-min', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — light diacritics', mode: 'arabic' },
+      { key: 'quran-unicode', edition: 'quran-unicode', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Unicode computer font', mode: 'arabic' },
+      { key: 'quran-uthmani-quran-academy', edition: 'quran-uthmani-quran-academy', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Kitab / Quran Academy', mode: 'arabic' },
+      { key: 'quran-simple', edition: 'quran-simple', group: 'Simplified Arabic', label: 'Simple — with basic tashkil', mode: 'arabic' },
+      { key: 'quran-simple-clean', edition: 'quran-simple-clean', group: 'Simplified Arabic', label: 'Simple — without tashkil', mode: 'arabic' },
+      { key: 'quran-simple-enhanced', edition: 'quran-simple-enhanced', group: 'Simplified Arabic', label: 'Simple — enhanced (no tashkil)', mode: 'arabic' },
+      { key: 'quran-simple-min', edition: 'quran-simple-min', group: 'Simplified Arabic', label: 'Simple — minimal', mode: 'arabic' },
+      { key: 'quran-tajweed', edition: 'quran-tajweed', group: 'Tajweed', label: 'Tajweed — marked recitation text', mode: 'tajweed' },
+      { key: 'quran-wordbyword', edition: 'quran-wordbyword', group: 'Word-by-word', label: 'Word-by-word — Arabic + gloss', mode: 'wordbyword' },
+      { key: 'quran-wordbyword-2', edition: 'quran-wordbyword-2', group: 'Word-by-word', label: 'Word-by-word — Dr. Shehnaz Shaikh', mode: 'wordbyword' },
+      { key: 'quran-kids', edition: 'quran-kids', group: 'Special editions', label: 'Kids mushaf text', mode: 'arabic' },
+      { key: 'quran-corpus-qd', edition: 'quran-corpus-qd', group: 'Special editions', label: 'Quranic Arabic corpus', mode: 'arabic' },
+      { key: 'en-transliteration', edition: 'en.transliteration', group: 'Transliteration', label: 'English transliteration', mode: 'transliteration' },
+      { key: 'tr-transliteration', edition: 'tr.transliteration', group: 'Transliteration', label: 'Turkish transliteration', mode: 'transliteration' },
+      { key: 'ru-transliteration', edition: 'ru.transliteration', group: 'Transliteration', label: 'Russian transliteration', mode: 'transliteration' }
+    ];
+
+    const SCRIPT_LEGACY_KEYS = {
+      uthmani: 'quran-uthmani',
+      simple: 'quran-simple',
+      tajweed: 'quran-tajweed',
+      transliteration: 'en-transliteration'
+    };
+
     // Multilingual Tafsir Endpoints Configurations
     const TAFSIR_ENDPOINTS = {
       "en_ibn_kathir": { type: "quran_com", slug: "en-tafisr-ibn-kathir", lang: "en", name: "Tafsir Ibn Kathir" },
@@ -595,8 +619,84 @@
       return num.toString().split('').map(digit => arabicDigits[parseInt(digit)] || digit).join('');
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getScriptFormat(scriptKey) {
+      return QURAN_TEXT_FORMATS.find((f) => f.key === scriptKey) || QURAN_TEXT_FORMATS[0];
+    }
+
+    function getScriptEdition(scriptKey) {
+      return getScriptFormat(scriptKey).edition;
+    }
+
+    function resolveStoredScriptKey() {
+      const stored = localStorage.getItem('quran_script_pref') || 'quran-uthmani';
+      const migrated = SCRIPT_LEGACY_KEYS[stored] || stored;
+      const valid = QURAN_TEXT_FORMATS.some((f) => f.key === migrated);
+      return valid ? migrated : 'quran-uthmani';
+    }
+
+    function populateScriptFormats() {
+      if (!scriptSelect) return;
+      const groups = [...new Set(QURAN_TEXT_FORMATS.map((f) => f.group))];
+      scriptSelect.innerHTML = groups
+        .map((group) => {
+          const options = QURAN_TEXT_FORMATS.filter((f) => f.group === group)
+            .map((f) => `<option value="${f.key}">${f.label}</option>`)
+            .join('');
+          return `<optgroup label="${group}">${options}</optgroup>`;
+        })
+        .join('');
+    }
+
+    function buildWordByWordAyahHtml(raw) {
+      const tokens = raw.split('$').filter(Boolean);
+      return tokens
+        .map((token) => {
+          const [ar = '', gloss = ''] = token.split('|');
+          const glossHtml = gloss
+            ? `<span class="text-[10px] text-slate-400 font-sans mt-0.5 dir-ltr leading-tight">${escapeHtml(gloss)}</span>`
+            : '';
+          return `<span class="inline-flex flex-col items-center mx-0.5 mb-1 px-1.5 py-1 bg-slate-900/80 border border-slate-800 rounded-lg max-w-[120px]"><span class="arabic-text text-base text-emerald-300">${escapeHtml(ar)}</span>${glossHtml}</span>`;
+        })
+        .join('');
+    }
+
+    function buildAyahDisplayHtml(text, scriptKey, ayahNum) {
+      const fmt = getScriptFormat(scriptKey);
+      if (fmt.mode === 'wordbyword') {
+        return `<div class="flex flex-wrap justify-end gap-0.5">${buildWordByWordAyahHtml(text)}</div>`;
+      }
+      if (fmt.mode === 'transliteration') {
+        return `<span class="leading-relaxed">${escapeHtml(text)} <span class="text-brand-500 font-semibold">(${ayahNum})</span></span>`;
+      }
+      if (fmt.mode === 'tajweed') {
+        return `<span class="leading-loose text-emerald-200/90">${escapeHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span></span>`;
+      }
+      return `${escapeHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span>`;
+    }
+
+    function getAyahDisplayContainerClass(scriptKey) {
+      const fmt = getScriptFormat(scriptKey);
+      if (fmt.mode === 'transliteration') {
+        return 'text-left text-lg text-slate-200 font-sans mb-3 dir-ltr';
+      }
+      if (fmt.mode === 'wordbyword') {
+        return 'mb-3 dir-rtl';
+      }
+      return 'arabic-text text-right text-2xl text-emerald-300 mb-3 dir-rtl';
+    }
+
     // INITIALIZATION
     window.addEventListener('DOMContentLoaded', () => {
+      state.currentScriptKey = resolveStoredScriptKey();
+      populateScriptFormats();
       initPwaInstaller();
       if (tafsirSelect) tafsirSelect.value = state.currentTafsirKey;
       if (scriptSelect) scriptSelect.value = state.currentScriptKey;
@@ -682,9 +782,7 @@
       if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
 
       try {
-        let scriptEdition = 'quran-uthmani';
-        if (state.currentScriptKey === 'simple') scriptEdition = 'quran-simple';
-        if (state.currentScriptKey === 'tajweed') scriptEdition = 'quran-tajweed';
+        const scriptEdition = getScriptEdition(state.currentScriptKey);
 
         const [arRes, enRes] = await Promise.all([
           fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${scriptEdition}`),
@@ -735,12 +833,16 @@
     function renderVerses(arabicAyahs, englishAyahs) {
       if (!versesList) return;
       
+      const scriptKey = state.currentScriptKey;
+      const ayahBodyClass = getAyahDisplayContainerClass(scriptKey);
+
       versesList.innerHTML = arabicAyahs.map((ayah, i) => {
         const ayahNum = ayah.numberInSurah;
         const verseKey = `${state.currentSurahNum}:${ayahNum}`;
         const bookmarkObj = state.bookmarks.find(b => b.verseKey === verseKey);
         const isBookmarked = !!bookmarkObj;
         const enTranslation = englishAyahs[i] ? englishAyahs[i].text : '';
+        const ayahDisplayHtml = buildAyahDisplayHtml(ayah.text, scriptKey, ayahNum);
 
         return `
           <div id="verse-card-${i}" class="bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200">
@@ -769,9 +871,8 @@
               </div>
             </div>
 
-            <!-- Arabic Ayah Display -->
-            <div class="arabic-text text-right text-2xl text-emerald-300 mb-3" dir="rtl">
-              ${ayah.text} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span>
+            <div class="${ayahBodyClass}">
+              ${ayahDisplayHtml}
             </div>
 
             <!-- English Translation -->
@@ -949,7 +1050,7 @@
       document.getElementById('juzModal').classList.add('hidden');
       if (loadingSpinner) loadingSpinner.classList.remove('hidden');
       try {
-        const res = await fetch(`https://api.alquran.cloud/v1/juz/${juzNum}/quran-uthmani`);
+        const res = await fetch(`https://api.alquran.cloud/v1/juz/${juzNum}/${getScriptEdition(state.currentScriptKey)}`);
         const data = await res.json();
         if (data && data.data && data.data.ayahs.length > 0) {
           const firstAyah = data.data.ayahs[0];
