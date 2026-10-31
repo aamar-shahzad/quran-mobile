@@ -235,6 +235,9 @@
       <a href="https://aamar-shahzad.github.io/hadith-mobile/" class="p-2 text-slate-300 hover:text-brand-400 rounded-xl hover:bg-slate-800 transition" title="Hadith app">
         <i class="ph ph-scroll text-lg"></i>
       </a>
+      <button id="btnOpenSourcesModal" type="button" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Data sources">
+        <i class="ph ph-info text-lg"></i>
+      </button>
       <button id="btnOpenPwaGuide" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Share link & install app">
         <i class="ph ph-share-network text-lg text-emerald-400"></i>
       </button>
@@ -387,6 +390,44 @@
       </div>
       <div id="azkarList" class="space-y-3 overflow-y-auto flex-1 p-1">
         <!-- Azkar Items Loaded via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA SOURCES -->
+  <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 shrink-0">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Authentic data sources</h3>
+        <button type="button" id="closeSourcesModal" class="text-slate-400 hover:text-white p-1"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <div class="overflow-y-auto text-[11px] text-slate-300 space-y-3 pr-1">
+        <p>Text, translation, tafsir, and audio come from established public APIs — not scraped or hand-typed in this app.</p>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Arabic Quran (Hafs Uthmani &amp; formats)</p>
+          <p><a class="text-emerald-300 underline" href="https://alquran.cloud/" target="_blank" rel="noopener noreferrer">Al Quran Cloud</a> — standard editions (e.g. <code class="text-slate-400">quran-uthmani</code>, Tajweed, simple scripts). Based on widely used mushaf text (Tanzil / Islamic Network catalog).</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">English translation (default)</p>
+          <p><code class="text-slate-400">en.sahih</code> on Al Quran Cloud — <strong class="text-slate-200">Sahih International</strong> translation.</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Tafsir</p>
+          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com API</a> (Ibn Kathir, Ma&apos;arif, Urdu/Russian/Bengali tafsirs) and Al Quran Cloud (Jalalayn, Muyassar, Qurtubi, Ahsan al-Bayan).</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Recitation audio</p>
+          <p><a class="text-emerald-300 underline" href="https://islamic.network" target="_blank" rel="noopener noreferrer">Islamic Network CDN</a> — per-ayah MP3 (128kbps) for named reciters (Alafasy, Husary, Sudais, etc.).</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Word-by-word</p>
+          <p>Quran.com API — Uthmani word text + English gloss per word.</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Azkar</p>
+          <p>Curated lines in-app with references (e.g. Sahih Muslim, Hisn al-Muslim) — not from a live API.</p>
+        </div>
+        <p class="text-slate-500 text-[10px]">This app is a reader UI. For fatwa or official mushaf certification, use your local authority&apos;s published mushaf.</p>
       </div>
     </div>
   </div>
@@ -1417,6 +1458,11 @@
       const bookmarksModal = document.getElementById('bookmarksModal');
       const azkarModal = document.getElementById('azkarModal');
       const pwaGuideModal = document.getElementById('pwaGuideModal');
+      const sourcesModal = document.getElementById('sourcesModal');
+
+      document.getElementById('btnOpenSourcesModal')?.addEventListener('click', () => sourcesModal?.classList.remove('hidden'));
+      document.getElementById('closeSourcesModal')?.addEventListener('click', () => sourcesModal?.classList.add('hidden'));
+      bindModalBackdropClose(sourcesModal, () => sourcesModal?.classList.add('hidden'));
 
       document.getElementById('btnOpenJuzModal')?.addEventListener('click', () => juzModal.classList.remove('hidden'));
       document.getElementById('closeJuzModal')?.addEventListener('click', () => juzModal.classList.add('hidden'));
