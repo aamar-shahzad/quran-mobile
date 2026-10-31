@@ -76,6 +76,33 @@
       line-height: 2.2;
       direction: rtl;
     }
+    .indopak-text {
+      font-family: 'Noto Nastaliq Urdu', 'Amiri', serif;
+      line-height: 2.35;
+      word-spacing: 1px;
+      direction: rtl;
+      text-align: justify;
+      text-align-last: center;
+    }
+    .mushaf-page-frame {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      border-radius: 1rem;
+      padding: 0.75rem 0.5rem 1rem;
+    }
+    .mushaf-page-lines {
+      display: grid;
+      grid-template-rows: repeat(16, minmax(1.65rem, auto));
+      gap: 0.15rem;
+    }
+    .mushaf-line {
+      font-size: clamp(1.05rem, 4.2vw, 1.35rem);
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.35rem;
+    }
+    .mushaf-line:nth-child(even) {
+      background: rgba(15, 23, 42, 0.35);
+    }
     .bengali-text {
       font-family: 'Noto Sans Bengali', sans-serif;
     }
@@ -127,7 +154,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=6').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=7').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -264,6 +291,10 @@
         <i class="ph ph-squares-four text-sm"></i>
         <span>Juz</span>
       </button>
+      <button id="btnOpenPageModal" type="button" class="px-3 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-xs font-semibold text-emerald-400 rounded-xl transition active:scale-95 flex items-center space-x-1" title="604 mushaf pages">
+        <i class="ph ph-book-open-text text-sm"></i>
+        <span>Page</span>
+      </button>
 
       <!-- Prev & Next Surah Buttons -->
       <button id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition active:scale-95 disabled:opacity-40">
@@ -282,6 +313,7 @@
         </select>
         <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
       </div>
+      <p id="contentSourceHint" class="text-[10px] text-slate-500 leading-snug px-0.5"></p>
     <div class="grid grid-cols-2 gap-1.5">
       <!-- Reciter Selection Dropdown -->
       <div class="relative">
@@ -289,9 +321,9 @@
           <option value="ar.alafasy">🎙️ Mishary Alafasy</option>
           <option value="ar.abdulbasitmurattal">🎙️ Abdul Basit (Murattal)</option>
           <option value="ar.minshawi">🎙️ Mohamed Al-Minshawi</option>
-          <option value="ar.sudais">🎙️ Abdur-Rahman As-Sudais</option>
+          <option value="ar.abdurrahmaansudais">🎙️ Abdur-Rahman As-Sudais</option>
           <option value="ar.husary">🎙️ Mahmoud Al-Husary</option>
-          <option value="ar.ghamadi">🎙️ Saad Al-Ghamdi</option>
+          <option value="ar.husarymujawwad">🎙️ Al-Husary (Mujawwad)</option>
         </select>
         <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
       </div>
@@ -310,7 +342,7 @@
           </optgroup>
           <optgroup label="🇵🇰 Urdu Tafsirs">
             <option value="ur_bayan">بیان القرآن (Urdu)</option>
-            <option value="ur_ahsan">تفسیر احسن البیان</option>
+            <option value="ur_ahsan">تفسیر ابنِ کثیر (اردو)</option>
           </optgroup>
           <optgroup label="🇷🇺 Russian Tafsir">
             <option value="ru_sadi">Тафсир ас-Саади</option>
@@ -352,6 +384,29 @@
     </div>
   </div>
 
+  <!-- MUSHAF PAGE PICKER (604 pages — Indo-Pak / 16-line layout) -->
+  <div id="pageModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+          <i class="ph ph-book-open-text text-brand-500"></i>
+          <span>Mushaf page (1–604)</span>
+        </h3>
+        <button id="closePageModal" type="button" class="text-slate-400 hover:text-white p-1">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+      <div class="flex items-center gap-2 mb-3">
+        <input id="pageNumberInput" type="number" min="1" max="604" inputmode="numeric" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500" placeholder="Page number" />
+        <button id="btnGoMushafPage" type="button" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-slate-950 text-xs font-bold rounded-xl">Go</button>
+      </div>
+      <p class="text-[10px] text-slate-500 mb-2">Tip: choose <span class="text-slate-400">Indo-Pak — 16-line mushaf (page view)</span> in Script for line-by-line layout.</p>
+      <div id="pageQuickGrid" class="grid grid-cols-6 gap-1.5 overflow-y-auto flex-1 p-0.5">
+        <!-- Pages 1–604 generated in JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- BOOKMARKS & REFLECTION NOTES MODAL -->
   <div id="bookmarksModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[80vh] flex flex-col">
@@ -383,6 +438,7 @@
         </button>
       </div>
       <!-- Azkar Category Tabs -->
+      <p class="text-[10px] text-slate-500 mb-2">Adhkār from established collections; each item cites a source. Quran verses in the reader always come from the APIs above, not from this list.</p>
       <div class="flex space-x-2 border-b border-slate-800 pb-2 mb-3">
         <button onclick="loadAzkarCategory('morning')" class="azkar-tab px-3 py-1 bg-brand-600 text-white rounded-lg text-xs font-medium">Morning</button>
         <button onclick="loadAzkarCategory('evening')" class="azkar-tab px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium">Evening</button>
@@ -398,14 +454,25 @@
   <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 shrink-0">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Authentic data sources</h3>
+        <h3 class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Verified data sources</h3>
         <button type="button" id="closeSourcesModal" class="text-slate-400 hover:text-white p-1"><i class="ph ph-x text-lg"></i></button>
       </div>
       <div class="overflow-y-auto text-[11px] text-slate-300 space-y-3 pr-1">
-        <p>Text, translation, tafsir, and audio come from established public APIs — not scraped or hand-typed in this app.</p>
+        <p>Quran, translation, tafsir, and recitation are loaded live from named APIs. This app does not author or edit that text in code.</p>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <p class="font-semibold text-emerald-400">Authenticity (what we rely on)</p>
+          <ul class="list-disc pl-4 space-y-1 text-slate-400">
+            <li><strong class="text-slate-300">Riwaya:</strong> Hafs &apos;an &apos;Asim — standard for Uthmani and Indo-Pak API editions.</li>
+            <li><strong class="text-slate-300">Uthmani mushaf:</strong> Al Quran Cloud catalog (Tanzil / Islamic Network), e.g. <code class="text-slate-400">quran-uthmani</code>.</li>
+            <li><strong class="text-slate-300">Indo-Pak / 16-line:</strong> Quran.com <code class="text-slate-400">text_indopak</code> + page lines — same Indo-Pak dataset used by Quran.com apps.</li>
+            <li><strong class="text-slate-300">Translation:</strong> Sahih International via <code class="text-slate-400">en.sahih</code> only (default).</li>
+            <li><strong class="text-slate-300">Tafsir:</strong> Named works only; API edition IDs match scholar/work labels in the Tafsir menu.</li>
+          </ul>
+        </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Arabic Quran (Hafs Uthmani &amp; formats)</p>
           <p><a class="text-emerald-300 underline" href="https://alquran.cloud/" target="_blank" rel="noopener noreferrer">Al Quran Cloud</a> — standard editions (e.g. <code class="text-slate-400">quran-uthmani</code>, Tajweed, simple scripts). Based on widely used mushaf text (Tanzil / Islamic Network catalog).</p>
+          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com</a> — Indo-Pak / 16-line mushaf script (<code class="text-slate-400">text_indopak</code>) and 604-page line layout (<code class="text-slate-400">line_number</code>).</p>
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">English translation (default)</p>
@@ -413,11 +480,11 @@
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Tafsir</p>
-          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com API</a> (Ibn Kathir, Ma&apos;arif, Urdu/Russian/Bengali tafsirs) and Al Quran Cloud (Jalalayn, Muyassar, Qurtubi, Ahsan al-Bayan).</p>
+          <p><a class="text-emerald-300 underline" href="https://quran.com" target="_blank" rel="noopener noreferrer">Quran.com API</a> (Ibn Kathir, Ma&apos;arif, Bayan-ul-Quran, Ibn Kathir Urdu, Russian/Bengali tafsirs) and <a class="text-emerald-300 underline" href="https://api.alquran.cloud" target="_blank" rel="noopener noreferrer">AlQuran Cloud</a> (Muyassar, Jalalayn, Qurtubi).</p>
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Recitation audio</p>
-          <p><a class="text-emerald-300 underline" href="https://islamic.network" target="_blank" rel="noopener noreferrer">Islamic Network CDN</a> — per-ayah MP3 (128kbps) for named reciters (Alafasy, Husary, Sudais, etc.).</p>
+          <p><a class="text-emerald-300 underline" href="https://api.alquran.cloud" target="_blank" rel="noopener noreferrer">AlQuran Cloud</a> resolves per-ayah MP3 URLs (Islamic Network CDN; bitrate varies by reciter).</p>
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Word-by-word</p>
@@ -425,9 +492,9 @@
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
           <p class="font-semibold text-emerald-400">Azkar</p>
-          <p>Curated lines in-app with references (e.g. Sahih Muslim, Hisn al-Muslim) — not from a live API.</p>
+          <p>Short adhkār with collection/hadith references (e.g. Sahih Muslim, Hisn al-Muslim). Wording is stored in-app for offline use — verify against the cited book if you need exact isnād or wording.</p>
         </div>
-        <p class="text-slate-500 text-[10px]">This app is a reader UI. For fatwa or official mushaf certification, use your local authority&apos;s published mushaf.</p>
+        <p class="text-slate-500 text-[10px]">Reader UI only — not a fatwa or tajwīd authority. For a certified print mushaf, use your local Islamic authority&apos;s edition.</p>
       </div>
     </div>
   </div>
@@ -578,17 +645,19 @@
       currentSurahNum: 1,
       currentSurahData: null,
       currentSurahEnData: null,
-      currentTafsirKey: localStorage.getItem('quran_tafsir_pref') || 'en_ibn_kathir',
+      currentTafsirKey: 'en_ibn_kathir',
       currentScriptKey: null,
-      currentReciter: localStorage.getItem('quran_reciter_pref') || 'ar.alafasy',
+      currentReciter: 'ar.alafasy',
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
       currentPlayingAyahIndex: -1,
       isPlayingContinuous: false,
       playbackRate: 1.0,
       audioPlayId: 0,
+      audioUrlCache: {},
       surahLoadController: null,
       searchDebounceTimer: null,
+      mushafPageNum: parseInt(localStorage.getItem('quran_mushaf_page') || '1', 10) || 1,
       deferredPwaPrompt: null,
       bookmarks: (() => {
         try {
@@ -673,6 +742,8 @@
 
     // Quran text formats (alquran.cloud — same families as Quran-in-Word / mushaf tools)
     const QURAN_TEXT_FORMATS = [
+      { key: 'quran-indopak-16line', edition: null, group: 'Indo-Pak — 16 Line Mushaf', label: 'Indo-Pak — 16-line script (by ayah)', mode: 'indopak' },
+      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Indo-Pak — 16 Line Mushaf', label: 'Indo-Pak — 16-line mushaf (page view)', mode: 'indopak-page' },
       { key: 'quran-uthmani', edition: 'quran-uthmani', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Madinah Mushaf (Hafs)', mode: 'arabic' },
       { key: 'quran-uthmani-min', edition: 'quran-uthmani-min', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — light diacritics', mode: 'arabic' },
       { key: 'quran-unicode', edition: 'quran-unicode', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Unicode computer font', mode: 'arabic' },
@@ -695,8 +766,90 @@
       uthmani: 'quran-uthmani',
       simple: 'quran-simple',
       tajweed: 'quran-tajweed',
-      transliteration: 'en-transliteration'
+      transliteration: 'en-transliteration',
+      indopak: 'quran-indopak-16line',
+      'quran-indopak': 'quran-indopak-16line',
     };
+
+    const MUSHAF_PAGE_COUNT = 604;
+
+    function isMushafPageScript(scriptKey) {
+      return getScriptFormat(scriptKey).mode === 'indopak-page';
+    }
+
+    function isIndopakAyahScript(scriptKey) {
+      return getScriptFormat(scriptKey).mode === 'indopak';
+    }
+
+    function exitMushafPageToIndopakAyah() {
+      if (!isMushafPageScript(state.currentScriptKey)) return;
+      state.currentScriptKey = 'quran-indopak-16line';
+      localStorage.setItem('quran_script_pref', state.currentScriptKey);
+      if (scriptSelect) scriptSelect.value = state.currentScriptKey;
+    }
+
+    async function fetchQuranComJson(url, signal) {
+      const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+      if (!res.ok) {
+        throw new Error(`Quran.com HTTP ${res.status}`);
+      }
+      return res.json();
+    }
+
+    async function fetchIndopakChapterAyahs(surahNum, signal) {
+      const perPage = 50;
+      let page = 1;
+      const verses = [];
+      while (true) {
+        const data = await fetchQuranComJson(
+          `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=text_indopak,verse_key,page_number&page=${page}&per_page=${perPage}`,
+          signal
+        );
+        verses.push(...(data.verses || []));
+        const totalPages = data.pagination?.total_pages || 1;
+        if (page >= totalPages) break;
+        page += 1;
+      }
+
+      const uthmaniRes = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`, { signal });
+      const uthmaniData = await uthmaniRes.json();
+      if (uthmaniData.code !== 200) {
+        throw new Error(`Global ayah map ${uthmaniData.code}`);
+      }
+      const globalByInSurah = new Map(
+        uthmaniData.data.ayahs.map((a) => [a.numberInSurah, a.number])
+      );
+
+      return verses.map((v) => ({
+        number: globalByInSurah.get(v.verse_number) ?? v.id,
+        numberInSurah: v.verse_number,
+        text: (v.text_indopak || '').trim(),
+        page: v.page_number,
+      }));
+    }
+
+    async function fetchMushafPageLineGroups(pageNum, signal) {
+      const data = await fetchQuranComJson(
+        `https://api.quran.com/api/v4/verses/by_page/${pageNum}?words=true&word_fields=line_number,text_indopak,verse_key`,
+        signal
+      );
+      const lineMap = new Map();
+      for (const verse of data.verses || []) {
+        for (const word of verse.words || []) {
+          const lineNum = word.line_number;
+          if (lineNum == null) continue;
+          const chunk = word.text_indopak || word.text || '';
+          if (!lineMap.has(lineNum)) {
+            lineMap.set(lineNum, { line: lineNum, text: '' });
+          }
+          lineMap.get(lineNum).text += chunk;
+        }
+      }
+      const lines = [...lineMap.values()]
+        .sort((a, b) => a.line - b.line)
+        .map((entry) => ({ ...entry, text: entry.text.trim() }));
+      return { lines, verses: data.verses || [] };
+    }
 
     // Multilingual Tafsir Endpoints Configurations
     const TAFSIR_ENDPOINTS = {
@@ -705,11 +858,40 @@
       "ar_muyassar": { type: "alquran_cloud", edition: "ar.muyassar", lang: "ar", name: "التفسير الميسر" },
       "ar_jalalayn": { type: "alquran_cloud", edition: "ar.jalalayn", lang: "ar", name: "تفسير الجلالين" },
       "ar_qurtubi": { type: "alquran_cloud", edition: "ar.qurtubi", lang: "ar", name: "تفسير القرطبي" },
-      "ur_bayan": { type: "quran_com", slug: "ur-tafseer-bayan-ul-quran", lang: "ur", name: "بیان القرآن" },
-      "ur_ahsan": { type: "alquran_cloud", edition: "ur.ahsan", lang: "ur", name: "تفسیر احسن البیان" },
+      "ur_bayan": { type: "quran_com", slug: "tafsir-bayan-ul-quran", lang: "ur", name: "بیان القرآن" },
+      "ur_ahsan": { type: "quran_com", slug: "tafseer-ibn-e-kaseer-urdu", lang: "ur", name: "تفسیر ابنِ کثیر (اردو)" },
       "ru_sadi": { type: "quran_com", slug: "ru-tafseer-al-saddi", lang: "ru", name: "Тафсир ас-Саади" },
-      "bn_zakaria": { type: "quran_com", slug: "bn-tafseer-zakaria", lang: "bn", name: "তাফসীর জাকারিয়া" }
+      "bn_zakaria": { type: "quran_com", slug: "bn-tafsir-abu-bakr-zakaria", lang: "bn", name: "তাফসীর জাকারিয়া" }
     };
+
+    const VALID_TAFSIR_KEYS = new Set(Object.keys(TAFSIR_ENDPOINTS));
+
+    function normalizeTafsirKey(key) {
+      return VALID_TAFSIR_KEYS.has(key) ? key : 'en_ibn_kathir';
+    }
+
+    async function fetchQuranComTafsir(slug, surahNum, ayahNum) {
+      const res = await fetch(
+        `https://api.quran.com/api/v4/tafsirs/${slug}/by_ayah/${surahNum}:${ayahNum}`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (!res.ok) {
+        throw new Error(`Quran.com tafsir HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const text = data?.tafsir?.text;
+      return text && String(text).trim() ? text : null;
+    }
+
+    async function fetchAlquranCloudTafsir(edition, surahNum, ayahNum) {
+      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surahNum}:${ayahNum}/${edition}`);
+      const data = await res.json();
+      if (data.code !== 200) {
+        throw new Error(`AlQuran Cloud tafsir code ${data.code}`);
+      }
+      const text = data?.data?.text;
+      return text && String(text).trim() ? text : null;
+    }
 
     // Helper: Convert digits to Arabic numerals
     function toArabicNumerals(num) {
@@ -730,7 +912,8 @@
     }
 
     function getScriptEdition(scriptKey) {
-      return getScriptFormat(scriptKey).edition;
+      const edition = getScriptFormat(scriptKey).edition;
+      return edition || 'quran-uthmani';
     }
 
     function resolveStoredScriptKey() {
@@ -777,7 +960,52 @@
       if (fmt.mode === 'tajweed') {
         return `<span class="leading-loose text-emerald-200/90">${escapeHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span></span>`;
       }
+      if (fmt.mode === 'indopak') {
+        return `${escapeHtml(text)} <span class="text-brand-500 font-bold text-base">۝${toArabicNumerals(ayahNum)}</span>`;
+      }
       return `${escapeHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span>`;
+    }
+
+    function getScriptSourceAttribution(scriptKey) {
+      const fmt = getScriptFormat(scriptKey);
+      if (fmt.mode === 'indopak') {
+        return 'Quran: Quran.com · Indo-Pak script (Hafs, text_indopak).';
+      }
+      if (fmt.mode === 'indopak-page') {
+        return 'Quran: Quran.com · Indo-Pak 604-page mushaf (text_indopak + line_number).';
+      }
+      if (fmt.mode === 'transliteration') {
+        return `Quran: Al Quran Cloud · ${fmt.edition} (transliteration).`;
+      }
+      if (fmt.edition) {
+        return `Quran: Al Quran Cloud · ${fmt.edition} · Hafs riwaya.`;
+      }
+      return 'Quran: verified API.';
+    }
+
+    function getTafsirSourceAttribution(tafsirKey) {
+      const meta = TAFSIR_ENDPOINTS[tafsirKey];
+      if (!meta) return 'Tafsir: select a named work in the menu.';
+      if (meta.type === 'quran_com') {
+        return `Tafsir: Quran.com · ${meta.name}.`;
+      }
+      return `Tafsir: Al Quran Cloud · ${meta.name} (${meta.edition}).`;
+    }
+
+    function updateContentSourceHints() {
+      const el = document.getElementById('contentSourceHint');
+      if (!el) return;
+      el.textContent = [
+        getScriptSourceAttribution(state.currentScriptKey),
+        'Translation: Al Quran Cloud · en.sahih (Sahih International).',
+        getTafsirSourceAttribution(state.currentTafsirKey),
+        'Tap ℹ️ for full source list.',
+      ].join(' ');
+    }
+
+    function wrapTafsirWithSourceFooter(bodyHtml) {
+      const footer = `<p class="mt-2 pt-2 border-t border-slate-800 text-[10px] text-slate-500">${escapeHtml(getTafsirSourceAttribution(state.currentTafsirKey))}</p>`;
+      return `${bodyHtml}${footer}`;
     }
 
     function getAyahDisplayContainerClass(scriptKey) {
@@ -788,22 +1016,36 @@
       if (fmt.mode === 'wordbyword') {
         return 'mb-3 dir-rtl';
       }
+      if (fmt.mode === 'indopak') {
+        return 'indopak-text text-right text-xl text-emerald-200 mb-3 dir-rtl';
+      }
       return 'arabic-text text-right text-2xl text-emerald-300 mb-3 dir-rtl';
     }
 
     // INITIALIZATION
     window.addEventListener('DOMContentLoaded', () => {
       state.currentScriptKey = resolveStoredScriptKey();
+      state.currentReciter = normalizeReciterId(localStorage.getItem('quran_reciter_pref') || 'ar.alafasy');
+      localStorage.setItem('quran_reciter_pref', state.currentReciter);
       populateScriptFormats();
       initPwaInstaller();
+      state.currentTafsirKey = normalizeTafsirKey(localStorage.getItem('quran_tafsir_pref') || 'en_ibn_kathir');
+      localStorage.setItem('quran_tafsir_pref', state.currentTafsirKey);
       if (tafsirSelect) tafsirSelect.value = state.currentTafsirKey;
       if (scriptSelect) scriptSelect.value = state.currentScriptKey;
-      if (reciterSelect) reciterSelect.value = state.currentReciter;
+      if (reciterSelect) {
+        reciterSelect.value = state.currentReciter;
+        const reciterName = reciterSelect.options[reciterSelect.selectedIndex]?.text?.replace(/^🎙️\s*/, '') || 'Mishary Alafasy';
+        const audioSubLabel = document.getElementById('audioSubLabel');
+        if (audioSubLabel) audioSubLabel.textContent = `Reciter: ${reciterName}`;
+      }
       fetchSurahList();
       setupEventListeners();
       setupJuzGrid();
+      setupPagePickerGrid();
       updateBookmarkIndicator();
       setupAudioPlayerEvents();
+      updateContentSourceHints();
     });
 
     // PWA & IOS INSTALL PROMPT LOGIC
@@ -870,14 +1112,70 @@
       ).join('');
     }
 
-    function buildAyahAudioUrl(reciter, globalAyahNumber) {
-      return `https://cdn.islamic.network/quran/audio/128/${reciter}/${globalAyahNumber}.mp3`;
+    const RECITER_ID_ALIASES = {
+      'ar.sudais': 'ar.abdurrahmaansudais',
+      'ar.ghamadi': 'ar.husarymujawwad',
+      'ar.saadalghamdi': 'ar.husarymujawwad',
+    };
+
+    const VALID_RECITER_IDS = new Set([
+      'ar.alafasy',
+      'ar.abdulbasitmurattal',
+      'ar.minshawi',
+      'ar.abdurrahmaansudais',
+      'ar.husary',
+      'ar.husarymujawwad',
+    ]);
+
+    function normalizeReciterId(reciterId) {
+      const id = RECITER_ID_ALIASES[reciterId] || reciterId;
+      return VALID_RECITER_IDS.has(id) ? id : 'ar.alafasy';
+    }
+
+    function buildCdnAyahAudioUrl(reciter, globalAyahNumber, bitrate = 128) {
+      return `https://cdn.islamic.network/quran/audio/${bitrate}/${reciter}/${globalAyahNumber}.mp3`;
+    }
+
+    async function resolveAyahAudioUrl(reciter, globalAyahNumber) {
+      const normalizedReciter = normalizeReciterId(reciter);
+      const cacheKey = `${normalizedReciter}:${globalAyahNumber}`;
+      if (state.audioUrlCache[cacheKey]) return state.audioUrlCache[cacheKey];
+
+      const apiController = new AbortController();
+      const apiTimeout = setTimeout(() => apiController.abort(), 15000);
+      try {
+        const res = await fetch(
+          `https://api.alquran.cloud/v1/ayah/${globalAyahNumber}/${normalizedReciter}`,
+          { signal: apiController.signal }
+        );
+        const data = await res.json();
+        if (data.code === 200 && data.data?.audio) {
+          state.audioUrlCache[cacheKey] = data.data.audio;
+          return data.data.audio;
+        }
+      } catch (err) {
+        console.warn('Ayah audio API lookup failed', err);
+      } finally {
+        clearTimeout(apiTimeout);
+      }
+
+      const fallback = buildCdnAyahAudioUrl(normalizedReciter, globalAyahNumber, 128);
+      state.audioUrlCache[cacheKey] = fallback;
+      return fallback;
     }
 
     async function loadSurah(number, targetAyah = null) {
       state.currentSurahNum = parseInt(number, 10);
       updateNavigationButtons();
       stopAudio();
+
+      if (isMushafPageScript(state.currentScriptKey)) {
+        const pageFromAyah = targetAyah && state.currentSurahData?.ayahs
+          ? state.currentSurahData.ayahs.find((a) => a.numberInSurah === targetAyah)?.page
+          : null;
+        await loadMushafPage(pageFromAyah || state.mushafPageNum || 1);
+        return;
+      }
 
       state.surahLoadController?.abort();
       state.surahLoadController = new AbortController();
@@ -889,32 +1187,44 @@
 
       try {
         const scriptEdition = getScriptEdition(state.currentScriptKey);
-
-        const [arRes, enRes] = await Promise.all([
-          fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${scriptEdition}`, { signal }),
-          fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/en.sahih`, { signal })
-        ]);
-
-        const arData = await arRes.json();
+        const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/en.sahih`, { signal });
         const enData = await enRes.json();
 
-        if (arData.code === 200 && enData.code === 200) {
-          state.currentSurahData = arData.data;
+        let arSurahPayload;
+        if (isIndopakAyahScript(state.currentScriptKey)) {
+          const metaRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}`, { signal });
+          const metaData = await metaRes.json();
+          if (metaData.code !== 200) {
+            throw new Error(`Surah meta ${metaData.code}`);
+          }
+          const indopakAyahs = await fetchIndopakChapterAyahs(state.currentSurahNum, signal);
+          arSurahPayload = { ...metaData.data, ayahs: indopakAyahs };
+        } else {
+          const arRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${scriptEdition}`, { signal });
+          const arData = await arRes.json();
+          if (arData.code !== 200) {
+            throw new Error(`Surah Arabic ${arData.code}`);
+          }
+          arSurahPayload = arData.data;
+        }
+
+        if (enData.code === 200) {
+          state.currentSurahData = arSurahPayload;
           state.currentSurahEnData = enData.data;
-          renderSurahHeader(arData.data);
-          renderVerses(arData.data.ayahs, enData.data.ayahs);
+          renderSurahHeader(arSurahPayload);
+          renderVerses(arSurahPayload.ayahs, enData.data.ayahs);
           const searchInputEl = document.getElementById('searchInput');
           if (searchInputEl?.value) searchInputEl.value = '';
 
           if (targetAyah) {
             setTimeout(() => {
-              const ayah = arData.data.ayahs.find((a) => a.numberInSurah === targetAyah);
+              const ayah = arSurahPayload.ayahs.find((a) => a.numberInSurah === targetAyah);
               const element = ayah ? document.getElementById(`verse-card-${ayah.number}`) : null;
               if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
           }
         } else {
-          throw new Error(`Surah API ${arData.code || arRes.status}`);
+          throw new Error(`Surah translation ${enData.code || enRes.status}`);
         }
       } catch (err) {
         if (err?.name === 'AbortError') return;
@@ -926,6 +1236,94 @@
         if (loadingSpinner) loadingSpinner.classList.add('hidden');
       }
     }
+
+    function renderMushafPageHeader(pageNum, lineCount) {
+      if (!surahHeaderCard) return;
+      surahTitleAr.textContent = 'القرآن الكريم';
+      surahTitleEn.textContent = 'Indo-Pak 16-line mushaf';
+      surahMeta.textContent = `Page ${pageNum} of ${MUSHAF_PAGE_COUNT} • ${lineCount} lines on this page`;
+      headerSubtitle.textContent = `Mushaf page ${pageNum}`;
+      bismillahContainer.classList.add('hidden');
+      surahHeaderCard.classList.remove('hidden');
+    }
+
+    function renderMushafPage(pageNum, lineGroups) {
+      if (!versesList) return;
+      const lines = lineGroups.lines;
+      const paddedLines = [...lines];
+      while (paddedLines.length < 16) {
+        paddedLines.push({ line: paddedLines.length + 1, text: '' });
+      }
+
+      versesList.innerHTML = `
+        <div class="mushaf-page-frame">
+          <div class="flex items-center justify-between gap-2 mb-3 px-1">
+            <button type="button" onclick="loadMushafPage(${Math.max(1, pageNum - 1)})" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${pageNum <= 1 ? 'opacity-40 pointer-events-none' : ''}" ${pageNum <= 1 ? 'disabled' : ''}>
+              <i class="ph ph-caret-left"></i> Prev
+            </button>
+            <span class="text-xs font-bold text-brand-400">Page ${pageNum} / ${MUSHAF_PAGE_COUNT}</span>
+            <button type="button" onclick="loadMushafPage(${Math.min(MUSHAF_PAGE_COUNT, pageNum + 1)})" class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 ${pageNum >= MUSHAF_PAGE_COUNT ? 'opacity-40 pointer-events-none' : ''}" ${pageNum >= MUSHAF_PAGE_COUNT ? 'disabled' : ''}>
+              Next <i class="ph ph-caret-right"></i>
+            </button>
+          </div>
+          <div class="mushaf-page-lines indopak-text text-emerald-100/95">
+            ${paddedLines
+              .slice(0, 16)
+              .map((ln) => `<div class="mushaf-line">${ln.text ? escapeHtml(ln.text) : '&nbsp;'}</div>`)
+              .join('')}
+          </div>
+          <p class="text-[10px] text-slate-500 text-center mt-3 px-2">Hafs · Indo-Pak script from Quran.com (text_indopak) · 604-page line layout — not edited in this app</p>
+        </div>
+      `;
+    }
+
+    async function loadMushafPage(pageNum, options = {}) {
+      const page = Math.min(MUSHAF_PAGE_COUNT, Math.max(1, parseInt(pageNum, 10) || 1));
+      state.mushafPageNum = page;
+      localStorage.setItem('quran_mushaf_page', String(page));
+      stopAudio();
+
+      if (!options.keepScript && !isMushafPageScript(state.currentScriptKey)) {
+        state.currentScriptKey = 'quran-indopak-mushaf-page';
+        localStorage.setItem('quran_script_pref', state.currentScriptKey);
+        if (scriptSelect) scriptSelect.value = state.currentScriptKey;
+      }
+
+      state.surahLoadController?.abort();
+      state.surahLoadController = new AbortController();
+      const { signal } = state.surahLoadController;
+
+      if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+      if (versesList) versesList.innerHTML = '';
+      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+
+      try {
+        const { lines, verses } = await fetchMushafPageLineGroups(page, signal);
+        state.currentSurahData = {
+          number: state.currentSurahNum,
+          englishName: `Page ${page}`,
+          ayahs: verses.map((v, i) => ({
+            number: v.id,
+            numberInSurah: v.verse_number || i + 1,
+            text: v.text_indopak || '',
+            page,
+          })),
+        };
+        state.currentSurahEnData = { ayahs: [] };
+        renderMushafPageHeader(page, lines.length);
+        renderMushafPage(page, { lines });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        console.error('Error loading mushaf page:', err);
+        if (versesList) {
+          versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load mushaf page. Check connection.</div>`;
+        }
+      } finally {
+        if (loadingSpinner) loadingSpinner.classList.add('hidden');
+      }
+    }
+    window.loadMushafPage = loadMushafPage;
 
     function renderSurahHeader(surah) {
       if (!surahHeaderCard) return;
@@ -1022,6 +1420,7 @@
       if (typeof continuous === 'boolean') state.isPlayingContinuous = continuous;
       playSingleVerse(index);
     }
+    window.playVerseAudio = playVerseAudio;
 
     function refreshPlayingVerseHighlight() {
       document.querySelectorAll('.playing-verse').forEach((el) => el.classList.remove('playing-verse'));
@@ -1206,6 +1605,32 @@
       juzGrid.innerHTML = html;
     }
 
+    function setupPagePickerGrid() {
+      const grid = document.getElementById('pageQuickGrid');
+      if (!grid) return;
+      let html = '';
+      for (let p = 1; p <= MUSHAF_PAGE_COUNT; p++) {
+        html += `
+          <button type="button" data-mushaf-page="${p}" class="bg-slate-900 border border-slate-800 hover:border-brand-500 text-slate-300 hover:text-brand-400 rounded-lg py-2 font-bold text-[10px] transition">
+            ${p}
+          </button>
+        `;
+      }
+      grid.innerHTML = html;
+      grid.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-mushaf-page]');
+        if (!btn) return;
+        openMushafPageFromPicker(parseInt(btn.getAttribute('data-mushaf-page'), 10));
+      });
+    }
+
+    function openMushafPageFromPicker(pageNum) {
+      const pageModal = document.getElementById('pageModal');
+      if (pageModal) pageModal.classList.add('hidden');
+      loadMushafPage(pageNum);
+    }
+    window.openMushafPageFromPicker = openMushafPageFromPicker;
+
     async function loadJuz(juzNum) {
       document.getElementById('juzModal').classList.add('hidden');
       if (loadingSpinner) loadingSpinner.classList.remove('hidden');
@@ -1214,7 +1639,17 @@
         const data = await res.json();
         if (data && data.data && data.data.ayahs.length > 0) {
           const firstAyah = data.data.ayahs[0];
-          loadSurah(firstAyah.surah.number, firstAyah.numberInSurah);
+          state.currentSurahNum = firstAyah.surah.number;
+          if (surahSelect) surahSelect.value = String(state.currentSurahNum);
+          if (isMushafPageScript(state.currentScriptKey)) {
+            const verseData = await fetchQuranComJson(
+              `https://api.quran.com/api/v4/verses/by_key/${firstAyah.surah.number}:${firstAyah.numberInSurah}?words=false&fields=page_number`
+            );
+            const page = verseData?.verse?.page_number || 1;
+            await loadMushafPage(page, { keepScript: true });
+          } else {
+            loadSurah(firstAyah.surah.number, firstAyah.numberInSurah);
+          }
         }
       } catch (err) {
         console.error('Failed to load Juz mapping', err);
@@ -1312,7 +1747,14 @@
       const playId = ++state.audioPlayId;
       state.currentPlayingAyahIndex = index;
 
-      const audioUrl = buildAyahAudioUrl(state.currentReciter, ayah.number);
+      const audioUrl = await resolveAyahAudioUrl(state.currentReciter, ayah.number);
+      if (playId !== state.audioPlayId) return;
+      if (!audioUrl) {
+        showToast('Audio unavailable for this reciter');
+        stopAudio(false);
+        return;
+      }
+
       quranAudio.pause();
       quranAudio.src = audioUrl;
       quranAudio.playbackRate = state.playbackRate;
@@ -1387,7 +1829,7 @@
 
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
       if (state.tafsirCache[cacheKey]) {
-        content.innerHTML = state.tafsirCache[cacheKey];
+        content.innerHTML = wrapTafsirWithSourceFooter(state.tafsirCache[cacheKey]);
         return;
       }
 
@@ -1399,32 +1841,46 @@
       `;
 
       try {
-        let text = '';
+        let text = null;
         if (tafsirMeta.type === 'quran_com') {
-          const res = await fetch(`https://api.quran.com/api/v4/tafsirs/${tafsirMeta.slug}/by_ayah/${surahNum}:${ayahNum}`);
-          const data = await res.json();
-          text = data.tafsir ? data.tafsir.text : 'Tafsir unavailable for this verse.';
+          text = await fetchQuranComTafsir(tafsirMeta.slug, surahNum, ayahNum);
         } else {
-          const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surahNum}:${ayahNum}/${tafsirMeta.edition}`);
-          const data = await res.json();
-          text = (data.data && data.data.text) ? data.data.text : 'Tafsir unavailable for this verse.';
+          text = await fetchAlquranCloudTafsir(tafsirMeta.edition, surahNum, ayahNum);
+        }
+
+        if (!text) {
+          content.innerHTML = `<span class="text-slate-400">Tafsir unavailable for this verse.</span>`;
+          return;
         }
 
         state.tafsirCache[cacheKey] = text;
-        content.innerHTML = text;
+        content.innerHTML = wrapTafsirWithSourceFooter(text);
       } catch (err) {
+        console.warn('Tafsir load failed', err);
         content.innerHTML = `<span class="text-red-400">Failed to load Tafsir. Please check connection.</span>`;
       }
     }
+    window.toggleTafsirView = toggleTafsirView;
 
     // EVENT LISTENERS & MODAL HANDLERS
     function setupEventListeners() {
-      if (surahSelect) surahSelect.addEventListener('change', (e) => loadSurah(e.target.value));
+      if (surahSelect) {
+        surahSelect.addEventListener('change', (e) => {
+          exitMushafPageToIndopakAyah();
+          loadSurah(e.target.value);
+        });
+      }
 
       if (tafsirSelect) {
         tafsirSelect.addEventListener('change', (e) => {
-          state.currentTafsirKey = e.target.value;
+          state.currentTafsirKey = normalizeTafsirKey(e.target.value);
+          tafsirSelect.value = state.currentTafsirKey;
           localStorage.setItem('quran_tafsir_pref', state.currentTafsirKey);
+          state.tafsirCache = {};
+          updateContentSourceHints();
+          document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
+            if (!box.classList.contains('hidden')) box.classList.add('hidden');
+          });
         });
       }
 
@@ -1432,13 +1888,19 @@
         scriptSelect.addEventListener('change', (e) => {
           state.currentScriptKey = e.target.value;
           localStorage.setItem('quran_script_pref', state.currentScriptKey);
-          loadSurah(state.currentSurahNum);
+          updateContentSourceHints();
+          if (isMushafPageScript(state.currentScriptKey)) {
+            loadMushafPage(state.mushafPageNum || 1, { keepScript: true });
+          } else {
+            loadSurah(state.currentSurahNum);
+          }
         });
       }
 
       if (reciterSelect) {
         reciterSelect.addEventListener('change', (e) => {
-          state.currentReciter = e.target.value;
+          state.currentReciter = normalizeReciterId(e.target.value);
+          reciterSelect.value = state.currentReciter;
           localStorage.setItem('quran_reciter_pref', state.currentReciter);
           const reciterName = reciterSelect.options[reciterSelect.selectedIndex].text;
           document.getElementById('audioSubLabel').textContent = `Reciter: ${reciterName}`;
@@ -1450,8 +1912,20 @@
 
       const btnPrev = document.getElementById('btnPrevSurah');
       const btnNext = document.getElementById('btnNextSurah');
-      if (btnPrev) btnPrev.addEventListener('click', () => { if (state.currentSurahNum > 1) loadSurah(state.currentSurahNum - 1); });
-      if (btnNext) btnNext.addEventListener('click', () => { if (state.currentSurahNum < 114) loadSurah(state.currentSurahNum + 1); });
+      if (btnPrev) {
+        btnPrev.addEventListener('click', () => {
+          if (state.currentSurahNum <= 1) return;
+          exitMushafPageToIndopakAyah();
+          loadSurah(state.currentSurahNum - 1);
+        });
+      }
+      if (btnNext) {
+        btnNext.addEventListener('click', () => {
+          if (state.currentSurahNum >= 114) return;
+          exitMushafPageToIndopakAyah();
+          loadSurah(state.currentSurahNum + 1);
+        });
+      }
 
       // Modals Logic
       const juzModal = document.getElementById('juzModal');
@@ -1467,6 +1941,18 @@
       document.getElementById('btnOpenJuzModal')?.addEventListener('click', () => juzModal.classList.remove('hidden'));
       document.getElementById('closeJuzModal')?.addEventListener('click', () => juzModal.classList.add('hidden'));
       bindModalBackdropClose(juzModal, () => juzModal.classList.add('hidden'));
+
+      const pageModal = document.getElementById('pageModal');
+      const pageNumberInput = document.getElementById('pageNumberInput');
+      document.getElementById('btnOpenPageModal')?.addEventListener('click', () => {
+        if (pageNumberInput) pageNumberInput.value = String(state.mushafPageNum || 1);
+        pageModal?.classList.remove('hidden');
+      });
+      document.getElementById('closePageModal')?.addEventListener('click', () => pageModal?.classList.add('hidden'));
+      bindModalBackdropClose(pageModal, () => pageModal?.classList.add('hidden'));
+      document.getElementById('btnGoMushafPage')?.addEventListener('click', () => {
+        openMushafPageFromPicker(parseInt(pageNumberInput?.value || '1', 10));
+      });
       bindModalBackdropClose(bookmarksModal, () => bookmarksModal.classList.add('hidden'));
       bindModalBackdropClose(azkarModal, () => azkarModal.classList.add('hidden'));
       bindModalBackdropClose(pwaGuideModal, () => pwaGuideModal.classList.add('hidden'));

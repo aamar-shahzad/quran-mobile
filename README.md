@@ -8,14 +8,15 @@ PWA Quran reader with multiple mushaf formats, tafsir, audio, bookmarks, and azk
 
 ## Data sources (authentic APIs)
 
-| Content | Provider | Notes |
-|--------|----------|--------|
-| Arabic Quran text | [Al Quran Cloud](https://alquran.cloud/) | Hafs Uthmani (`quran-uthmani`) and other catalog editions |
-| English translation | Al Quran Cloud `en.sahih` | Sahih International |
-| Tafsir | [Quran.com API](https://quran.com) + Al Quran Cloud | Ibn Kathir, Jalalayn, Muyassar, etc. |
-| Audio | [Islamic Network CDN](https://islamic.network) | Per-ayah recitation MP3 |
-| Word-by-word | Quran.com API | Uthmani + English gloss |
-| Azkar | In-app (referenced) | Hisn al-Muslim / Bukhari-Muslim refs — not API |
+| Content             | Provider                                            | Notes                                                     |
+| ------------------- | --------------------------------------------------- | --------------------------------------------------------- |
+| Arabic Quran text   | [Al Quran Cloud](https://alquran.cloud/)            | Hafs Uthmani (`quran-uthmani`) and other catalog editions |
+| Indo-Pak / 16-line  | [Quran.com API](https://quran.com)                  | `text_indopak` + 604-page `line_number` (Hafs, South Asian mushaf script) |
+| English translation | Al Quran Cloud `en.sahih`                           | Sahih International                                       |
+| Tafsir              | [Quran.com API](https://quran.com) + Al Quran Cloud | Ibn Kathir, Jalalayn, Muyassar, etc.                      |
+| Audio               | [Islamic Network CDN](https://islamic.network)      | Per-ayah recitation MP3                                   |
+| Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                   |
+| Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API            |
 
 In the app: header **info** icon → full source list.
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v6";
+const CACHE_NAME = "quran-mobile-v7";
 
 function isAppShellRequest(url) {
   try {
@@ -55,7 +55,9 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           if (response.ok && isAppShellRequest(url)) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone));
           }
           return response;
         })
@@ -70,7 +72,9 @@ self.addEventListener("fetch", (event) => {
         .then((networkRes) => {
           if (networkRes.ok) {
             const clone = networkRes.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone));
           }
           return networkRes;
         })
