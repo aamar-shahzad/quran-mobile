@@ -14,7 +14,8 @@
   <meta name="description" content="Offline-capable Mobile Quran Reader with Audio & Translations">
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3004/3004609.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   
   <title>Quran Mobile Reader</title>
 
@@ -114,7 +115,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch((err) => {
+        navigator.serviceWorker.register('sw.js?v=3').catch((err) => {
           console.warn('Service worker registration failed', err);
         });
       });

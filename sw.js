@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quran-mobile-v2';
+const CACHE_NAME = 'quran-mobile-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
