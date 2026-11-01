@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v26";
+const CACHE_NAME = "quran-mobile-v27";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -209,9 +209,10 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate" || isAppShellRequest(url)) {
     event.respondWith(
       (async () => {
+        const networkRequest = new Request(event.request, { cache: "no-store" });
         try {
           const response = await fetchWithTimeout(
-            event.request,
+            networkRequest,
             NETWORK_TIMEOUT_MS,
           );
           if (response.ok && isAppShellRequest(url)) {

@@ -10,7 +10,13 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 
 - On install, the service worker tries to cache `index.html`, the manifest, and icons (each request times out after a few seconds so install does not hang).
 - Surah text, tafsir, and audio are cached as you open them. Opening a surah once while online usually makes that surah readable offline later.
-- If the network is slow, navigation falls back to the cached shell instead of waiting indefinitely.
+- Indo-Pak mushaf pages prefetch the previous and next page in the background after each load.
+- If the network is slow, navigation falls back to the cached shell instead of waiting indefinitely. When online, the app checks for updates on load and when you return to the tab; tap **Update** on the green banner if shown.
+
+## Mushaf (Indo-Pak)
+
+- **Reading options → Indo-Pak mushaf (15-line)** switches to 610-page layout from Quran.com (`text_indopak_nastaleeq`).
+- Swipe **right** for the next page, **left** for previous (RTL turn). Nav buttons match: ← next, → previous.
 
 ## Background audio
 
