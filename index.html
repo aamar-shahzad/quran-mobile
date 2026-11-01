@@ -127,11 +127,69 @@
     }
     .continuous-surah-header .surah-title-ar {
       color: var(--accent-text);
+      font-size: 1.125rem;
+      line-height: 1.35;
+      margin: 0;
     }
     .continuous-surah-header .surah-play-all-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
+      min-width: 3.25rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.85rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
       color: var(--accent-text);
       background: var(--accent-soft);
       border: 1px solid var(--accent-border);
+      touch-action: manipulation;
+    }
+    .continuous-surah-header .surah-play-all-btn.is-active {
+      color: #022c22;
+      background: var(--accent-bright);
+      border-color: var(--accent);
+    }
+    html:not(.dark) .continuous-surah-header .surah-play-all-btn.is-active {
+      color: #064e3b;
+    }
+    .continuous-surah-header.is-playback-surah {
+      border-color: var(--accent-border);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+    }
+    .surah-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .surah-banner-text {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+    }
+    .surah-banner-eyebrow {
+      margin: 0 0 0.15rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--icon-muted);
+    }
+    .surah-banner-en {
+      margin: 0.2rem 0 0;
+      font-size: 0.6875rem;
+      line-height: 1.35;
+      color: #94a3b8;
+    }
+    html:not(.dark) .surah-banner-en {
+      color: #64748b;
+    }
+    .surah-play-label {
+      line-height: 1;
     }
     .verse-ayah-num {
       color: var(--accent-text);
@@ -351,13 +409,14 @@
       position: sticky;
       top: 0;
       z-index: 15;
-      margin-bottom: 0.75rem;
-      padding: 0.75rem 1rem;
+      margin-bottom: 0.65rem;
+      padding: 0.65rem 0.75rem;
       border-radius: 1rem;
       border: 1px solid rgba(51, 65, 85, 0.85);
       background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     html:not(.dark) .continuous-surah-header {
       background: rgba(248, 250, 252, 0.95);
@@ -583,11 +642,20 @@
     }
     .verse-card-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 0.5rem;
-      padding-bottom: 0.75rem;
-      margin-bottom: 0.75rem;
+      padding-bottom: 0.55rem;
+      margin-bottom: 0.55rem;
       border-bottom: 1px solid rgb(30 41 59);
+    }
+    .verse-card {
+      border-radius: 1rem;
+      padding: 0.85rem 0.9rem !important;
+    }
+    @media (min-width: 640px) {
+      .verse-card {
+        padding: 1rem 1.1rem !important;
+      }
     }
     .verse-card-toolbar {
       display: flex;
@@ -1326,6 +1394,24 @@
       bottom: var(--audio-bar-h, 0px);
       padding-bottom: 0.75rem;
     }
+    body.audio-bar-visible .surah-play-all-btn {
+      display: none;
+    }
+    body.audio-bar-visible #resumeReadingBanner:not(.hidden) {
+      display: none !important;
+    }
+    body.pwa-promo-visible #resumeReadingBanner:not(.hidden) {
+      display: none !important;
+    }
+    #appUpdateBanner {
+      bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    }
+    body.tap-overlay-visible #appUpdateBanner:not(.hidden) {
+      bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+    body.tap-overlay-visible.audio-bar-visible #appUpdateBanner:not(.hidden) {
+      bottom: calc(var(--audio-bar-h, 5.5rem) + 4.5rem);
+    }
     #surahViewport {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
@@ -1896,7 +1982,7 @@
     </div>
   </div>
 
-  <div id="appUpdateBanner" class="hidden fixed bottom-20 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[70] bg-brand-700 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-brand-500 flex items-center justify-between gap-3">
+  <div id="appUpdateBanner" class="hidden fixed left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[70] bg-brand-700 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-brand-500 flex items-center justify-between gap-3">
     <span>New version available</span>
     <button type="button" id="btnApplyAppUpdate" class="shrink-0 bg-white text-brand-700 font-bold px-3 py-1.5 rounded-lg">Update</button>
   </div>
@@ -1912,7 +1998,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=63').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=65').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -3911,6 +3997,12 @@
       }
     }
 
+    function syncPwaPromoBodyClass() {
+      const banner = document.getElementById('pwaInstallBanner');
+      const visible = banner && !banner.classList.contains('hidden');
+      document.body.classList.toggle('pwa-promo-visible', !!visible);
+    }
+
     async function requestPwaInstall() {
       const installEvent = state.deferredPwaPrompt;
       if (!installEvent) {
@@ -3921,6 +4013,7 @@
         const { outcome } = await installEvent.userChoice;
         state.deferredPwaPrompt = null;
         document.getElementById('pwaInstallBanner')?.classList.add('hidden');
+        syncPwaPromoBodyClass();
         if (outcome === 'accepted') {
           safeStorageSet('quran_pwa_banner_dismiss', '1');
         }
@@ -3944,6 +4037,7 @@
 
       if (isStandalone) {
         banner?.classList.add('hidden');
+        syncPwaPromoBodyClass();
         return;
       }
 
@@ -3954,11 +4048,13 @@
         if (banner && safeStorageGet('quran_pwa_banner_dismiss') !== '1') {
           banner.classList.remove('hidden');
         }
+        syncPwaPromoBodyClass();
       });
 
       window.addEventListener('appinstalled', () => {
         state.deferredPwaPrompt = null;
         banner?.classList.add('hidden');
+        syncPwaPromoBodyClass();
         syncPwaInstallUi();
       });
 
@@ -3982,6 +4078,7 @@
         btnDismiss.addEventListener('click', () => {
           banner.classList.add('hidden');
           safeStorageSet('quran_pwa_banner_dismiss', '1');
+          syncPwaPromoBodyClass();
         });
       }
 
@@ -4885,7 +4982,7 @@
       const indopakAyahUi = isIndopakAyahScript(scriptKey);
       const verseCardClass = indopakAyahUi
         ? 'indopak-ayah-card mushaf-page-card p-3 sm:p-4 transition-all duration-200'
-        : 'bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
+        : 'verse-card bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
       const ayahNumBadgeClass = indopakAyahUi
         ? 'indopak-ayah-num w-7 h-7 shrink-0 rounded-sm font-bold text-[11px] flex items-center justify-center border border-[#c4a574]/70 text-[#5c4a32] bg-[#faf6ee]/90'
         : 'w-7 h-7 shrink-0 rounded-lg verse-ayah-num font-bold text-xs flex items-center justify-center border';
@@ -4956,13 +5053,17 @@
       return `
         <section class="continuous-surah-section space-y-3 sm:space-y-4" data-continuous-surah="${surahNum}">
           <header class="continuous-surah-header" data-continuous-surah="${surahNum}">
-            <h2 class="arabic-text surah-title-ar text-xl font-bold text-center leading-snug">${escapeHtml(titleAr)}</h2>
-            <p class="text-sm font-semibold text-slate-200 text-center">${escapeHtml(titleEn)}</p>
-            <p class="text-[11px] text-slate-400 text-center">${escapeHtml(metaLine)}</p>
-            <button type="button" class="surah-play-all-btn mt-2 w-full py-2 rounded-xl text-xs font-semibold active:scale-[0.98] inline-flex items-center justify-center gap-1.5" onclick="playSurahFromStart(${surahNum})">
-              <i class="ph ph-play-circle text-base" aria-hidden="true"></i>
-              Play surah
-            </button>
+            <div class="surah-banner">
+              <div class="surah-banner-text">
+                <p class="surah-banner-eyebrow">Surah ${surahNum}</p>
+                <h2 class="arabic-text surah-title-ar font-bold leading-snug">${escapeHtml(titleAr)}</h2>
+                <p class="surah-banner-en">${escapeHtml(titleEn)} · ${escapeHtml(metaLine)}</p>
+              </div>
+              <button type="button" class="surah-play-all-btn active:scale-[0.96]" data-surah-play="${surahNum}" onclick="playSurahFromStart(${surahNum})" aria-label="Play surah ${surahNum}">
+                <i class="ph ph-play-circle text-lg" aria-hidden="true"></i>
+                <span class="surah-play-label">Play</span>
+              </button>
+            </div>
           </header>
           ${buildVerseCardsHtml(surahNum, arPayload.ayahs, englishAyahs)}
         </section>`;
@@ -4970,6 +5071,19 @@
 
     async function playSurahFromStart(surahNum) {
       try {
+        if (
+          getPlaybackSurahNum() === surahNum &&
+          state.currentPlayingAyahIndex >= 0 &&
+          quranAudio?.src
+        ) {
+          if (quranAudio.paused) {
+            await quranAudio.play();
+          } else {
+            quranAudio.pause();
+          }
+          syncAudioUi();
+          return;
+        }
         const data = await ensureSurahDataForPlayback(surahNum);
         state.isPlayingContinuous = true;
         await playSingleVerse(0, surahNum, data);
@@ -5071,12 +5185,57 @@
         const clamped = Math.min(100, Math.max(0, progress));
         audioProgressBar.style.width = `${clamped}%`;
         if (audioProgressContainer) audioProgressContainer.setAttribute('aria-valuenow', String(Math.round(clamped)));
+      } else if (audioProgressBar && state.currentPlayingAyahIndex < 0) {
+        audioProgressBar.style.width = '0%';
       }
       updateMediaSessionPositionState();
     }
 
+    function syncSurahSectionPlayButtons() {
+      document.querySelectorAll('.surah-play-all-btn').forEach((btn) => {
+        const surahNum = parseInt(btn.getAttribute('data-surah-play'), 10);
+        if (!Number.isFinite(surahNum)) return;
+        const isPlaybackSurah =
+          state.currentPlayingAyahIndex >= 0 && getPlaybackSurahNum() === surahNum;
+        const playing = isPlaybackSurah && quranAudio && !quranAudio.paused;
+        btn.classList.toggle('is-active', playing);
+        const icon = btn.querySelector('i');
+        const label = btn.querySelector('.surah-play-label');
+        if (icon) {
+          icon.className = playing
+            ? 'ph ph-pause-circle text-lg'
+            : 'ph ph-play-circle text-lg';
+        }
+        if (label) label.textContent = playing ? 'Pause' : 'Play';
+        btn.setAttribute('aria-label', playing ? `Pause surah ${surahNum}` : `Play surah ${surahNum}`);
+      });
+      const playbackNum = state.currentPlayingAyahIndex >= 0 ? getPlaybackSurahNum() : null;
+      document.querySelectorAll('.continuous-surah-header').forEach((header) => {
+        const n = parseInt(header.getAttribute('data-continuous-surah'), 10);
+        header.classList.toggle('is-playback-surah', playbackNum === n);
+      });
+    }
+
+    function scrollPlayingVerseIntoViewIfNeeded() {
+      const ayah = getPlaybackAyah();
+      if (!ayah || isMushafPageScript(state.currentScriptKey) || isAnyTafsirPanelOpen()) return;
+      const card = document.getElementById(`verse-card-${ayah.number}`);
+      const vp = document.getElementById('surahViewport');
+      if (!card || !vp) return;
+      const vpRect = vp.getBoundingClientRect();
+      const rect = card.getBoundingClientRect();
+      const rootStyle = getComputedStyle(document.documentElement);
+      const barH = parseFloat(rootStyle.getPropertyValue('--audio-bar-h')) || 0;
+      const chromeH = parseFloat(rootStyle.getPropertyValue('--reader-chrome-h')) || 0;
+      const topBound = vpRect.top + Math.min(chromeH, 120) + 12;
+      const bottomBound = vpRect.bottom - barH - 16;
+      if (rect.top >= topBound && rect.bottom <= bottomBound) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     function syncAudioUi() {
       refreshPlayingVerseHighlight();
+      syncSurahSectionPlayButtons();
       updateAudioTransportButtons();
       updatePlayerModeBadge();
       updateNowPlayingLabel();
@@ -5571,6 +5730,8 @@
     function showResumeReadingBanner() {
       if (safeStorageGet('quran_resume_banner_dismiss') === '1') return;
       if (new URLSearchParams(window.location.search).get('play')) return;
+      if (document.body.classList.contains('audio-bar-visible')) return;
+      if (!document.getElementById('pwaInstallBanner')?.classList.contains('hidden')) return;
       const last = readPlaybackState();
       const banner = document.getElementById('resumeReadingBanner');
       const label = document.getElementById('resumeReadingLabel');
@@ -5783,12 +5944,7 @@
       const btnPlayContinuous = document.getElementById('btnPlaySurahContinuous');
       if (btnPlayContinuous) {
         btnPlayContinuous.addEventListener('click', async () => {
-          if (state.currentPlayingAyahIndex < 0) {
-            if (!state.currentSurahData?.ayahs?.length) return;
-            state.isPlayingContinuous = true;
-            playSingleVerse(0, state.currentSurahNum, state.currentSurahData);
-            return;
-          }
+          if (state.currentPlayingAyahIndex < 0) return;
           if (quranAudio.paused) {
             try {
               await quranAudio.play();
@@ -5939,12 +6095,11 @@
             quranAudio.pause();
             return;
           }
-          if (audioVerseLabel) {
-            updateNowPlayingLabel();
-          }
+          updateNowPlayingLabel();
           updateMediaSessionForAyah(next);
           preloadNextAyahAudio(nextIndex);
           syncAudioUi();
+          scrollPlayingVerseIntoViewIfNeeded();
           savePlaybackState();
         }).catch(() => showTapToPlayOverlay(`Tap to continue`, nextIndex));
         return;
@@ -6058,6 +6213,7 @@
 
     function hideTapToPlayOverlay() {
       document.getElementById('tapToPlayOverlay')?.classList.add('hidden');
+      document.body.classList.remove('tap-overlay-visible');
     }
 
     function showTapToPlayOverlay(label, index) {
@@ -6066,6 +6222,7 @@
       const overlay = document.getElementById('tapToPlayOverlay');
       if (btn) btn.textContent = label || 'Tap to play';
       overlay?.classList.remove('hidden');
+      document.body.classList.add('tap-overlay-visible');
     }
 
     function savePlaybackState() {
