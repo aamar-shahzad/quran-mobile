@@ -608,59 +608,49 @@
     #tafsirSheetModal .tafsir-sheet-panel {
       display: flex;
       flex-direction: column;
-      min-height: 0;
       overflow: hidden;
       width: 100%;
-      height: min(78vh, 640px);
-      max-height: min(78vh, 640px);
-      padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
-      touch-action: pan-y;
+      height: min(85dvh, 720px);
+      max-height: min(85dvh, 720px);
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
     }
     body.tafsir-sheet-open #tafsirSheetModal:not(.hidden) {
       z-index: 68;
+      pointer-events: auto;
     }
     body.tafsir-sheet-open.audio-bar-visible #tafsirSheetModal .tafsir-sheet-panel {
       margin-bottom: var(--audio-bar-h, 5.5rem);
-      height: min(calc(82vh - var(--audio-bar-h, 5.5rem)), 580px);
-      max-height: min(calc(82vh - var(--audio-bar-h, 5.5rem)), 580px);
+      height: min(calc(85dvh - var(--audio-bar-h, 5.5rem)), 640px);
+      max-height: min(calc(85dvh - var(--audio-bar-h, 5.5rem)), 640px);
     }
     body.tafsir-sheet-open #surahViewport {
       overflow: hidden !important;
-      touch-action: none;
+    }
+    #tafsirSheetModal .tafsir-sheet-chrome {
+      flex: 0 0 auto;
+    }
+    #tafsirSheetModal .tafsir-sheet-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: scroll;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      padding: 0.65rem 1rem 1rem;
+    }
+    #tafsirSheetModal #tafsirSheetContent {
+      overflow: visible;
+      height: auto;
+      min-height: min-content;
+      touch-action: pan-y;
     }
     #tafsirSheetModal .tafsir-sheet-grab {
       flex-shrink: 0;
     }
     #tafsirSheetModal .tafsir-panel-toolbar {
       flex-shrink: 0;
-      background: inherit;
-    }
-    #tafsirSheetAyahContext {
-      flex-shrink: 0;
-      max-height: 5.5rem;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-    }
-    #tafsirSheetModal #tafsirSheetContent {
-      flex: 1 1 0;
-      height: 0;
-      min-height: 0;
-      max-height: none;
-      overflow-x: hidden;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-      outline: none;
-      direction: ltr;
-    }
-    #tafsirSheetModal #tafsirSheetContent .tafsir-content {
-      direction: rtl;
-    }
-    #tafsirSheetModal #tafsirSheetContent .tafsir-content--en {
-      direction: ltr;
+      background: var(--app-surface, #0f172a);
     }
     .tafsir-content {
       user-select: text;
@@ -2005,28 +1995,31 @@
   <!-- TAFSIR BOTTOM SHEET (phones) -->
   <div id="tafsirSheetModal" class="hidden fixed inset-0 z-[68] flex flex-col justify-end pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="tafsirSheetBadge">
     <button type="button" id="tafsirSheetBackdrop" class="tafsir-sheet-backdrop flex-1 w-full bg-slate-950/75 backdrop-blur-sm pointer-events-auto min-h-[12vh]" aria-label="Close tafsir"></button>
-    <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full max-h-[min(78vh,640px)] min-h-0 overflow-hidden">
-      <div class="tafsir-sheet-grab w-10 h-1 rounded-full bg-slate-600 mx-auto mt-2.5 mb-1" aria-hidden="true"></div>
-      <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2 px-4 pt-1 pb-2 border-b border-slate-800/90">
-        <div class="min-w-0 flex-1">
-          <p id="tafsirSheetBadge" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider truncate">Tafsir</p>
-          <p id="tafsirSheetAyahLabel" class="text-xs text-slate-400 tabular-nums">Ayah</p>
-        </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" id="tafsirSheetPrev" class="tafsir-nav-btn" data-tafsir-nav="prev" aria-label="Previous ayah tafsir" title="Previous ayah">
-            <i class="ph ph-caret-left text-base" aria-hidden="true"></i>
-          </button>
-          <button type="button" id="tafsirSheetNext" class="tafsir-nav-btn" data-tafsir-nav="next" aria-label="Next ayah tafsir" title="Next ayah">
-            <i class="ph ph-caret-right text-base" aria-hidden="true"></i>
-          </button>
-          <button type="button" id="tafsirSheetClose" class="tafsir-close-btn" aria-label="Close tafsir">
-            <i class="ph ph-x text-base" aria-hidden="true"></i>
-            <span>Close</span>
-          </button>
+    <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full min-h-0 overflow-hidden">
+      <div class="tafsir-sheet-chrome">
+        <div class="tafsir-sheet-grab w-10 h-1 rounded-full bg-slate-600 mx-auto mt-2.5 mb-1" aria-hidden="true"></div>
+        <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2 px-4 pt-1 pb-2 border-b border-slate-800/90">
+          <div class="min-w-0 flex-1">
+            <p id="tafsirSheetBadge" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider truncate">Tafsir</p>
+            <p id="tafsirSheetAyahLabel" class="text-xs text-slate-400 tabular-nums">Ayah</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" id="tafsirSheetPrev" class="tafsir-nav-btn" data-tafsir-nav="prev" aria-label="Previous ayah tafsir" title="Previous ayah">
+              <i class="ph ph-caret-left text-base" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="tafsirSheetNext" class="tafsir-nav-btn" data-tafsir-nav="next" aria-label="Next ayah tafsir" title="Next ayah">
+              <i class="ph ph-caret-right text-base" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="tafsirSheetClose" class="tafsir-close-btn" aria-label="Close tafsir">
+              <i class="ph ph-x text-base" aria-hidden="true"></i>
+              <span>Close</span>
+            </button>
+          </div>
         </div>
       </div>
-      <div id="tafsirSheetAyahContext" class="hidden px-4 py-2.5 border-b border-slate-800/90 text-sm leading-relaxed text-emerald-100/95 text-right" dir="rtl" aria-label="Ayah text"></div>
-      <div id="tafsirSheetContent" class="tafsir-content tafsir-content--en font-sans"></div>
+      <div id="tafsirSheetScroll" class="tafsir-sheet-scroll">
+        <div id="tafsirSheetContent" class="tafsir-content tafsir-content--en font-sans"></div>
+      </div>
     </div>
   </div>
 
@@ -3320,26 +3313,11 @@
       if (next) {
         next.onclick = () => navigateTafsirView(surahNum, ayahNum, 1);
       }
-      updateTafsirSheetAyahContext(ayahNum);
     }
 
-    function updateTafsirSheetAyahContext(ayahNum) {
-      const el = document.getElementById('tafsirSheetAyahContext');
-      if (!el) return;
-      const ayah = state.currentSurahData?.ayahs?.find((a) => a.numberInSurah === ayahNum);
-      const plain = ayah?.text ? String(ayah.text).replace(/\s+/g, ' ').trim() : '';
-      if (!plain) {
-        el.classList.add('hidden');
-        el.textContent = '';
-        return;
-      }
-      el.classList.remove('hidden');
-      el.dir = getAyahDisplayDir(state.currentScriptKey);
-      const scriptClass = isIndopakAyahScript(state.currentScriptKey)
-        ? 'indopak-nastaleeq-text text-right'
-        : 'arabic-text text-right';
-      el.className = `px-4 py-2.5 border-b border-slate-800/90 text-sm leading-relaxed text-emerald-100/95 ${scriptClass}`;
-      el.textContent = plain;
+    function resetTafsirSheetScroll() {
+      const scrollEl = document.getElementById('tafsirSheetScroll');
+      if (scrollEl) scrollEl.scrollTop = 0;
     }
 
     function closeTafsirSheet() {
@@ -3406,10 +3384,9 @@
       const tafsirMeta = TAFSIR_ENDPOINTS[state.currentTafsirKey] || TAFSIR_ENDPOINTS.en_ibn_kathir;
       if (badgeEl) badgeEl.textContent = tafsirMeta.name;
       const isSheet = contentEl.id === 'tafsirSheetContent';
-      const sheetPad = isSheet ? ' px-4 pb-4 pt-2' : '';
       contentEl.className = isSheet
-        ? `${getTafsirContentClassName(tafsirMeta.lang)}${sheetPad}`
-        : `${getTafsirContentClassName(tafsirMeta.lang)} tafsir-content-scroll${sheetPad}`;
+        ? getTafsirContentClassName(tafsirMeta.lang)
+        : `${getTafsirContentClassName(tafsirMeta.lang)} tafsir-content-scroll`;
 
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
       if (state.tafsirCache[cacheKey]) {
@@ -3444,6 +3421,9 @@
         console.warn('Tafsir load failed', err);
         contentEl.innerHTML = '<span class="text-red-400">Failed to load Tafsir. Please check connection.</span>';
       }
+      if (contentEl.id === 'tafsirSheetContent') {
+        resetTafsirSheetScroll();
+      }
     }
 
     async function loadTafsirIntoPanel(surahNum, ayahNum) {
@@ -3467,7 +3447,7 @@
         const sheetContent = document.getElementById('tafsirSheetContent');
         const sheetBadge = document.getElementById('tafsirSheetBadge');
         await loadTafsirContent(surahNum, ayahNum, sheetContent, sheetBadge);
-        if (sheetContent) sheetContent.scrollTop = 0;
+        resetTafsirSheetScroll();
         measureAudioBarHeight();
         requestAnimationFrame(measureAudioBarHeight);
         if (!isTafsirSheetOpen()) {
@@ -5877,6 +5857,11 @@
       bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
       document.getElementById('tafsirSheetBackdrop')?.addEventListener('click', () => closeTafsirSheet());
       document.getElementById('tafsirSheetClose')?.addEventListener('click', () => closeTafsirSheet());
+      const tafsirSheetScroll = document.getElementById('tafsirSheetScroll');
+      if (tafsirSheetScroll) {
+        tafsirSheetScroll.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        tafsirSheetScroll.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
+      }
       document.getElementById('btnMenuAzkar')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); loadAzkarCategory('morning'); openAppModal('azkarModal'); });
       document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
       document.getElementById('btnMenuShareInstall')?.addEventListener('click', async () => {
