@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v22";
+const CACHE_NAME = "quran-mobile-v23";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -48,7 +48,8 @@ function isRuntimeAsset(url) {
     url.includes("cdn.tailwindcss.com") ||
     url.includes("unpkg.com/@phosphor-icons") ||
     url.includes("fonts.googleapis.com") ||
-    url.includes("fonts.gstatic.com")
+    url.includes("fonts.gstatic.com") ||
+    url.includes("verses.quran.foundation")
   );
 }
 

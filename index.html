@@ -39,6 +39,7 @@
   <!-- Google Fonts for Typography & Multilingual Support -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://verses.quran.foundation" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- Phosphor Icons -->
@@ -99,6 +100,26 @@
       direction: rtl;
       text-align: center;
       letter-spacing: 0.01em;
+    }
+    @font-face {
+      font-family: 'IndoPakNastaleeq';
+      src: url('https://verses.quran.foundation/fonts/quran/hafs/nastaleeq/indopak/indopak-nastaleeq-waqf-lazim-v4.2.1.woff2') format('woff2');
+      font-display: swap;
+    }
+    .indopak-nastaleeq-text {
+      font-family: 'IndoPakNastaleeq', 'Noto Nastaliq Urdu', 'Amiri', serif;
+      direction: rtl;
+    }
+    .mushaf-page-lines {
+      display: flex;
+      flex-direction: column;
+    }
+    .mushaf-page-line {
+      border-bottom: 1px solid rgba(120, 90, 50, 0.28);
+      min-height: 2.1em;
+      padding: 0.25rem 0.2rem;
+      text-align: center;
+      line-height: 2;
     }
     .mushaf-page-card {
       background: linear-gradient(180deg, #faf6ee 0%, #f3ead8 100%);
@@ -783,7 +804,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=22').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=23').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -904,7 +925,7 @@
     </div>
     <div id="mushafPageNav" class="hidden flex items-center justify-center gap-2">
       <button type="button" id="btnPrevMushafPage" class="p-2.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl" aria-label="Previous mushaf page"><i class="ph ph-caret-left text-lg"></i></button>
-      <span id="mushafPageLabel" class="text-xs font-semibold text-emerald-400 min-w-[7rem] text-center">Page 1 / 604</span>
+      <span id="mushafPageLabel" class="text-xs font-semibold text-emerald-400 min-w-[7rem] text-center">Page 1 / 610</span>
       <button type="button" id="btnNextMushafPage" class="p-2.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl" aria-label="Next mushaf page"><i class="ph ph-caret-right text-lg"></i></button>
     </div>
 
@@ -998,7 +1019,7 @@
         </button>
       </div>
       <div class="flex gap-2 mb-3">
-        <input type="number" id="pageJumpInput" min="1" max="604" inputmode="numeric" placeholder="Mushaf page 1–604" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500" aria-label="Mushaf page number">
+        <input type="number" id="pageJumpInput" min="1" max="610" inputmode="numeric" placeholder="Mushaf page 1–610" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500" aria-label="Mushaf page number">
         <button type="button" id="btnJumpMushafPage" class="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl shrink-0">Page</button>
       </div>
       <div id="juzGrid" class="grid grid-cols-5 gap-2 overflow-y-auto p-1">
@@ -1266,6 +1287,10 @@
   <!-- APP JAVASCRIPT ARCHITECTURE -->
   <script>
     // State Management
+    const MUSHAF_PAGE_LAYOUT_ID = 6;
+    const MUSHAF_PAGE_MAX = 610;
+    const MUSHAF_PAGE_LINES = 15;
+
     const state = {
       surahs: [],
       currentSurahNum: 1,
@@ -1275,7 +1300,7 @@
       currentScriptKey: null,
       currentReciter: 'ar.alafasy',
       currentTranslationKey: 'en.sahih',
-      currentMushafPage: Math.min(604, Math.max(1, parseInt(safeStorageGet('quran_mushaf_page', '1'), 10) || 1)),
+      currentMushafPage: Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(safeStorageGet('quran_mushaf_page', '1'), 10) || 1)),
       mushafLoadSeq: 0,
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
@@ -1372,7 +1397,7 @@
     // Quran text formats (alquran.cloud — same families as Quran-in-Word / mushaf tools)
     const QURAN_TEXT_FORMATS = [
       { key: 'quran-indopak-16line', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak Naskh (by ayah)', mode: 'indopak' },
-      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak Mushaf page (604 pages)', mode: 'mushaf_page' },
+      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak 15-line mushaf (610 pages)', mode: 'mushaf_page' },
       { key: 'quran-uthmani', edition: 'quran-uthmani', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Madinah Mushaf (Hafs)', mode: 'arabic' },
       { key: 'quran-uthmani-min', edition: 'quran-uthmani-min', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — light diacritics', mode: 'arabic' },
       { key: 'quran-unicode', edition: 'quran-unicode', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Unicode computer font', mode: 'arabic' },
@@ -1670,7 +1695,7 @@
         return 'Quran: Quran.com · Hifzi Indo-Pak Naskh (Hafs, text_indopak).';
       }
       if (fmt.mode === 'mushaf_page') {
-        return 'Quran: Quran.com · Indo-Pak Mushaf page layout (604 pages, text_indopak).';
+        return `Quran: Quran.com · Indo-Pak 15-line mushaf (mushaf=${MUSHAF_PAGE_LAYOUT_ID}, ${MUSHAF_PAGE_MAX} pages, text_indopak_nastaleeq).`;
       }
       if (fmt.mode === 'transliteration') {
         return `Quran: Al Quran Cloud · ${fmt.edition} (transliteration).`;
@@ -2062,9 +2087,14 @@
       document.getElementById('readerNavSecondary')?.classList.toggle('hidden', mushaf);
     }
 
+    function chapterIdFromVerseKey(verseKey) {
+      const n = parseInt(String(verseKey || '').split(':')[0], 10);
+      return Number.isFinite(n) ? n : 1;
+    }
+
     async function getStartPageForSurah(surahNum, signal) {
       const data = await fetchQuranComJson(
-        `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=page_number&per_page=1`,
+        `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=page_number&mushaf=${MUSHAF_PAGE_LAYOUT_ID}&per_page=1`,
         signal,
       );
       return data.verses?.[0]?.page_number || 1;
@@ -2072,35 +2102,60 @@
 
     async function getPageForSurahAyah(surahNum, ayahNum, signal) {
       const data = await fetchQuranComJson(
-        `https://api.quran.com/api/v4/verses/by_key/${surahNum}:${ayahNum}?words=false&fields=page_number`,
+        `https://api.quran.com/api/v4/verses/by_key/${surahNum}:${ayahNum}?words=false&fields=page_number&mushaf=${MUSHAF_PAGE_LAYOUT_ID}`,
         signal,
       );
       return data.verse?.page_number || (await getStartPageForSurah(surahNum, signal));
     }
 
-    function chapterIdFromVerseKey(verseKey) {
-      const n = parseInt(String(verseKey || '').split(':')[0], 10);
-      return Number.isFinite(n) ? n : 1;
+    function mushafWordText(word) {
+      return (word.text_indopak_nastaleeq || word.text_indopak || word.text || '').trim();
+    }
+
+    function buildMushafLineHtml(verses) {
+      const lineMap = new Map();
+      for (const verse of verses) {
+        for (const word of verse.words || []) {
+          const lineNum = word.line_number;
+          if (!lineNum) continue;
+          if (!lineMap.has(lineNum)) lineMap.set(lineNum, []);
+          lineMap.get(lineNum).push({ word, verse });
+        }
+      }
+      const parts = [];
+      for (let lineNum = 1; lineNum <= MUSHAF_PAGE_LINES; lineNum += 1) {
+        const items = lineMap.get(lineNum) || [];
+        const inner = items
+          .map(({ word, verse }) => {
+            const text = mushafWordText(word);
+            if (!text) return '';
+            if (word.char_type_name === 'end') {
+              const surah = chapterIdFromVerseKey(verse.verse_key);
+              return `${escapeHtml(text)}<button type="button" class="mushaf-ayah-marker" data-surah="${surah}" data-ayah="${verse.verse_number}" aria-label="Play ayah ${verse.verse_number}">${toArabicNumerals(verse.verse_number)}</button>`;
+            }
+            return escapeHtml(text);
+          })
+          .filter(Boolean)
+          .join(' ');
+        parts.push(`<div class="mushaf-page-line" data-line="${lineNum}">${inner || '&nbsp;'}</div>`);
+      }
+      return parts.join('');
     }
 
     async function fetchMushafPageVerses(pageNum, signal) {
-      const base = `https://api.quran.com/api/v4/verses/by_page/${pageNum}?words=false&fields=text_indopak,juz_number&per_page=50`;
-      let page = 1;
-      const verses = [];
-      while (true) {
-        const data = await fetchQuranComJson(`${base}&page=${page}`, signal);
-        verses.push(...(data.verses || []));
-        const totalPages = data.pagination?.total_pages || 1;
-        if (page >= totalPages) break;
-        page += 1;
-      }
-      return verses;
+      const url =
+        `https://api.quran.com/api/v4/verses/by_page/${pageNum}?mushaf=${MUSHAF_PAGE_LAYOUT_ID}` +
+        '&words=true&word_fields=text_indopak_nastaleeq,text_indopak,line_number,char_type_name' +
+        '&fields=text_indopak_nastaleeq,juz_number,manzil_number&per_page=50';
+      const data = await fetchQuranComJson(url, signal);
+      return data.verses || [];
     }
 
     function renderMushafPage(verses, pageNum) {
       if (!versesList) return;
       if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
       const juz = verses[0]?.juz_number;
+      const manzil = verses[0]?.manzil_number;
       const surahNums = [...new Set(verses.map((v) => chapterIdFromVerseKey(v.verse_key)))];
       const surahLabels = surahNums
         .map((n) => {
@@ -2108,12 +2163,16 @@
           return s ? `${s.name} ${toArabicNumerals(n)}` : `سورة ${toArabicNumerals(n)}`;
         })
         .join(' · ');
-      const bodyHtml = verses
-        .map((v) => {
-          const text = (v.text_indopak || '').trim();
-          return `${escapeHtml(text)}<button type="button" class="mushaf-ayah-marker" data-surah="${chapterIdFromVerseKey(v.verse_key)}" data-ayah="${v.verse_number}" aria-label="Play ayah ${v.verse_number}">${toArabicNumerals(v.verse_number)}</button> `;
-        })
-        .join('');
+      const hasLines = verses.some((v) => (v.words || []).some((w) => w.line_number));
+      const bodyHtml = hasLines
+        ? `<div class="mushaf-page-lines indopak-nastaleeq-text">${buildMushafLineHtml(verses)}</div>`
+        : verses
+            .map((v) => {
+              const text = (v.text_indopak_nastaleeq || v.text_indopak || '').trim();
+              return `${escapeHtml(text)}<button type="button" class="mushaf-ayah-marker" data-surah="${chapterIdFromVerseKey(v.verse_key)}" data-ayah="${v.verse_number}" aria-label="Play ayah ${v.verse_number}">${toArabicNumerals(v.verse_number)}</button> `;
+            })
+            .join('');
+      const bodyClass = hasLines ? 'mushaf-page-body' : 'mushaf-page-body indopak-nastaleeq-text';
       versesList.innerHTML = `
         <article class="mushaf-page-card mx-auto w-full max-w-lg shadow-lg">
           <header class="mushaf-page-header grid grid-cols-3 items-center text-sm gap-1">
@@ -2121,15 +2180,16 @@
             <span class="text-center font-bold text-base">${toArabicNumerals(pageNum)}</span>
             <span class="text-left">${juz ? `جُزْء ${toArabicNumerals(juz)}` : ''}</span>
           </header>
-          <div class="mushaf-page-body hifzi-naskh-text" dir="rtl">${bodyHtml}</div>
-          <p class="text-[10px] text-center opacity-70 px-3 pb-3 leading-snug">Indo-Pak 604-page layout · Quran.com <code class="text-[9px]">text_indopak</code> · tap verse number to play · not a scanned print</p>
+          <div class="${bodyClass}" dir="rtl">${bodyHtml}</div>
+          ${manzil ? `<p class="text-center text-[11px] opacity-80 pb-1 indopak-nastaleeq-text">منزل ${toArabicNumerals(manzil)}</p>` : ''}
+          <p class="text-[10px] text-center opacity-70 px-3 pb-3 leading-snug">Quran.com mushaf ${MUSHAF_PAGE_LAYOUT_ID} (15-line Indo-Pak) · tap verse number to play</p>
         </article>`;
       const mushafPageLabel = document.getElementById('mushafPageLabel');
       const btnPrevMushafPage = document.getElementById('btnPrevMushafPage');
       const btnNextMushafPage = document.getElementById('btnNextMushafPage');
-      if (mushafPageLabel) mushafPageLabel.textContent = `Page ${pageNum} / 604`;
+      if (mushafPageLabel) mushafPageLabel.textContent = `Page ${pageNum} / ${MUSHAF_PAGE_MAX}`;
       if (btnPrevMushafPage) btnPrevMushafPage.disabled = pageNum <= 1;
-      if (btnNextMushafPage) btnNextMushafPage.disabled = pageNum >= 604;
+      if (btnNextMushafPage) btnNextMushafPage.disabled = pageNum >= MUSHAF_PAGE_MAX;
       versesList.querySelectorAll('.mushaf-ayah-marker').forEach((btn) => {
         btn.addEventListener('click', () => {
           playMushafAyah(parseInt(btn.getAttribute('data-surah'), 10), parseInt(btn.getAttribute('data-ayah'), 10));
@@ -2145,7 +2205,7 @@
     }
 
     async function loadMushafPage(pageNum, signal, loadId) {
-      const page = Math.min(604, Math.max(1, parseInt(pageNum, 10) || 1));
+      const page = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(pageNum, 10) || 1));
       const seq = loadId ?? ++state.mushafLoadSeq;
       state.currentMushafPage = page;
       safeStorageSet('quran_mushaf_page', String(page));
@@ -2632,8 +2692,8 @@
 
     async function jumpToMushafPage(pageNum) {
       const page = parseInt(pageNum, 10);
-      if (!Number.isFinite(page) || page < 1 || page > 604) {
-        showToast('Use page 1–604');
+      if (!Number.isFinite(page) || page < 1 || page > MUSHAF_PAGE_MAX) {
+        showToast(`Use page 1–${MUSHAF_PAGE_MAX}`);
         return;
       }
       closeAppModal('juzModal');
@@ -3373,7 +3433,7 @@
         loadMushafPage(next.page, next.signal, next.loadId);
       });
       document.getElementById('btnNextMushafPage')?.addEventListener('click', () => {
-        if (state.currentMushafPage >= 604) return;
+        if (state.currentMushafPage >= MUSHAF_PAGE_MAX) return;
         const next = beginMushafPageLoad(state.currentMushafPage + 1);
         loadMushafPage(next.page, next.signal, next.loadId);
       });
