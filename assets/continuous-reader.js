@@ -16,7 +16,7 @@
   function surahViewCached(h, surahNum) {
     const key = h.surahViewCacheKey(surahNum);
     const c = h.getState().surahViewCache.get(key);
-    return !!(c?.arSurahPayload?.ayahs?.length && c?.enData?.code === 200);
+    return !!c?.arSurahPayload?.ayahs?.length;
   }
 
   function edgeSurahTarget(direction, min, max) {
@@ -346,10 +346,7 @@
     const min = range[0];
     const max = range[range.length - 1];
     const target = edgeSurahTarget(direction, min, max);
-    if (target == null || sectionEl(target)) {
-      if (target != null && sectionEl(target)) h.hideReaderEdgeRetry?.();
-      return;
-    }
+    if (target == null || sectionEl(target)) return;
 
     h.getState().continuousScroll = st;
     st.edgeLoading = true;
@@ -358,7 +355,7 @@
     let loaded = false;
     let lastErr = null;
     try {
-      for (let attempt = 0; attempt < 2 && !loaded; attempt += 1) {
+      for (let attempt = 0; attempt < 3 && !loaded; attempt += 1) {
         if (attempt > 0) {
           await new Promise((r) => setTimeout(r, 500));
           if (sectionEl(target)) {
@@ -396,10 +393,7 @@
       st.edgeLoading = false;
       st.lastEdgeFinishedAt = Date.now();
       if (showUi) endEdgeLoad(h);
-      if (loaded) {
-        h.hideReaderEdgeRetry?.();
-        maybeContinueEdgeOnce(direction);
-      }
+      if (loaded) maybeContinueEdgeOnce(direction);
     }
   }
 
@@ -580,10 +574,7 @@
       st.edgeLoading = false;
       st.lastEdgeFinishedAt = Date.now();
       if (showUi) endEdgeLoad(h);
-      if (loaded) {
-        h.hideReaderEdgeRetry?.();
-        maybeContinueEdgeOnce(direction);
-      }
+      if (loaded) maybeContinueEdgeOnce(direction);
     }
   }
 
@@ -668,17 +659,6 @@
       if (scrollTop > lastScrollTop + 6) scrollDirectionBias = 1;
       else if (scrollTop < lastScrollTop - 6) scrollDirectionBias = -1;
       lastScrollTop = scrollTop;
-      const fail = getHost().getState().lastEdgeLoadFailure;
-      if (fail) {
-        const nearBottom = scrollHeight - scrollTop - clientHeight < EDGE_PX;
-        const nearTop = scrollTop < EDGE_PX;
-        if (
-          (fail.direction > 0 && !nearBottom) ||
-          (fail.direction < 0 && !nearTop)
-        ) {
-          getHost().hideReaderEdgeRetry?.();
-        }
-      }
       if (!isMushafMode()) {
         syncActiveSurahFromScroll();
         scheduleScrollPrefetchWarm(getHost());

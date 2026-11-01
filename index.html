@@ -1468,58 +1468,6 @@
     body.chrome-ui-collapsed #readerLoadBar {
       top: max(0.35rem, env(safe-area-inset-top, 0px));
     }
-    .reader-edge-retry {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 46;
-      max-width: min(22rem, calc(100vw - 1.5rem));
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      padding: 0.55rem 0.75rem;
-      border-radius: 9999px;
-      background: rgba(30, 41, 59, 0.94);
-      border: 1px solid rgba(51, 65, 85, 0.9);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-    }
-    .reader-edge-retry--bottom {
-      bottom: calc(var(--audio-bar-h, 0px) + 1rem);
-    }
-    .reader-edge-retry--top {
-      top: calc(var(--reader-chrome-h, 7.25rem) + 0.5rem);
-      bottom: auto;
-    }
-    body.chrome-ui-collapsed .reader-edge-retry--top {
-      top: max(0.5rem, env(safe-area-inset-top, 0px));
-    }
-    .reader-edge-retry__label {
-      flex: 1;
-      min-width: 0;
-      font-size: 0.6875rem;
-      line-height: 1.25;
-      color: #e2e8f0;
-    }
-    .reader-edge-retry__btn {
-      flex-shrink: 0;
-      font-size: 0.6875rem;
-      font-weight: 700;
-      padding: 0.35rem 0.65rem;
-      border-radius: 9999px;
-      background: rgb(16, 185, 129);
-      color: #042f2e;
-    }
-    html[data-platform="ios"] .reader-edge-retry {
-      background: rgba(44, 44, 46, 0.92);
-      border-width: 0.5px;
-      border-color: rgba(84, 84, 88, 0.55);
-    }
-    html[data-platform="ios"] .reader-edge-retry__btn {
-      background: #30d158;
-      color: #000;
-    }
     #versesList [id^="verse-card-"] {
       content-visibility: auto;
       contain-intrinsic-size: auto 7rem;
@@ -2310,7 +2258,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=79').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=80').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2456,10 +2404,6 @@
   </div>
   <div id="readerLoadBar" class="reader-load-bar hidden" role="progressbar" aria-label="Loading content" aria-busy="true">
     <div class="reader-load-bar__track"><div class="reader-load-bar__indeterminate"></div></div>
-  </div>
-  <div id="readerEdgeRetry" class="reader-edge-retry reader-edge-retry--bottom hidden" role="status" aria-live="polite">
-    <p id="readerEdgeRetryLabel" class="reader-edge-retry__label">Could not load more</p>
-    <button type="button" id="btnReaderEdgeRetry" class="reader-edge-retry__btn">Retry</button>
   </div>
 
   <div id="moreMenuModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="moreMenuTitle">
@@ -2860,8 +2804,8 @@
   <audio id="quranAudio" class="hidden" preload="metadata" playsinline webkit-playsinline></audio>
 
   <!-- APP JAVASCRIPT ARCHITECTURE -->
-  <script src="assets/reader-cache-db.js?v=2"></script>
-  <script src="assets/continuous-reader.js?v=2"></script>
+  <script src="assets/reader-cache-db.js?v=3"></script>
+  <script src="assets/continuous-reader.js?v=3"></script>
   <script>
     // State Management
     const MUSHAF_PAGE_LAYOUT_ID = 6;
@@ -2917,7 +2861,6 @@
       modalReturnFocus: null,
       openTafsirAyahNum: null,
       continuousScroll: { minSurah: 1, maxSurah: 1, edgeLoading: false, edgeContinueAllowed: false },
-      lastEdgeLoadFailure: null,
       _playbackHighlightMount: false,
       bookmarks: readJsonArray('quran_bookmarks_v2')
     };
@@ -3109,7 +3052,6 @@
 
     function isValidSurahViewPayload(payload) {
       return (
-        payload?.enData?.code === 200 &&
         Array.isArray(payload?.arSurahPayload?.ayahs) &&
         payload.arSurahPayload.ayahs.length > 0
       );
@@ -4636,7 +4578,6 @@
         setReaderLoading,
         setReaderEdgeLoading,
         onContinuousEdgeLoadError,
-        hideReaderEdgeRetry,
         storeSurahViewCache,
         normalizeAyahText,
         buildContinuousSurahSectionHtml,
@@ -5209,44 +5150,9 @@
       }
     }
 
-    function onContinuousEdgeLoadError(_err, meta = {}) {
-      const direction = meta.direction === -1 ? -1 : 1;
-      const kind = meta.kind === 'mushaf' ? 'mushaf' : 'surah';
-      state.lastEdgeLoadFailure = { direction, kind, at: Date.now() };
-      showReaderEdgeRetryBanner(direction, kind);
-    }
-
-    function showReaderEdgeRetryBanner(direction, kind) {
-      const el = document.getElementById('readerEdgeRetry');
-      const label = document.getElementById('readerEdgeRetryLabel');
-      if (!el) return;
-      const isBottom = direction > 0;
-      el.classList.toggle('reader-edge-retry--bottom', isBottom);
-      el.classList.toggle('reader-edge-retry--top', !isBottom);
-      if (label) {
-        if (kind === 'mushaf') {
-          label.textContent = isBottom ? 'Next mushaf page did not load' : 'Previous mushaf page did not load';
-        } else {
-          label.textContent = isBottom ? 'Next surah did not load' : 'Previous surah did not load';
-        }
-      }
-      el.classList.remove('hidden');
-      clearTimeout(state._edgeRetryHideTimer);
-      state._edgeRetryHideTimer = setTimeout(() => hideReaderEdgeRetry(), 45_000);
-    }
-
-    function hideReaderEdgeRetry() {
-      clearTimeout(state._edgeRetryHideTimer);
-      state._edgeRetryHideTimer = null;
-      state.lastEdgeLoadFailure = null;
-      document.getElementById('readerEdgeRetry')?.classList.add('hidden');
-    }
-
-    function retryLastEdgeLoad() {
-      const failure = state.lastEdgeLoadFailure;
-      if (!failure) return;
-      hideReaderEdgeRetry();
-      window.QuranContinuousReader?.retryEdgeLoad?.(failure.direction, failure.kind);
+    function onContinuousEdgeLoadError(err, meta = {}) {
+      if (err?.name === 'AbortError' || err?.name === 'TimeoutError') return;
+      console.warn('Continuous edge load failed', meta, err);
     }
 
     async function refreshReaderCacheStatusLabel() {
@@ -5792,9 +5698,6 @@
         }
       } finally {
         finishActiveReaderLoad(signal);
-        if (versesList?.querySelector('[data-continuous-surah], [data-continuous-page]')) {
-          hideReaderEdgeRetry();
-        }
         if (audioSnapshot) {
           if (versesList?.querySelector('.mushaf-page-card, [data-continuous-surah]')) {
             resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());
@@ -7706,7 +7609,6 @@
         updateContentSourceHints();
         refreshReaderCacheStatusLabel();
       });
-      document.getElementById('btnReaderEdgeRetry')?.addEventListener('click', () => retryLastEdgeLoad());
       document.getElementById('btnClearReaderCache')?.addEventListener('click', () => clearReaderCacheFromSettings());
       document.getElementById('closeReadingOptionsModal')?.addEventListener('click', () => closeAppModal('readingOptionsModal'));
       bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
