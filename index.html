@@ -612,13 +612,17 @@
     }
     #tafsirSheetModal .tafsir-sheet-panel {
       max-height: min(78vh, 640px);
-      padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--audio-bar-h, 0px));
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
+    }
+    body.tafsir-sheet-open #tafsirSheetModal:not(.hidden) {
+      z-index: 68;
+    }
+    body.tafsir-sheet-open.audio-bar-visible #tafsirSheetModal .tafsir-sheet-panel {
+      margin-bottom: var(--audio-bar-h, 5.5rem);
+      max-height: min(calc(82vh - var(--audio-bar-h, 5.5rem)), 580px);
     }
     #tafsirSheetModal .tafsir-sheet-grab {
       flex-shrink: 0;
-    }
-    body.tafsir-sheet-open #audioPlayerBar:not(.player-hidden) {
-      z-index: 60;
     }
     .tafsir-content {
       user-select: text;
@@ -1727,7 +1731,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=41').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=42').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1961,7 +1965,7 @@
   </div>
 
   <!-- TAFSIR BOTTOM SHEET (phones) -->
-  <div id="tafsirSheetModal" class="hidden fixed inset-0 z-[55] flex flex-col justify-end pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="tafsirSheetBadge">
+  <div id="tafsirSheetModal" class="hidden fixed inset-0 z-[68] flex flex-col justify-end pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="tafsirSheetBadge">
     <button type="button" id="tafsirSheetBackdrop" class="tafsir-sheet-backdrop flex-1 w-full bg-slate-950/75 backdrop-blur-sm pointer-events-auto min-h-[12vh]" aria-label="Close tafsir"></button>
     <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full max-h-[min(78vh,640px)]">
       <div class="tafsir-sheet-grab w-10 h-1 rounded-full bg-slate-600 mx-auto mt-2.5 mb-1" aria-hidden="true"></div>
@@ -2949,7 +2953,9 @@
         : [
             getScriptSourceAttribution(state.currentScriptKey),
             `Translation: Al Quran Cloud · ${getTranslationLabel(state.currentTranslationKey)}.`,
-            getTafsirSourceAttribution(state.currentTafsirKey),
+            isIndopakAyahScript(state.currentScriptKey)
+              ? 'Indo-Pak ayah view hides English by default — turn on under the translation list if you want it.'
+              : getTafsirSourceAttribution(state.currentTafsirKey),
             'Tap ℹ️ for full source list.',
           ].join(' ');
     }
