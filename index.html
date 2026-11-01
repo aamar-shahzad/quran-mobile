@@ -189,6 +189,9 @@
     #versesList .verse-translation {
       font-size: calc(clamp(0.875rem, 3.4vw, 0.9375rem) * var(--reader-font-scale, 1));
     }
+    body.reader-hide-translation #versesList .verse-translation {
+      display: none;
+    }
     body.mushaf-reading-mode .mushaf-page-body,
     body.mushaf-reading-mode .mushaf-page-body--lines {
       font-size: calc(clamp(1rem, 3.6vw, 1.4rem) * var(--reader-font-scale, 1));
@@ -1724,7 +1727,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=40').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=41').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1917,6 +1920,10 @@
         <div class="relative">
           <select id="translationSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate"></select>
         </div>
+        <label id="readingOptionsShowTranslationRow" class="flex items-center gap-2 text-xs text-slate-300 mt-2">
+          <input type="checkbox" id="chkShowVerseTranslation" class="rounded border-slate-600">
+          Show English under each ayah
+        </label>
       </div>
       <label class="block text-xs text-slate-400" for="reciterSelect">Reciter</label>
       <div class="relative">
@@ -2894,6 +2901,7 @@
       const themePref = safeStorageGet('quran_color_theme', 'system');
       applyColorTheme(themePref);
       applyReaderFontScale(safeStorageGet('quran_reader_font_scale', '1'));
+      syncVerseTranslationPreference();
 
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
         if (safeStorageGet('quran_color_theme', 'system') === 'system') applyColorTheme('system');
@@ -2905,6 +2913,31 @@
       document.getElementById('readerFontScale')?.addEventListener('input', (e) => {
         applyReaderFontScale(e.target.value);
       });
+      document.getElementById('chkShowVerseTranslation')?.addEventListener('change', (e) => {
+        safeStorageSet('quran_show_translation', e.target.checked ? '1' : '0');
+        applyShowVerseTranslation(e.target.checked);
+      });
+    }
+
+    function resolveShowVerseTranslation(scriptKey) {
+      const stored = safeStorageGet('quran_show_translation', '');
+      if (stored === '1') return true;
+      if (stored === '0') return false;
+      return !isIndopakAyahScript(scriptKey);
+    }
+
+    function applyShowVerseTranslation(show) {
+      document.body.classList.toggle('reader-hide-translation', !show);
+      const chk = document.getElementById('chkShowVerseTranslation');
+      if (chk && chk.checked !== show) chk.checked = show;
+    }
+
+    function syncVerseTranslationPreference() {
+      if (isMushafPageScript(state.currentScriptKey)) {
+        document.body.classList.remove('reader-hide-translation');
+        return;
+      }
+      applyShowVerseTranslation(resolveShowVerseTranslation(state.currentScriptKey));
     }
 
     function updateContentSourceHints() {
@@ -3776,6 +3809,7 @@
       }
       requestAnimationFrame(measureReaderChromeHeight);
       syncAutoHideReaderChrome();
+      syncVerseTranslationPreference();
     }
 
     function chapterIdFromVerseKey(verseKey) {

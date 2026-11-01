@@ -41,6 +41,8 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 
 In the app: **More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. On phones, **Tafsir** opens in a bottom sheet (swipe-friendly scroll, prev/next ayah, Close) so long commentary does not bury the ayah list. **More** → _Data sources_ for the full list.
 
+**Simple by design:** Home screen is read + listen (play on ayah or mushaf). Meaning lives in **Tafsir** when you need it — not a wall of English under every Indo-Pak ayah unless you turn that on in Reading options.
+
 ## Install
 
 Open the live link on your phone → **More** → _Share & install_ → Add to Home Screen (iOS Safari) or Install app (Android Chrome).
