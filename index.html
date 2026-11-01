@@ -808,68 +808,80 @@
     #audioPlayerBar:not(.player-hidden) {
       padding-bottom: 0;
     }
-    #audioProgressContainer {
-      min-height: 3px;
-      height: 3px;
-      background: rgba(30, 41, 59, 0.95);
-      touch-action: none;
-    }
-    #audioProgressBar {
-      height: 100%;
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
-    }
-    @media (max-width: 640px) and (pointer: coarse) {
-      #audioProgressContainer {
-        height: auto;
-        min-height: 28px;
-        padding: 12px 0.75rem 8px;
-        margin: 0;
-        background: transparent;
-        position: relative;
-      }
-      #audioProgressContainer::before {
-        content: '';
-        position: absolute;
-        left: 0.75rem;
-        right: 0.75rem;
-        top: 14px;
-        height: 6px;
-        border-radius: 9999px;
-        background: rgba(30, 41, 59, 0.95);
-      }
-      #audioProgressBar {
-        position: relative;
-        z-index: 1;
-        margin: 14px 0.75rem 0;
-        height: 6px !important;
-        border-radius: 9999px;
-      }
-      #audioProgressContainer.is-seeking #audioProgressBar {
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
-      }
-    }
-    #audioProgressContainer:focus-visible {
-      outline: 2px solid rgba(16, 185, 129, 0.6);
-      outline-offset: -2px;
-    }
-    .player-shell {
-      padding: 0.5rem 0.75rem max(0.65rem, env(safe-area-inset-bottom, 0px));
-    }
-    .player-bar-top {
+    .player-header-row {
       display: flex;
       align-items: flex-start;
-      gap: 0.35rem;
-      margin-bottom: 0.35rem;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
     }
-    .player-bar-top .player-now-playing {
+    .player-meta {
+      flex: 1;
+    }
+    .player-subline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.5rem;
+      margin-top: 0.15rem;
+    }
+    .player-mode-badge {
+      font-size: 0.5625rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .player-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.55rem;
+    }
+    .player-progress-track {
       flex: 1;
       min-width: 0;
-      margin-bottom: 0;
+      height: 1.25rem;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      touch-action: none;
+      border-radius: 9999px;
+      position: relative;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      padding: 0 2px;
+    }
+    .player-progress-fill {
+      height: 0.375rem;
+      width: 0%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #34d399, #10b981);
+      transition: width 0.1s linear;
+      pointer-events: none;
+      position: relative;
+    }
+    .player-progress-track.is-seeking .player-progress-fill {
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+    }
+    .player-progress-track:focus-visible {
+      outline: 2px solid rgba(16, 185, 129, 0.55);
+      outline-offset: 2px;
+    }
+    html:not(.dark) .player-progress-track {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
+    }
+    .player-shell {
+      padding: 0.55rem 0.75rem max(0.65rem, env(safe-area-inset-bottom, 0px));
     }
     .player-close-btn {
       flex-shrink: 0;
-      width: 2.75rem;
-      height: 2.75rem;
+      width: 2.25rem;
+      height: 2.25rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -888,25 +900,16 @@
         padding: 0.65rem 1rem 0.75rem;
       }
     }
-    .player-now-playing {
-      display: grid;
-      grid-template-columns: 2.75rem 1fr 2.75rem;
-      align-items: center;
-      gap: 0.35rem;
-      margin-bottom: 0.35rem;
-    }
     .player-time {
       font-size: 0.6875rem;
       line-height: 1;
       color: #94a3b8;
       font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      min-width: 2.25rem;
     }
     .player-time-end {
       text-align: right;
-    }
-    .player-now-playing-text {
-      min-width: 0;
-      text-align: center;
     }
     .player-verse-label {
       font-size: 0.8125rem;
@@ -921,64 +924,79 @@
       font-size: 0.625rem;
       color: #64748b;
       line-height: 1.2;
-      margin-top: 0.1rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .player-transport-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 17.5rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .player-control-btn {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.6rem;
+      color: #cbd5e1;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      transition: color 0.15s, background-color 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .player-control-btn:hover:not(:disabled) {
+      color: #f8fafc;
+      background: rgba(51, 65, 85, 0.85);
+    }
+    .player-control-btn:active:not(:disabled) {
+      transform: scale(0.94);
+    }
+    .player-control-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .player-control-btn--play {
+      width: 2.75rem;
+      height: 2.75rem;
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+    .player-control-btn--play.is-playing {
+      background: rgba(16, 185, 129, 0.14);
+      color: #6ee7b7;
+    }
+    .player-control-btn--speed {
+      width: auto;
+      min-width: 2.75rem;
+      padding: 0 0.45rem;
+    }
+    .player-speed-text {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #34d399;
+    }
+    html:not(.dark) .player-control-btn {
+      background: #f1f5f9;
+      border-color: #e2e8f0;
+      color: #475569;
+    }
+    html:not(.dark) .player-control-btn--play {
+      color: #059669;
+      border-color: rgba(5, 150, 105, 0.35);
+    }
     @media (max-width: 640px) and (pointer: coarse) {
-      .player-now-playing {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 0.2rem 0.5rem;
-        margin-bottom: 0.5rem;
-      }
-      .player-now-playing-text {
-        grid-column: 1 / -1;
-        grid-row: 1;
-        text-align: center;
+      #audioPlayerBar:not(.player-hidden) {
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.55);
       }
       .player-verse-label {
         font-size: 0.875rem;
-      }
-      #audioTimeCurrent {
-        grid-column: 1;
-        grid-row: 2;
-        justify-self: start;
-        font-size: 0.75rem;
-      }
-      #audioTimeDuration {
-        grid-column: 2;
-        grid-row: 2;
-        justify-self: end;
-        font-size: 0.75rem;
-      }
-      .player-transport-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 0.9fr;
-        align-items: center;
-        justify-items: center;
-        gap: 0.35rem;
-        width: 100%;
-        max-width: 20rem;
-        margin: 0 auto;
-      }
-      .player-main-play {
-        width: min(100%, 2.75rem);
-        height: 2.75rem;
-        font-size: 1.125rem;
-      }
-      .player-transport-btn,
-      .player-speed-btn {
-        width: min(100%, 2.75rem);
-        height: 2.75rem;
-      }
-      .player-speed-btn {
-        font-size: 0.6875rem;
-        padding: 0;
-      }
-      #audioPlayerBar:not(.player-hidden) {
-        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.55);
       }
       .verse-card-toolbar {
         gap: 0.35rem;
@@ -1003,72 +1021,6 @@
       .verse-tafsir-btn .verse-tafsir-word {
         display: none;
       }
-    }
-    .player-transport-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      max-width: 20rem;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .player-speed-btn {
-      min-width: 2.75rem;
-      min-height: 2.75rem;
-      padding: 0 0.5rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(51, 65, 85, 0.9);
-      border-radius: 0.65rem;
-      font-size: 0.625rem;
-      font-weight: 700;
-      color: #34d399;
-    }
-    .player-transport-btn {
-      width: 2.75rem;
-      height: 2.75rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 9999px;
-      color: #cbd5e1;
-      transition: color 0.15s, background-color 0.15s, transform 0.1s;
-    }
-    .player-transport-btn:hover:not(:disabled) {
-      color: #fff;
-      background: rgba(51, 65, 85, 0.8);
-    }
-    .player-transport-btn:active:not(:disabled) {
-      transform: scale(0.94);
-    }
-    .player-transport-btn:disabled {
-      opacity: 0.35;
-    }
-    .player-main-play {
-      width: 2.75rem;
-      height: 2.75rem;
-      border-radius: 0.65rem;
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(51, 65, 85, 0.9);
-      color: #34d399;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.125rem;
-      box-shadow: none;
-      transition: transform 0.12s, background 0.15s, border-color 0.15s;
-    }
-    .player-main-play:active {
-      transform: scale(0.94);
-    }
-    .player-main-play.is-playing {
-      background: rgba(16, 185, 129, 0.14);
-      border-color: rgba(16, 185, 129, 0.45);
-      color: #6ee7b7;
     }
     .verse-play-btn {
       min-width: 2.25rem;
@@ -1839,7 +1791,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=55').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=57').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2358,35 +2310,38 @@
   </div>
 
   <!-- PERSISTENT AUDIO PLAYER CONTROL BAR AT BOTTOM -->
-  <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 z-30 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-transform duration-300">
-    <div class="w-full overflow-hidden cursor-pointer touch-none" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
-      <div id="audioProgressBar" class="bg-gradient-to-r from-emerald-400 to-brand-500 h-full w-0 transition-[width] duration-100 ease-linear"></div>
-    </div>
+  <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 z-30 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-transform duration-300" role="region" aria-label="Audio player">
     <div class="player-shell w-full max-w-[64rem] mx-auto">
-      <div class="player-bar-top">
-        <div class="player-now-playing">
-          <span id="audioTimeCurrent" class="player-time">0:00</span>
-          <div class="player-now-playing-text">
-            <p id="audioVerseLabel" class="player-verse-label">Tap play on an ayah</p>
+      <div class="player-header-row">
+        <div class="player-meta min-w-0">
+          <p id="audioVerseLabel" class="player-verse-label">Tap play on an ayah</p>
+          <div class="player-subline">
             <p id="audioSubLabel" class="player-reciter-label">Mishary Alafasy</p>
+            <span id="playerModeBadge" class="player-mode-badge hidden" aria-live="polite">Continuous</span>
           </div>
-          <span id="audioTimeDuration" class="player-time player-time-end">0:00</span>
         </div>
         <button type="button" id="btnCloseAudioPlayer" class="player-close-btn" aria-label="Close player and stop audio">
-          <i class="ph ph-x text-xl" aria-hidden="true"></i>
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
         </button>
       </div>
+      <div class="player-progress-wrap">
+        <span id="audioTimeCurrent" class="player-time">0:00</span>
+        <div id="audioProgressContainer" class="player-progress-track" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+          <div id="audioProgressBar" class="player-progress-fill"></div>
+        </div>
+        <span id="audioTimeDuration" class="player-time player-time-end">0:00</span>
+      </div>
       <div class="player-transport-row">
-        <button type="button" id="btnPrevVerse" class="player-transport-btn" aria-label="Previous ayah" disabled>
-          <i class="ph ph-skip-back-fill text-xl"></i>
+        <button type="button" id="btnPrevVerse" class="player-control-btn" aria-label="Previous ayah" disabled>
+          <i class="ph ph-skip-back text-lg" aria-hidden="true"></i>
         </button>
-        <button type="button" id="btnPlaySurahContinuous" class="player-main-play shrink-0" aria-label="Play or pause">
-          <i id="globalPlayIcon" class="ph ph-play-fill"></i>
+        <button type="button" id="btnPlaySurahContinuous" class="player-control-btn player-control-btn--play" aria-label="Play or pause">
+          <i id="globalPlayIcon" class="ph ph-play-fill text-xl" aria-hidden="true"></i>
         </button>
-        <button type="button" id="btnNextVerse" class="player-transport-btn" aria-label="Next ayah" disabled>
-          <i class="ph ph-skip-forward-fill text-xl"></i>
+        <button type="button" id="btnNextVerse" class="player-control-btn" aria-label="Next ayah" disabled>
+          <i class="ph ph-skip-forward text-lg" aria-hidden="true"></i>
         </button>
-        <button type="button" id="btnToggleAudioSpeed" class="player-speed-btn" aria-label="Playback speed">1.0x</button>
+        <button type="button" id="btnToggleAudioSpeed" class="player-control-btn player-control-btn--speed" aria-label="Playback speed"><span class="player-speed-text">1.0×</span></button>
       </div>
     </div>
   </footer>
@@ -4895,8 +4850,17 @@
     function syncGlobalPlayIcon() {
       if (!globalPlayIcon) return;
       const active = state.currentPlayingAyahIndex >= 0 && quranAudio && !quranAudio.paused;
-      globalPlayIcon.className = active ? 'ph ph-pause-fill' : 'ph ph-play-fill';
-      document.getElementById('btnPlaySurahContinuous')?.classList.toggle('is-playing', active);
+      globalPlayIcon.className = active ? 'ph ph-pause-fill text-xl' : 'ph ph-play-fill text-xl';
+      const playBtn = document.getElementById('btnPlaySurahContinuous');
+      playBtn?.classList.toggle('is-playing', active);
+      if (playBtn) playBtn.setAttribute('aria-label', active ? 'Pause' : 'Play');
+    }
+
+    function updatePlayerModeBadge() {
+      const badge = document.getElementById('playerModeBadge');
+      if (!badge) return;
+      const show = state.isPlayingContinuous && state.currentPlayingAyahIndex >= 0;
+      badge.classList.toggle('hidden', !show);
     }
 
     function updateAudioTransportButtons() {
@@ -4905,7 +4869,11 @@
       const idx = state.currentPlayingAyahIndex;
       const len = state.currentSurahData?.ayahs?.length ?? 0;
       if (btnPrev) btnPrev.disabled = idx <= 0;
-      if (btnNext) btnNext.disabled = idx < 0 || idx >= len - 1;
+      if (btnNext) {
+        const atLast = idx >= len - 1;
+        const canAdvanceSurah = state.isPlayingContinuous && state.currentSurahNum < 114;
+        btnNext.disabled = idx < 0 || (atLast && !canAdvanceSurah);
+      }
     }
 
     function updateAudioTimeUi() {
@@ -4928,6 +4896,7 @@
     function syncAudioUi() {
       refreshPlayingVerseHighlight();
       updateAudioTransportButtons();
+      updatePlayerModeBadge();
       syncGlobalPlayIcon();
       updateAudioTimeUi();
       syncMediaSessionWithAudio(false);
@@ -5540,6 +5509,17 @@
       });
       container.addEventListener('pointerup', endSeek);
       container.addEventListener('pointercancel', endSeek);
+      container.addEventListener('keydown', (event) => {
+        if (!quranAudio?.duration) return;
+        const step = event.key === 'ArrowRight' ? 5 : event.key === 'ArrowLeft' ? -5 : 0;
+        if (!step) return;
+        event.preventDefault();
+        quranAudio.currentTime = Math.min(
+          quranAudio.duration,
+          Math.max(0, quranAudio.currentTime + step),
+        );
+        updateAudioTimeUi();
+      });
     }
 
     function setupAudioPlayerEvents() {
@@ -5625,7 +5605,10 @@
           state.playbackRate = speeds[nextIdx];
           quranAudio.defaultPlaybackRate = state.playbackRate;
           quranAudio.playbackRate = state.playbackRate;
-          btnSpeed.textContent = `${state.playbackRate}x`;
+          const speedLabel = btnSpeed.querySelector('.player-speed-text');
+          const label = `${state.playbackRate}×`;
+          if (speedLabel) speedLabel.textContent = label;
+          else btnSpeed.textContent = label;
         });
       }
 
@@ -5640,8 +5623,11 @@
       }
       if (btnNextVerse) {
         btnNextVerse.addEventListener('click', () => {
-          if (state.currentSurahData && state.currentPlayingAyahIndex < state.currentSurahData.ayahs.length - 1) {
+          if (!state.currentSurahData || state.currentPlayingAyahIndex < 0) return;
+          if (state.currentPlayingAyahIndex < state.currentSurahData.ayahs.length - 1) {
             playSingleVerse(state.currentPlayingAyahIndex + 1);
+          } else if (state.isPlayingContinuous && state.currentSurahNum < 114) {
+            advanceToNextSurahPlayback();
           }
         });
       }
