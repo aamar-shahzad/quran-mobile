@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v20";
+const CACHE_NAME = "quran-mobile-v21";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -84,9 +84,13 @@ function fetchWithTimeout(request, ms) {
 }
 
 async function cachePut(request, response, cacheName) {
-  if (!response || !response.ok) return;
-  const cache = await caches.open(cacheName);
-  await cache.put(request, response.clone());
+  if (!response || !response.ok || response.bodyUsed) return;
+  try {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response);
+  } catch {
+    return;
+  }
   if (cacheName === API_CACHE) await trimCache(API_CACHE, API_CACHE_MAX);
   if (cacheName === AUDIO_CACHE) await trimCache(AUDIO_CACHE, AUDIO_CACHE_MAX);
 }
@@ -95,7 +99,7 @@ async function networkFirstApi(request) {
   try {
     const networkRes = await fetchWithTimeout(request, NETWORK_TIMEOUT_MS);
     if (networkRes.ok && !isAyahAudioLookup(request.url)) {
-      await cachePut(request, networkRes, API_CACHE);
+      await cachePut(request, networkRes.clone(), API_CACHE);
     }
     return networkRes;
   } catch {
@@ -108,7 +112,7 @@ async function staleWhileRevalidateAsset(request) {
   const cached = await caches.match(request);
   const fetchPromise = fetch(request)
     .then((res) => {
-      if (res.ok) cachePut(request, res, ASSETS_CACHE);
+      if (res.ok) cachePut(request, res.clone(), ASSETS_CACHE).catch(() => {});
       return res;
     })
     .catch(() => null);
@@ -128,7 +132,7 @@ async function cacheFirstAudio(request) {
   if (cached) return cached;
   try {
     const res = await fetch(request);
-    if (res.ok && res.status === 200) await cachePut(request, res, AUDIO_CACHE);
+    if (res.ok && res.status === 200) await cachePut(request, res.clone(), AUDIO_CACHE);
     return res;
   } catch {
     return Response.error();
@@ -199,7 +203,7 @@ self.addEventListener("fetch", (event) => {
         try {
           const response = await fetchWithTimeout(event.request, NETWORK_TIMEOUT_MS);
           if (response.ok && isAppShellRequest(url)) {
-            event.waitUntil(cachePut(event.request, response, CACHE_NAME));
+            event.waitUntil(cachePut(event.request, response.clone(), CACHE_NAME));
           }
           return response;
         } catch {
