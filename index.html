@@ -221,6 +221,9 @@
         padding-left: env(safe-area-inset-left, 0px);
         padding-right: env(safe-area-inset-right, 0px);
       }
+      body.chrome-auto-hide {
+        padding-top: 0;
+      }
     }
     .arabic-text {
       font-family: 'Amiri', serif;
@@ -807,10 +810,28 @@
       pointer-events: auto !important;
     }
     body.mushaf-reading-mode.chrome-auto-hide #surahViewport {
-      padding-top: calc(var(--reader-chrome-h, 7.5rem) + env(safe-area-inset-top, 0px));
+      padding-top: var(--reader-chrome-h, 7.5rem);
     }
     body.mushaf-reading-mode.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
-      padding-top: calc(var(--reader-chrome-h, 7.5rem) + env(safe-area-inset-top, 0px));
+      padding-top: var(--reader-chrome-h, 7.5rem);
+    }
+    body.mushaf-reading-mode #surahViewport {
+      background-color: #e8e2d6;
+      padding-left: max(0.35rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+    }
+    html.dark body.mushaf-reading-mode #surahViewport {
+      background-color: #14110e;
+    }
+    body.mushaf-reading-mode #loadingSpinner {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    body.mushaf-reading-mode #versesList {
+      margin-top: 0;
+    }
+    body.mushaf-reading-mode .mushaf-page-card {
+      margin-top: 0;
     }
     #mushafPageNav {
       display: none;
@@ -885,10 +906,18 @@
       }
       body.chrome-auto-hide #surahViewport {
         transition: padding-top 0.32s ease;
-        padding-top: calc(var(--reader-chrome-h, 7.25rem) + env(safe-area-inset-top, 0px));
+        padding-top: var(--reader-chrome-h, 7.25rem);
       }
       body.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
-        padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+        padding-top: max(0.35rem, env(safe-area-inset-top, 0px));
+      }
+      body.mushaf-reading-mode.chrome-auto-hide #surahViewport,
+      body.mushaf-reading-mode.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
+        padding-top: var(--reader-chrome-h, 7.25rem);
+      }
+      body.mushaf-reading-mode #surahViewport {
+        padding-top: var(--reader-chrome-h, 7.25rem) !important;
+        padding-bottom: 1rem;
       }
     }
     .pt-safe {
@@ -1011,6 +1040,10 @@
       html[data-platform="ios"] body,
       html[data-platform="android"] body {
         padding-top: env(safe-area-inset-top, 0px);
+      }
+      html[data-platform="ios"] body.chrome-auto-hide,
+      html[data-platform="android"] body.chrome-auto-hide {
+        padding-top: 0;
       }
     }
 
@@ -2957,8 +2990,11 @@
     function measureReaderChromeHeight() {
       const chrome = document.getElementById('topReaderChrome');
       if (!chrome) return;
-      document.body.classList.remove('chrome-ui-collapsed');
-      chrome.classList.remove('chrome-collapsed');
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      if (!mushaf) {
+        document.body.classList.remove('chrome-ui-collapsed');
+        chrome.classList.remove('chrome-collapsed');
+      }
       const h = chrome.getBoundingClientRect().height;
       document.documentElement.style.setProperty('--reader-chrome-h', `${Math.ceil(h)}px`);
     }
@@ -3271,7 +3307,10 @@
       if (btnPrevMushafPage) btnPrevMushafPage.disabled = pageNum <= 1;
       if (btnNextMushafPage) btnNextMushafPage.disabled = pageNum >= MUSHAF_PAGE_MAX;
       bindMushafAyahPlayTargets(versesList);
-      requestAnimationFrame(measureReaderChromeHeight);
+      requestAnimationFrame(() => {
+        measureReaderChromeHeight();
+        if (loadingSpinner) loadingSpinner.classList.add('hidden');
+      });
     }
 
     function beginMushafPageLoad(pageNum) {
