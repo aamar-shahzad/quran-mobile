@@ -812,7 +812,7 @@
       padding-bottom: 1.25rem;
     }
     body.mushaf-reading-mode #surahViewport {
-      touch-action: pan-y;
+      touch-action: pan-y pinch-zoom;
     }
     #surahViewport.reader-is-loading #versesList,
     #surahViewport.reader-is-loading #surahHeaderCard {
@@ -2485,36 +2485,94 @@
     function initMushafSwipeNavigation() {
       const viewport = document.getElementById('surahViewport');
       if (!viewport) return;
-      let startX = 0;
-      let startY = 0;
+
+      const SWIPE_MIN_PX = 48;
+      const LOCK_PX = 10;
+      let activeTouch = null;
+
+      const isSwipeBlockedTarget = (target) =>
+        target?.closest?.(
+          'button, a, input, select, textarea, label, summary, [role="slider"], .mushaf-ayah-end, #topReaderChrome, #audioPlayerBar',
+        );
+
+      const clearActive = () => {
+        activeTouch = null;
+      };
+
+      const navigateFromSwipe = (dx) => {
+        if (state.readerNavBusy) return;
+        if (Math.abs(dx) < SWIPE_MIN_PX) return;
+
+        if (isMushafPageScript(state.currentScriptKey)) {
+          // Finger left → next mushaf page; finger right → previous (matches page arrows)
+          if (dx < 0 && state.currentMushafPage < MUSHAF_PAGE_MAX) {
+            const next = beginMushafPageLoad(state.currentMushafPage + 1);
+            loadMushafPage(next.page, next.signal, next.loadId);
+          } else if (dx > 0 && state.currentMushafPage > 1) {
+            const next = beginMushafPageLoad(state.currentMushafPage - 1);
+            loadMushafPage(next.page, next.signal, next.loadId);
+          }
+          return;
+        }
+
+        if (dx < 0 && state.currentSurahNum < 114) {
+          loadSurah(state.currentSurahNum + 1);
+        } else if (dx > 0 && state.currentSurahNum > 1) {
+          loadSurah(state.currentSurahNum - 1);
+        }
+      };
+
       viewport.addEventListener(
         'touchstart',
         (e) => {
-          if (!isMushafPageScript(state.currentScriptKey)) return;
-          const t = e.changedTouches[0];
-          startX = t.clientX;
-          startY = t.clientY;
+          if (!window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches) return;
+          if (e.touches.length !== 1) return;
+          if (isSwipeBlockedTarget(e.target)) return;
+          const t = e.touches[0];
+          activeTouch = {
+            id: t.identifier,
+            x: t.clientX,
+            y: t.clientY,
+            axis: null,
+          };
         },
         { passive: true },
       );
+
       viewport.addEventListener(
-        'touchend',
+        'touchmove',
         (e) => {
-          if (!isMushafPageScript(state.currentScriptKey)) return;
-          const t = e.changedTouches[0];
-          const dx = t.clientX - startX;
-          const dy = t.clientY - startY;
-          if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
-          if (dx > 0 && state.currentMushafPage > 1) {
-            const next = beginMushafPageLoad(state.currentMushafPage - 1);
-            loadMushafPage(next.page, next.signal, next.loadId);
-          } else if (dx < 0 && state.currentMushafPage < MUSHAF_PAGE_MAX) {
-            const next = beginMushafPageLoad(state.currentMushafPage + 1);
-            loadMushafPage(next.page, next.signal, next.loadId);
+          if (!activeTouch) return;
+          const t = [...e.touches].find((touch) => touch.identifier === activeTouch.id);
+          if (!t) return;
+          const dx = t.clientX - activeTouch.x;
+          const dy = t.clientY - activeTouch.y;
+          if (activeTouch.axis === null) {
+            if (Math.abs(dx) < LOCK_PX && Math.abs(dy) < LOCK_PX) return;
+            activeTouch.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+          }
+          if (activeTouch.axis === 'x' && e.cancelable) {
+            e.preventDefault();
           }
         },
-        { passive: true },
+        { passive: false },
       );
+
+      const finishSwipe = (e) => {
+        if (!activeTouch) return;
+        const t = [...e.changedTouches].find((touch) => touch.identifier === activeTouch.id);
+        if (!t) return;
+        const dx = t.clientX - activeTouch.x;
+        const dy = t.clientY - activeTouch.y;
+        const axis = activeTouch.axis;
+        clearActive();
+        if (axis === 'y') return;
+        if (Math.abs(dx) < Math.abs(dy) * 1.1) return;
+        navigateFromSwipe(dx);
+      };
+
+      viewport.addEventListener('touchend', finishSwipe, { passive: true });
+      viewport.addEventListener('touchcancel', clearActive, { passive: true });
     }
 
     function setReaderControlsExpanded(expanded, { pin = false } = {}) {
