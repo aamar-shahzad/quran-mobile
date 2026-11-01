@@ -1759,7 +1759,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=45').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=47').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -4675,6 +4675,7 @@
         audioProgressBar.style.width = `${clamped}%`;
         if (audioProgressContainer) audioProgressContainer.setAttribute('aria-valuenow', String(Math.round(clamped)));
       }
+      updateMediaSessionPositionState();
     }
 
     function syncAudioUi() {
@@ -5584,6 +5585,100 @@
       }
     }
 
+    function updateMediaSessionPositionState() {
+      if (!('mediaSession' in navigator) || !quranAudio || !Number.isFinite(quranAudio.duration) || quranAudio.duration <= 0) {
+        return;
+      }
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: quranAudio.duration,
+          playbackRate: quranAudio.playbackRate || 1,
+          position: Math.min(quranAudio.currentTime || 0, quranAudio.duration),
+        });
+      } catch {
+        /* setPositionState unsupported on some WebKit versions */
+      }
+    }
+
+    async function resumePlaybackFromControls() {
+      if (!quranAudio) return;
+
+      if (state.currentPlayingAyahIndex >= 0 && quranAudio.src) {
+        if (quranAudio.ended) {
+          try {
+            quranAudio.currentTime = 0;
+          } catch {
+            /* ignore */
+          }
+        }
+        if (quranAudio.paused || quranAudio.ended) {
+          try {
+            await quranAudio.play();
+            if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing';
+            syncAudioUi();
+            savePlaybackState();
+            return;
+          } catch (err) {
+            console.warn('Resume from lock screen failed, reloading ayah', err);
+          }
+        }
+      }
+
+      if (state.currentPlayingAyahIndex >= 0 && state.currentSurahData?.ayahs) {
+        await playSingleVerse(state.currentPlayingAyahIndex);
+        return;
+      }
+
+      const last = readPlaybackState();
+      if (!last) return;
+
+      if (state.currentSurahNum === last.surah && state.currentSurahData?.ayahs?.length) {
+        const idx = state.currentSurahData.ayahs.findIndex((a) => a.numberInSurah === last.ayah);
+        if (idx >= 0) {
+          state.currentPlayingAyahIndex = idx;
+          state.currentReciter = normalizeReciterId(last.reciter || state.currentReciter);
+          if (reciterSelect) reciterSelect.value = state.currentReciter;
+          const ayah = state.currentSurahData.ayahs[idx];
+          const url = getAyahAudioUrlSync(state.currentReciter, ayah.number);
+          quranAudio.src = url;
+          quranAudio.defaultPlaybackRate = state.playbackRate;
+          quranAudio.playbackRate = state.playbackRate;
+          quranAudio.load();
+          showAudioPlayerBar();
+          if (audioVerseLabel) {
+            audioVerseLabel.textContent = `${state.currentSurahData.englishName} · ${ayah.numberInSurah}`;
+          }
+          updateMediaSessionForAyah(ayah);
+          await new Promise((resolve) => {
+            if (quranAudio.readyState >= 1) {
+              resolve();
+              return;
+            }
+            quranAudio.addEventListener('loadedmetadata', resolve, { once: true });
+            quranAudio.addEventListener('error', resolve, { once: true });
+          });
+          if (last.time > 0 && Number.isFinite(quranAudio.duration)) {
+            try {
+              quranAudio.currentTime = Math.min(last.time, quranAudio.duration);
+            } catch {
+              /* ignore */
+            }
+          }
+          try {
+            await quranAudio.play();
+            if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing';
+            syncAudioUi();
+            savePlaybackState();
+            return;
+          } catch {
+            /* fall through to full reload */
+          }
+        }
+      }
+
+      await resumeFromPlaybackState(last);
+    }
+
     function updateMediaSessionForAyah(ayah) {
       if (!('mediaSession' in navigator) || !state.currentSurahData) return;
       const reciterName = reciterSelect?.options[reciterSelect.selectedIndex]?.text?.replace(/^🎙️\\s*/, '') || 'Reciter';
@@ -5597,18 +5692,20 @@
         ],
       });
       navigator.mediaSession.playbackState = quranAudio && !quranAudio.paused ? 'playing' : 'paused';
+      updateMediaSessionPositionState();
     }
 
     function setupMediaSessionHandlers() {
       if (!('mediaSession' in navigator)) return;
       navigator.mediaSession.setActionHandler('play', () => {
-        if (state.currentPlayingAyahIndex >= 0) playSingleVerse(state.currentPlayingAyahIndex);
-        else {
-          const last = readPlaybackState();
-          if (last) resumeFromPlaybackState(last);
-        }
+        resumePlaybackFromControls().catch((err) => console.warn('Media session play failed', err));
       });
-      navigator.mediaSession.setActionHandler('pause', () => { quranAudio?.pause(); if (globalPlayIcon) globalPlayIcon.className = 'ph ph-play-fill'; });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        quranAudio?.pause();
+        if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused';
+        syncAudioUi();
+        savePlaybackState();
+      });
       navigator.mediaSession.setActionHandler('previoustrack', () => document.getElementById('btnPrevVerse')?.click());
       navigator.mediaSession.setActionHandler('nexttrack', () => document.getElementById('btnNextVerse')?.click());
       navigator.mediaSession.setActionHandler('seekto', (d) => { if (quranAudio && d.seekTime != null) quranAudio.currentTime = d.seekTime; });
