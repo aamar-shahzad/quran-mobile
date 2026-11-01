@@ -1598,7 +1598,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=35').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=36').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -3801,6 +3801,28 @@
       }
     }
 
+    function resetAudioForReadingLayoutChange() {
+      state.pendingAutoplayIndex = null;
+      hideTapToPlayOverlay();
+      stopAudio(true);
+      if (quranAudio) {
+        quranAudio.removeAttribute('src');
+        try {
+          quranAudio.load();
+        } catch {
+          /* ignore */
+        }
+      }
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.playbackState = 'none';
+          navigator.mediaSession.metadata = null;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
     async function ensureSurahDataForPlayback(chapterId) {
       if (state.currentSurahData && state.currentSurahNum === chapterId && state.currentSurahData.ayahs?.length) {
         return state.currentSurahData;
@@ -3835,7 +3857,7 @@
       state.currentSurahNum = parseInt(number, 10);
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
-      stopAudio();
+      resetAudioForReadingLayoutChange();
 
       state.surahLoadController?.abort();
       state.surahLoadController = new AbortController();
@@ -3864,6 +3886,11 @@
           if (err?.name !== 'AbortError') finishActiveReaderLoad(signal);
         }
         return;
+      }
+
+      if (versesList?.querySelector('.mushaf-page-card, .mushaf-page-lines')) {
+        state.currentSurahData = null;
+        state.currentSurahEnData = null;
       }
 
       syncReaderLayoutChrome();
@@ -4745,7 +4772,15 @@
     }
 
     async function playSingleVerse(index) {
-      if (!state.currentSurahData || !quranAudio) return;
+      if (!quranAudio) return;
+      if (!state.currentSurahData?.ayahs?.length) {
+        try {
+          await ensureSurahDataForPlayback(state.currentSurahNum);
+        } catch {
+          showToast('Could not load audio for this surah');
+          return;
+        }
+      }
       const ayah = state.currentSurahData.ayahs[index];
       if (!ayah) return;
 
@@ -5159,12 +5194,18 @@
       }
 
         if (scriptSelect) {
-        scriptSelect.addEventListener('change', (e) => {
+        scriptSelect.addEventListener('change', async (e) => {
           state.currentScriptKey = e.target.value;
           safeStorageSet('quran_script_pref', state.currentScriptKey);
           updateContentSourceHints();
           syncReaderLayoutChrome();
-          loadSurah(state.currentSurahNum);
+          syncAutoHideReaderChrome();
+          closeAppModal('readingOptionsModal');
+          try {
+            await loadSurah(state.currentSurahNum);
+          } catch (err) {
+            console.error('Script change load failed', err);
+          }
           syncReaderFocusMode();
           if (isMushafPageScript(state.currentScriptKey)) {
             document.getElementById('searchContainer')?.classList.add('hidden');
@@ -5379,11 +5420,16 @@
         });
       }
 
-      document.getElementById('translationSelect')?.addEventListener('change', (e) => {
+      document.getElementById('translationSelect')?.addEventListener('change', async (e) => {
         state.currentTranslationKey = normalizeTranslationKey(e.target.value);
         safeStorageSet('quran_translation_pref', state.currentTranslationKey);
         updateContentSourceHints();
-        loadSurah(state.currentSurahNum);
+        if (isMushafPageScript(state.currentScriptKey)) return;
+        try {
+          await loadSurah(state.currentSurahNum);
+        } catch (err) {
+          console.error('Translation change load failed', err);
+        }
       });
       document.getElementById('btnCacheSurahOffline')?.addEventListener('click', () => {
         closeAppModal('readingOptionsModal');
