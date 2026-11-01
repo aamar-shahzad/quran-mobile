@@ -51,6 +51,8 @@ On first open, a splash screen shows while the surah list and reader load (match
 
 On Android/desktop Chrome, a green **Install** bar may appear when the app is installable; tap it to run the native install dialog. Chrome may log that its default mini-banner was deferred — that is expected when the app uses its own install button. You can also use **More → Install app** or **Share & install → Install app**.
 
+If you also install the **Hadith** PWA from the same GitHub Pages account, give each app a **unique home-screen icon** and reinstall after manifest updates so iOS does not tie lock-screen audio to the wrong app. Both apps now use distinct PWA `id` values in their manifests.
+
 Serve the repo root locally (`python3 -m http.server 8080`); manifest scope is `./` so install and shortcuts work at `http://127.0.0.1:8080/` and on GitHub Pages.
 
 ## Local preview

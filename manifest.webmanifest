@@ -1,9 +1,9 @@
 {
-  "id": "./",
+  "id": "pwa:quran-mobile-aamar-shahzad",
   "name": "Quran",
   "short_name": "Quran",
   "description": "Quran with translations, tafsir, and recitation. Caches the app shell and content you've opened for offline use.",
-  "start_url": "./",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -1759,7 +1759,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=49').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=50').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1916,7 +1916,7 @@
       <div class="grid gap-2">
         <button type="button" id="btnMenuReadingOptions" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Reading options</button>
         <button type="button" id="btnMenuAzkar" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Daily Azkar</button>
-        <a href="https://aamar-shahzad.github.io/hadith-mobile/" class="block px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Hadith app</a>
+        <a href="https://aamar-shahzad.github.io/hadith-mobile/" target="_blank" rel="noopener noreferrer" class="block px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Hadith app (opens in browser)</a>
         <button type="button" id="btnMenuSources" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Data sources</button>
         <button type="button" id="btnMenuShareInstall" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-emerald-300">Share &amp; install</button>
       </div>
