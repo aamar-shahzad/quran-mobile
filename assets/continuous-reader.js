@@ -1,12 +1,55 @@
 (function () {
   const EDGE_PX = 300;
-  const MAX_SURAH_SECTIONS = 6;
-  const MAX_MUSHAF_SECTIONS = 4;
+  const MAX_SURAH_SECTIONS = 8;
+  const MAX_MUSHAF_SECTIONS = 5;
   const WINDOW_RADIUS = 1;
 
   let scrollBound = false;
   let scrollTick = false;
   let sectionObserver = null;
+  let pendingActiveSurah = null;
+  let pendingActiveSurahHits = 0;
+  let lastScrollTop = 0;
+  let scrollDirectionBias = 0;
+  let prefetchWarmTimer = null;
+
+  function surahViewCached(h, surahNum) {
+    const key = h.surahViewCacheKey(surahNum);
+    const c = h.getState().surahViewCache.get(key);
+    return !!(c?.arSurahPayload?.ayahs?.length && c?.enData?.code === 200);
+  }
+
+  function edgeSurahTarget(direction, min, max) {
+    if (direction > 0) return max < 114 ? max + 1 : null;
+    if (direction < 0) return min > 1 ? min - 1 : null;
+    return null;
+  }
+
+  function maybeContinueEdgeOnce(direction) {
+    const st = getHost().getState().continuousScroll || {};
+    if (!st.edgeContinueAllowed || st.edgeLoading) return;
+    st.edgeContinueAllowed = false;
+    requestAnimationFrame(() => {
+      const vp = document.getElementById("surahViewport");
+      if (!vp) return;
+      const range = listedSurahNums();
+      if (!range.length) return;
+      const min = range[0];
+      const max = range[range.length - 1];
+      const { scrollTop, scrollHeight, clientHeight } = vp;
+      if (direction > 0) {
+        if (scrollHeight - scrollTop - clientHeight >= EDGE_PX) return;
+        const next = max + 1;
+        if (next > 114 || sectionEl(next)) return;
+        loadSurahEdge(1);
+      } else if (direction < 0) {
+        if (scrollTop >= EDGE_PX) return;
+        const prev = min - 1;
+        if (prev < 1 || sectionEl(prev)) return;
+        loadSurahEdge(-1);
+      }
+    });
+  }
 
   function getHost() {
     return window.__quranContinuousHost;
@@ -62,22 +105,78 @@
     setScrollRange(nums[0], nums[nums.length - 1]);
   }
 
+  function edgeLoadLabel(h, direction, kind) {
+    if (kind === "mushaf") {
+      return direction > 0 ? "Loading next page…" : "Loading previous page…";
+    }
+    if (h.isIndopakAyahScript?.()) {
+      return direction > 0
+        ? "Loading next surah (Indo-Pak)…"
+        : "Loading previous surah (Indo-Pak)…";
+    }
+    return direction > 0 ? "Loading next surah…" : "Loading previous surah…";
+  }
+
+  function beginEdgeLoad(h, label) {
+    h.setReaderEdgeLoading?.(true, { label });
+  }
+
+  function endEdgeLoad(h) {
+    h.setReaderEdgeLoading?.(false);
+  }
+
+  function getEdgeLoadSignal(h) {
+    const timeoutMs = h.getSurahFetchTimeoutMs?.() ?? 22000;
+    const timeout =
+      typeof AbortSignal !== "undefined" &&
+      typeof AbortSignal.timeout === "function"
+        ? AbortSignal.timeout(timeoutMs)
+        : null;
+    const main = h.getState().surahLoadController?.signal;
+    if (main && !main.aborted) {
+      if (timeout && typeof AbortSignal.any === "function") {
+        return AbortSignal.any([main, timeout]);
+      }
+      return main;
+    }
+    return timeout || undefined;
+  }
+
+  function getEdgeLoadSignal(h) {
+    const nums = listedSurahNums();
+    if (!nums.length) return fallbackSurah;
+    const scrollSurah = pickActiveSurahFromViewport();
+    const rangeMid = Math.round((nums[0] + nums[nums.length - 1]) / 2);
+    return scrollSurah ?? rangeMid ?? fallbackSurah;
+  }
+
+  function pruneWindowRadius(h) {
+    return h.isIndopakAyahScript?.() ? 2 : WINDOW_RADIUS;
+  }
+
+  function reportEdgeLoadError(h, err, context) {
+    if (err?.name === "AbortError") return;
+    console.warn(context, err);
+    h.onContinuousEdgeLoadError?.(err);
+  }
+
   async function fetchPayload(surahNum, signal) {
     const h = getHost();
     const key = h.surahViewCacheKey(surahNum);
     const cached = h.getState().surahViewCache.get(key);
-    if (cached) {
+    if (cached?.arSurahPayload?.ayahs?.length && cached?.enData?.code === 200) {
       return {
         arSurahPayload: h.cloneViewPayload(cached.arSurahPayload),
         enData: h.cloneViewPayload(cached.enData),
       };
     }
-    const payload = await h.fetchSurahViewData(
-      surahNum,
-      h.withFetchTimeout(signal),
-    );
-    h.storeSurahViewCache(surahNum, payload);
-    return payload;
+    const payload = await h.ensureSurahViewCached(surahNum, {
+      signal: h.withFetchTimeout(signal, h.getSurahFetchTimeoutMs?.() ?? 22000),
+    });
+    return {
+      arSurahPayload: h.cloneViewPayload(payload.arSurahPayload),
+      enData: h.cloneViewPayload(payload.enData),
+    };
   }
 
   function normalizePayload(surahNum, arPayload) {
@@ -138,15 +237,20 @@
   }
 
   function pruneSurahSections(anchorSurah) {
+    const h = getHost();
     let nums = listedSurahNums();
     if (nums.length <= MAX_SURAH_SECTIONS) return;
-    const dist = (n) => Math.abs(n - anchorSurah);
+    const anchor = pruneAnchorSurah(anchorSurah);
+    const radius = pruneWindowRadius(h);
+    const dist = (n) => Math.abs(n - anchor);
     nums = [...nums].sort((a, b) => dist(b) - dist(a));
     while (listedSurahNums().length > MAX_SURAH_SECTIONS) {
       const remove = nums.shift();
       if (remove == null) break;
-      if (dist(remove) <= WINDOW_RADIUS) continue;
-      sectionEl(remove)?.remove();
+      if (dist(remove) <= radius) continue;
+      const node = sectionEl(remove);
+      unobserveSectionNode(node);
+      node?.remove();
     }
     syncSurahRangeFromDom();
   }
@@ -174,6 +278,13 @@
     card?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  function unobserveSectionNode(section) {
+    if (!sectionObserver || !section) return;
+    section
+      .querySelectorAll(".continuous-surah-header, .continuous-page-header")
+      .forEach((header) => sectionObserver.unobserve(header));
+  }
+
   function resetSectionObserver() {
     sectionObserver?.disconnect();
     sectionObserver = null;
@@ -186,6 +297,8 @@
     if (replaceAll) {
       resetSectionObserver();
       versesList.innerHTML = "";
+      pendingActiveSurah = null;
+      pendingActiveSurahHits = 0;
     }
     document.getElementById("surahHeaderCard")?.classList.add("hidden");
 
@@ -197,7 +310,9 @@
     ) {
       if (n >= 1 && n <= 114) nums.push(n);
     }
+    await mountSurah(centerSurah, signal, "append");
     for (const n of nums) {
+      if (n === centerSurah) continue;
       if (signal?.aborted) return;
       await mountSurah(n, signal, n < centerSurah ? "prepend" : "append");
     }
@@ -225,24 +340,36 @@
     if (!range.length) return;
     const min = range[0];
     const max = range[range.length - 1];
-    const signal = h.getState().surahLoadController?.signal;
-    if (!signal || signal.aborted) return;
+    const target = edgeSurahTarget(direction, min, max);
+    if (target == null || sectionEl(target)) return;
 
+    const signal = getEdgeLoadSignal(h);
     h.getState().continuousScroll = st;
     st.edgeLoading = true;
+    const showUi = !surahViewCached(h, target);
+    if (showUi) beginEdgeLoad(h, edgeLoadLabel(h, direction, "surah"));
+    let loaded = false;
     try {
-      if (direction > 0 && max < 114) {
-        await mountSurah(max + 1, signal, "append");
-        pruneSurahSections(h.getState().currentSurahNum);
-      } else if (direction < 0 && min > 1) {
-        await mountSurah(min - 1, signal, "prepend");
-        pruneSurahSections(h.getState().currentSurahNum);
+      await mountSurah(
+        target,
+        signal,
+        direction > 0 ? "append" : "prepend",
+      );
+      loaded = !!sectionEl(target);
+      pruneSurahSections(h.getState().currentSurahNum);
+      if (loaded) {
+        h.prefetchSurahNeighbors(target, {
+          preferDirection: direction,
+          radius: 1,
+        });
       }
     } catch (err) {
-      if (err?.name !== "AbortError")
-        console.warn("Continuous scroll edge load failed", err);
+      reportEdgeLoadError(h, err, "Continuous scroll edge load failed");
     } finally {
       st.edgeLoading = false;
+      st.lastEdgeFinishedAt = Date.now();
+      if (showUi) endEdgeLoad(h);
+      if (loaded) maybeContinueEdgeOnce(direction);
     }
   }
 
@@ -271,13 +398,11 @@
     const st = h.getState();
     let verses = st.mushafPageCache?.get(pageNum);
     if (!verses?.length) {
-      verses = await h.fetchMushafPageVerses(
+      verses = await h.ensureMushafPageCached(
         pageNum,
         h.withFetchTimeout(signal),
       );
       if (!verses?.length) throw new Error("empty page");
-      st.mushafPageCache.set(pageNum, verses);
-      h.trimMushafPageCache?.();
     }
     const chaptersById = await h.ensureQuranChaptersMeta(
       h.withFetchTimeout(signal),
@@ -316,13 +441,17 @@
   function pruneMushafSections(anchorPage) {
     let nums = listedPageNums();
     if (nums.length <= MAX_MUSHAF_SECTIONS) return;
-    const dist = (n) => Math.abs(n - anchorPage);
+    const rangeMid = Math.round((nums[0] + nums[nums.length - 1]) / 2);
+    const anchor = anchorPage ?? rangeMid;
+    const dist = (n) => Math.abs(n - anchor);
     nums = [...nums].sort((a, b) => dist(b) - dist(a));
     while (listedPageNums().length > MAX_MUSHAF_SECTIONS) {
       const remove = nums.shift();
       if (remove == null) break;
-      if (dist(remove) <= WINDOW_RADIUS) continue;
-      pageEl(remove)?.remove();
+      if (dist(remove) <= 2) continue;
+      const node = pageEl(remove);
+      unobserveSectionNode(node);
+      node?.remove();
     }
     syncPageRangeFromDom();
   }
@@ -387,25 +516,38 @@
     const min = range[0];
     const max = range[range.length - 1];
     const maxPage = h.getMushafPageMax();
-    const signal = h.getState().surahLoadController?.signal;
-    if (!signal || signal.aborted) return;
+    const target =
+      direction > 0
+        ? max < maxPage
+          ? max + 1
+          : null
+        : min > 1
+          ? min - 1
+          : null;
+    if (target == null || pageEl(target)) return;
 
+    const signal = getEdgeLoadSignal(h);
     st.edgeLoading = true;
+    const cached = h.getState().mushafPageCache?.get(target)?.length;
+    const showUi = !cached;
+    if (showUi) beginEdgeLoad(h, edgeLoadLabel(h, direction, "mushaf"));
+    let loaded = false;
     try {
-      if (direction > 0 && max < maxPage) {
-        await mountMushafPage(max + 1, signal, "append");
-        pruneMushafSections(h.getState().currentMushafPage);
-        h.prefetchMushafNeighbors(max + 1);
-      } else if (direction < 0 && min > 1) {
-        await mountMushafPage(min - 1, signal, "prepend");
-        pruneMushafSections(h.getState().currentMushafPage);
-        h.prefetchMushafNeighbors(min - 1);
-      }
+      await mountMushafPage(
+        target,
+        signal,
+        direction > 0 ? "append" : "prepend",
+      );
+      loaded = !!pageEl(target);
+      pruneMushafSections(h.getState().currentMushafPage);
+      if (loaded) h.prefetchMushafNeighbors(target);
     } catch (err) {
-      if (err?.name !== "AbortError")
-        console.warn("Mushaf scroll edge load failed", err);
+      reportEdgeLoadError(h, err, "Mushaf scroll edge load failed");
     } finally {
       st.edgeLoading = false;
+      st.lastEdgeFinishedAt = Date.now();
+      if (showUi) endEdgeLoad(h);
+      if (loaded) maybeContinueEdgeOnce(direction);
     }
   }
 
@@ -413,6 +555,67 @@
     initSectionObserver();
     const header = section?.querySelector?.(".continuous-page-header");
     if (header) sectionObserver.observe(header);
+  }
+
+  function pickActiveSurahFromViewport() {
+    const root = document.getElementById("surahViewport");
+    if (!root) return null;
+    const rootRect = root.getBoundingClientRect();
+    const chromeH =
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--reader-chrome-h",
+        ),
+      ) || 72;
+    const line = rootRect.top + Math.min(chromeH, 120) + 10;
+    const headers = root.querySelectorAll(
+      ".continuous-surah-header[data-continuous-surah]",
+    );
+    let winner = null;
+    let winnerScore = -Infinity;
+    headers.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.bottom < line - 4 || rect.top > rootRect.bottom) return;
+      const bias = rect.top <= line ? 48 : 0;
+      const score = bias - Math.abs(rect.top - line);
+      if (score > winnerScore) {
+        winnerScore = score;
+        winner = parseInt(el.getAttribute("data-continuous-surah"), 10);
+      }
+    });
+    return Number.isFinite(winner) ? winner : null;
+  }
+
+  function syncActiveSurahFromScroll() {
+    if (isMushafMode()) return;
+    const picked = pickActiveSurahFromViewport();
+    if (!Number.isFinite(picked)) return;
+    const current = getHost().getState().currentSurahNum;
+    if (picked === current) {
+      pendingActiveSurah = null;
+      pendingActiveSurahHits = 0;
+      return;
+    }
+    if (picked === pendingActiveSurah) pendingActiveSurahHits += 1;
+    else {
+      pendingActiveSurah = picked;
+      pendingActiveSurahHits = 1;
+    }
+    if (pendingActiveSurahHits >= 2) {
+      applyActiveSurahData(picked);
+      pendingActiveSurah = null;
+      pendingActiveSurahHits = 0;
+    }
+  }
+
+  function scheduleScrollPrefetchWarm(h) {
+    clearTimeout(prefetchWarmTimer);
+    prefetchWarmTimer = setTimeout(() => {
+      prefetchWarmTimer = null;
+      if (getHost().getState().continuousScroll?.edgeLoading) return;
+      const surah = h.getState().currentSurahNum;
+      h.prefetchSurahReadingWindow?.(surah, scrollDirectionBias, { radius: 1 });
+    }, 1500);
   }
 
   /* ——— Shared scroll + observer ——— */
@@ -426,13 +629,38 @@
       const vp = document.getElementById("surahViewport");
       if (!vp) return;
       const { scrollTop, scrollHeight, clientHeight } = vp;
+      if (scrollTop > lastScrollTop + 6) scrollDirectionBias = 1;
+      else if (scrollTop < lastScrollTop - 6) scrollDirectionBias = -1;
+      lastScrollTop = scrollTop;
+      if (!isMushafMode()) {
+        syncActiveSurahFromScroll();
+        scheduleScrollPrefetchWarm(getHost());
+      }
+      const st = getHost().getState().continuousScroll || {};
+      const range = isMushafMode() ? listedPageNums() : listedSurahNums();
+      const min = range[0];
+      const max = range[range.length - 1];
       if (scrollHeight - scrollTop - clientHeight < EDGE_PX) {
-        if (isMushafMode()) loadMushafEdge(1);
-        else loadSurahEdge(1);
+        if (isMushafMode()) {
+          if (max < getHost().getMushafPageMax() && !pageEl(max + 1)) {
+            st.edgeContinueAllowed = true;
+            loadMushafEdge(1);
+          }
+        } else if (max < 114 && !sectionEl(max + 1)) {
+          st.edgeContinueAllowed = true;
+          loadSurahEdge(1);
+        }
       }
       if (scrollTop < EDGE_PX) {
-        if (isMushafMode()) loadMushafEdge(-1);
-        else loadSurahEdge(-1);
+        if (isMushafMode()) {
+          if (min > 1 && !pageEl(min - 1)) {
+            st.edgeContinueAllowed = true;
+            loadMushafEdge(-1);
+          }
+        } else if (min > 1 && !sectionEl(min - 1)) {
+          st.edgeContinueAllowed = true;
+          loadSurahEdge(-1);
+        }
       }
     });
   }
@@ -457,15 +685,8 @@
           if (!Number.isFinite(pageNum)) return;
           if (getHost().getState().currentMushafPage !== pageNum)
             applyActiveMushafPage(pageNum);
-        } else {
-          const surahNum = parseInt(
-            target.getAttribute("data-continuous-surah"),
-            10,
-          );
-          if (!Number.isFinite(surahNum)) return;
-          if (getHost().getState().currentSurahNum !== surahNum)
-            applyActiveSurahData(surahNum);
         }
+        /* Ayah continuous: active surah from scroll (syncActiveSurahFromScroll). */
       },
       { root, threshold: [0.15, 0.4, 0.6] },
     );
@@ -495,7 +716,7 @@
     initSectionObserver();
     const replaceAll = loadOptions?.replaceAll !== false;
     await loadSurahWindow(surahNum, targetAyah, signal, replaceAll);
-    getHost().prefetchSurahNeighbors(surahNum);
+    getHost().prefetchSurahReadingWindow?.(surahNum, 0, { radius: 2 });
   }
 
   async function continuousLoadMushaf(

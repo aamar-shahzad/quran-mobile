@@ -2070,7 +2070,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=67').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=72').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2627,6 +2627,7 @@
   <audio id="quranAudio" class="hidden" preload="metadata" playsinline webkit-playsinline></audio>
 
   <!-- APP JAVASCRIPT ARCHITECTURE -->
+  <script src="assets/reader-cache-db.js"></script>
   <script src="assets/continuous-reader.js"></script>
   <script>
     // State Management
@@ -2634,7 +2635,10 @@
     const MUSHAF_PAGE_MAX = 610;
     const MUSHAF_PAGE_LINES = 15;
     const MUSHAF_PAGE_CACHE_MAX = 52;
-    const SURAH_VIEW_CACHE_MAX = 10;
+    const SURAH_VIEW_CACHE_MAX = 22;
+    const SURAH_PREFETCH_RADIUS = 3;
+    const BACKGROUND_PREFETCH_CONCURRENCY = 2;
+    const WORD_BY_WORD_CACHE_MAX = 48;
     const SURAH_LIST_STORAGE_KEY = 'quran_surah_list_v1';
 
     const state = {
@@ -2676,7 +2680,7 @@
       audioErrorRetries: 0,
       modalReturnFocus: null,
       openTafsirAyahNum: null,
-      continuousScroll: { minSurah: 1, maxSurah: 1, edgeLoading: false },
+      continuousScroll: { minSurah: 1, maxSurah: 1, edgeLoading: false, edgeContinueAllowed: false },
       _playbackHighlightMount: false,
       bookmarks: readJsonArray('quran_bookmarks_v2')
     };
@@ -2794,6 +2798,256 @@
       }
     }
 
+    const surahViewInFlight = new Map();
+    const mushafPageInFlight = new Map();
+    const backgroundSurahPrefetchQueue = [];
+    let backgroundSurahPrefetchActive = 0;
+
+    function resetBackgroundSurahPrefetch() {
+      backgroundSurahPrefetchQueue.length = 0;
+    }
+
+    function backgroundPrefetchConcurrency() {
+      return isIndopakAyahScript(state.currentScriptKey) ? 1 : BACKGROUND_PREFETCH_CONCURRENCY;
+    }
+
+    function trimWordByWordCache() {
+      const keys = Object.keys(state.wordByWordCache);
+      if (keys.length <= WORD_BY_WORD_CACHE_MAX) return;
+      keys.slice(0, keys.length - WORD_BY_WORD_CACHE_MAX).forEach((k) => {
+        delete state.wordByWordCache[k];
+      });
+    }
+
+    async function warmReaderCacheFromDb(centerSurah) {
+      const db = window.QuranReaderCacheDb;
+      if (!db || !state.currentScriptKey) return;
+      try {
+        await db.open();
+        const center = parseInt(centerSurah, 10);
+        if (!Number.isFinite(center)) return;
+        const keys = buildPrefetchSurahList(center, 2, 0).map((n) => surahViewCacheKey(n));
+        keys.push(surahViewCacheKey(center));
+        const rows = await db.warmSurahKeys([...new Set(keys)]);
+        for (const row of rows) {
+          if (!isValidSurahViewPayload(row.payload)) continue;
+          if (state.surahViewCache.has(row.id)) continue;
+          state.surahViewCache.set(row.id, row.payload);
+        }
+        trimSurahViewCache();
+      } catch (err) {
+        console.warn('Reader cache warm failed', err);
+      }
+    }
+
+    async function warmMushafPagesFromDb(page) {
+      const db = window.QuranReaderCacheDb;
+      if (!db) return;
+      try {
+        await db.open();
+        const p = parseInt(page, 10);
+        if (!Number.isFinite(p)) return;
+        for (const n of [p - 1, p, p + 1]) {
+          if (n < 1 || n > MUSHAF_PAGE_MAX) continue;
+          if (state.mushafPageCache.has(n)) continue;
+          const id = db.mushafPageId(MUSHAF_PAGE_LAYOUT_ID, n);
+          const verses = await db.getMushafPage(id);
+          if (verses?.length) state.mushafPageCache.set(n, verses);
+        }
+        trimMushafPageCacheByDistance();
+      } catch (err) {
+        console.warn('Mushaf cache warm failed', err);
+      }
+    }
+
+    const TAFSIR_CACHE_MAX = 80;
+
+    function trimTafsirCache() {
+      const keys = Object.keys(state.tafsirCache);
+      if (keys.length <= TAFSIR_CACHE_MAX) return;
+      keys.slice(0, keys.length - TAFSIR_CACHE_MAX).forEach((k) => {
+        delete state.tafsirCache[k];
+      });
+    }
+
+    function isValidSurahViewPayload(payload) {
+      return (
+        payload?.enData?.code === 200 &&
+        Array.isArray(payload?.arSurahPayload?.ayahs) &&
+        payload.arSurahPayload.ayahs.length > 0
+      );
+    }
+
+    function trimSurahViewCache() {
+      while (state.surahViewCache.size > SURAH_VIEW_CACHE_MAX) {
+        let farthestKey = null;
+        let farthestDist = -1;
+        for (const key of state.surahViewCache.keys()) {
+          const n = parseInt(String(key).split(':')[0], 10);
+          if (!Number.isFinite(n)) continue;
+          const d = Math.abs(n - state.currentSurahNum);
+          if (d > farthestDist) {
+            farthestDist = d;
+            farthestKey = key;
+          }
+        }
+        if (!farthestKey) break;
+        state.surahViewCache.delete(farthestKey);
+      }
+    }
+
+    function trimMushafPageCacheByDistance() {
+      while (state.mushafPageCache.size > MUSHAF_PAGE_CACHE_MAX) {
+        let farthestPage = null;
+        let farthestDist = -1;
+        for (const page of state.mushafPageCache.keys()) {
+          const d = Math.abs(page - state.currentMushafPage);
+          if (d > farthestDist) {
+            farthestDist = d;
+            farthestPage = page;
+          }
+        }
+        if (farthestPage == null) break;
+        state.mushafPageCache.delete(farthestPage);
+      }
+    }
+
+    function buildPrefetchSurahList(center, radius, preferDirection = 0) {
+      const forward = [];
+      const backward = [];
+      for (let d = 1; d <= radius; d += 1) {
+        if (center + d <= 114) forward.push(center + d);
+        if (center - d >= 1) backward.push(center - d);
+      }
+      if (preferDirection > 0) return [...forward, ...backward];
+      if (preferDirection < 0) return [...backward, ...forward];
+      const interleaved = [];
+      for (let i = 0; i < Math.max(forward.length, backward.length); i += 1) {
+        if (forward[i] != null) interleaved.push(forward[i]);
+        if (backward[i] != null) interleaved.push(backward[i]);
+      }
+      return interleaved;
+    }
+
+    async function ensureSurahViewCached(surahNum, options = {}) {
+      const n = parseInt(surahNum, 10);
+      if (n < 1 || n > 114) throw new Error('Invalid surah');
+      const key = surahViewCacheKey(n);
+      const cached = state.surahViewCache.get(key);
+      if (cached && isValidSurahViewPayload(cached)) return cached;
+      if (cached) state.surahViewCache.delete(key);
+
+      let existing = surahViewInFlight.get(key);
+      if (existing) return existing;
+
+      const db = window.QuranReaderCacheDb;
+      if (db) {
+        try {
+          await db.open();
+          const fromDb = await db.getSurahView(key);
+          if (fromDb && isValidSurahViewPayload(fromDb)) {
+            state.surahViewCache.set(key, fromDb);
+            trimSurahViewCache();
+            return fromDb;
+          }
+        } catch (err) {
+          console.warn('IndexedDB surah read failed', err);
+        }
+      }
+
+      existing = surahViewInFlight.get(key);
+      if (existing) return existing;
+
+      const { signal } = options;
+      const task = fetchSurahViewData(n, signal)
+        .then((payload) => {
+          if (!isValidSurahViewPayload(payload)) throw new Error('Invalid surah payload');
+          storeSurahViewCache(n, payload);
+          return payload;
+        })
+        .finally(() => {
+          if (surahViewInFlight.get(key) === task) surahViewInFlight.delete(key);
+        });
+      surahViewInFlight.set(key, task);
+      return task;
+    }
+
+    function drainBackgroundSurahPrefetch() {
+      if (state.continuousScroll?.edgeLoading) return;
+      const maxActive = backgroundPrefetchConcurrency();
+      while (
+        backgroundSurahPrefetchActive < maxActive &&
+        backgroundSurahPrefetchQueue.length
+      ) {
+        const n = backgroundSurahPrefetchQueue.shift();
+        const key = surahViewCacheKey(n);
+        if (state.surahViewCache.has(key) || surahViewInFlight.has(key)) continue;
+
+        backgroundSurahPrefetchActive += 1;
+        const bgSignal = AbortSignal.timeout(getSurahFetchTimeoutMs());
+
+        ensureSurahViewCached(n, { signal: bgSignal })
+          .catch(() => {})
+          .finally(() => {
+            backgroundSurahPrefetchActive -= 1;
+            drainBackgroundSurahPrefetch();
+          });
+      }
+    }
+
+    function enqueueBackgroundSurahPrefetch(surahNums) {
+      for (const raw of surahNums) {
+        const n = parseInt(raw, 10);
+        if (n < 1 || n > 114) continue;
+        const key = surahViewCacheKey(n);
+        if (state.surahViewCache.has(key) || surahViewInFlight.has(key)) continue;
+        if (backgroundSurahPrefetchQueue.includes(n)) continue;
+        backgroundSurahPrefetchQueue.push(n);
+      }
+      drainBackgroundSurahPrefetch();
+    }
+
+    async function ensureMushafPageCached(pageNum, signal) {
+      const p = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(pageNum, 10) || 1));
+      const hit = state.mushafPageCache.get(p);
+      if (hit?.length) return hit;
+      const inflight = mushafPageInFlight.get(p);
+      if (inflight) return inflight;
+
+      const db = window.QuranReaderCacheDb;
+      const mushafId = db?.mushafPageId(MUSHAF_PAGE_LAYOUT_ID, p);
+      if (db && mushafId) {
+        try {
+          await db.open();
+          const fromDb = await db.getMushafPage(mushafId);
+          if (fromDb?.length) {
+            state.mushafPageCache.set(p, fromDb);
+            trimMushafPageCacheByDistance();
+            return fromDb;
+          }
+        } catch (err) {
+          console.warn('IndexedDB mushaf read failed', err);
+        }
+      }
+
+      const task = fetchMushafPageVerses(p, signal)
+        .then((verses) => {
+          if (verses?.length) {
+            state.mushafPageCache.set(p, verses);
+            trimMushafPageCacheByDistance();
+            if (db && mushafId) {
+              db.putMushafPage(mushafId, verses).catch(() => {});
+            }
+          }
+          return verses || [];
+        })
+        .finally(() => {
+          if (mushafPageInFlight.get(p) === task) mushafPageInFlight.delete(p);
+        });
+      mushafPageInFlight.set(p, task);
+      return task;
+    }
+
     function surahViewCacheKey(surahNum) {
       return `${surahNum}:${state.currentScriptKey}:${state.currentTranslationKey}`;
     }
@@ -2832,6 +3086,11 @@
       if (!active) {
         loadingSpinner.classList.add('hidden');
         clearReaderLoadWatchdog();
+        if (readerEdgeLoadDepth < 1) {
+          loadBar?.classList.add('hidden');
+          loadBar?.classList.remove('reader-load-bar--subtle');
+          loadBar?.setAttribute('aria-hidden', 'true');
+        }
         return;
       }
       armReaderLoadWatchdog();
@@ -2840,6 +3099,55 @@
       } else {
         loadingSpinner.classList.remove('hidden');
       }
+    }
+
+    let readerEdgeLoadDepth = 0;
+    let readerEdgeBarShowTimer = null;
+    let readerEdgeBarHideTimer = null;
+
+    function showReaderEdgeBar(label) {
+      const loadBar = document.getElementById('readerLoadBar');
+      const spinnerLabel = document.getElementById('loadingSpinnerLabel');
+      if (spinnerLabel) spinnerLabel.textContent = label;
+      loadBar?.classList.remove('hidden');
+      loadBar?.classList.add('reader-load-bar--subtle');
+      loadBar?.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideReaderEdgeBar() {
+      if (readerEdgeLoadDepth > 0) return;
+      const viewport = document.getElementById('surahViewport');
+      if (viewport?.classList.contains('reader-is-loading')) return;
+      const loadBar = document.getElementById('readerLoadBar');
+      loadBar?.classList.add('hidden');
+      loadBar?.classList.remove('reader-load-bar--subtle');
+      loadBar?.setAttribute('aria-hidden', 'true');
+    }
+
+    /** Edge scroll only — top bar, no viewport dim/spinner (avoids UI flicker). */
+    function setReaderEdgeLoading(active, { label = 'Loading…' } = {}) {
+      if (active) {
+        readerEdgeLoadDepth += 1;
+        if (readerEdgeLoadDepth > 1) return;
+        clearTimeout(readerEdgeBarHideTimer);
+        readerEdgeBarHideTimer = null;
+        clearTimeout(readerEdgeBarShowTimer);
+        readerEdgeBarShowTimer = setTimeout(() => {
+          readerEdgeBarShowTimer = null;
+          if (readerEdgeLoadDepth < 1) return;
+          showReaderEdgeBar(label);
+        }, 200);
+        return;
+      }
+      readerEdgeLoadDepth = Math.max(0, readerEdgeLoadDepth - 1);
+      clearTimeout(readerEdgeBarShowTimer);
+      readerEdgeBarShowTimer = null;
+      if (readerEdgeLoadDepth > 0) return;
+      clearTimeout(readerEdgeBarHideTimer);
+      readerEdgeBarHideTimer = setTimeout(() => {
+        readerEdgeBarHideTimer = null;
+        hideReaderEdgeBar();
+      }, 320);
     }
 
     function scheduleIdle(task) {
@@ -2851,7 +3159,21 @@
     }
 
     const READER_FETCH_TIMEOUT_MS = 22000;
+    const INOPAK_FETCH_TIMEOUT_MS = 45000;
     const READER_LOAD_WATCHDOG_MS = 26000;
+    const INOPAK_LOAD_WATCHDOG_MS = 52000;
+
+    function getSurahFetchTimeoutMs() {
+      return isIndopakAyahScript(state.currentScriptKey)
+        ? INOPAK_FETCH_TIMEOUT_MS
+        : READER_FETCH_TIMEOUT_MS;
+    }
+
+    function getReaderLoadWatchdogMs() {
+      return isIndopakAyahScript(state.currentScriptKey)
+        ? INOPAK_LOAD_WATCHDOG_MS
+        : READER_LOAD_WATCHDOG_MS;
+    }
 
     function withFetchTimeout(signal, ms = READER_FETCH_TIMEOUT_MS) {
       const timeout =
@@ -2882,7 +3204,7 @@
         setReaderLoading(false);
         setReaderNavBusy(false);
         showToast('Still loading — check connection or try again.');
-      }, READER_LOAD_WATCHDOG_MS);
+      }, getReaderLoadWatchdogMs());
     }
 
     function finishActiveReaderLoad(signal) {
@@ -2942,6 +3264,9 @@
       state.tafsirCache = {};
       state.wordByWordCache = {};
       state.audioUrlCache = {};
+      surahViewInFlight.clear();
+      mushafPageInFlight.clear();
+      resetBackgroundSurahPrefetch();
     }
 
     function releaseReaderResourcesBeforeReload() {
@@ -3036,6 +3361,7 @@
     }
 
     async function bootstrapApp() {
+      await window.QuranReaderCacheDb?.open?.().catch(() => {});
       const layoutReload = consumeLayoutReloadContext();
       try {
         setStartupSplashStatus(layoutReload ? 'Applying reading options…' : 'Loading surah list…');
@@ -3081,6 +3407,9 @@
       let page = 1;
       const verses = [];
       while (true) {
+        if (signal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
+        }
         const data = await fetchQuranComJson(
           `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=text_indopak_nastaleeq,text_indopak,verse_key,page_number&page=${page}&per_page=${perPage}`,
           signal
@@ -3903,6 +4232,7 @@
 
         const safeText = sanitizeTafsirHtml(text);
         state.tafsirCache[cacheKey] = safeText;
+        trimTafsirCache();
         contentEl.innerHTML = wrapTafsirWithSourceFooter(safeText);
       } catch (err) {
         console.warn('Tafsir load failed', err);
@@ -4051,6 +4381,7 @@
         if (audioSubLabel) setAudioReciterLabel(reciterName);
       }
       setupMediaSessionHandlers();
+      resetBackgroundSurahPrefetch();
       window.__quranContinuousHost = {
         getState: () => state,
         getSurahs: () => state.surahs,
@@ -4060,7 +4391,14 @@
         surahViewCacheKey,
         cloneViewPayload,
         fetchSurahViewData,
+        ensureSurahViewCached,
+        ensureMushafPageCached,
         withFetchTimeout,
+        getSurahFetchTimeoutMs,
+        isIndopakAyahScript,
+        setReaderLoading,
+        setReaderEdgeLoading,
+        onContinuousEdgeLoadError,
         storeSurahViewCache,
         normalizeAyahText,
         buildContinuousSurahSectionHtml,
@@ -4076,8 +4414,9 @@
         getStartPageForSurah,
         getPageForSurahAyah,
         prefetchMushafNeighbors,
-        trimMushafPageCache: () => trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX),
+        trimMushafPageCache: () => trimMushafPageCacheByDistance(),
         prefetchSurahNeighbors,
+        prefetchSurahReadingWindow,
         closeAllTafsirPanelsExcept,
         syncReaderFocusMode,
         syncReaderChrome,
@@ -4632,41 +4971,60 @@
       }
     }
 
+    function onContinuousEdgeLoadError(err) {
+      const msg = String(err?.message || err || '');
+      if (/timeout|timed out/i.test(msg)) {
+        showToast('Load timed out — Indo-Pak can be slow; try again.');
+        return;
+      }
+      showToast('Could not load more — scroll again or check connection.');
+    }
+
+    function readerLoadLabelForScript() {
+      if (isMushafPageScript(state.currentScriptKey)) return 'Opening mushaf…';
+      if (isIndopakAyahScript(state.currentScriptKey)) return 'Loading Indo-Pak text…';
+      return 'Loading…';
+    }
+
     function storeSurahViewCache(surahNum, payload) {
-      state.surahViewCache.set(surahViewCacheKey(surahNum), payload);
-      trimMapCache(state.surahViewCache, SURAH_VIEW_CACHE_MAX);
+      if (!isValidSurahViewPayload(payload)) return;
+      const key = surahViewCacheKey(surahNum);
+      state.surahViewCache.set(key, payload);
+      trimSurahViewCache();
+      window.QuranReaderCacheDb?.putSurahView(key, payload).catch(() => {});
+    }
+
+    function prefetchSurahReadingWindow(centerSurah, preferDirection = 0, options = {}) {
+      const center = parseInt(centerSurah, 10);
+      if (!Number.isFinite(center)) return;
+      if (state.continuousScroll?.edgeLoading) return;
+      const defaultRadius = isIndopakAyahScript(state.currentScriptKey)
+        ? Math.min(SURAH_PREFETCH_RADIUS, 2)
+        : SURAH_PREFETCH_RADIUS;
+      const radius = options.radius ?? defaultRadius;
+      const nums = buildPrefetchSurahList(center, radius, preferDirection);
+      scheduleIdle(() => enqueueBackgroundSurahPrefetch(nums));
+    }
+
+    function prefetchSurahNeighbors(surahNum, options = {}) {
+      const preferDirection = options.preferDirection ?? 0;
+      const radius = options.radius ?? 1;
+      prefetchSurahReadingWindow(surahNum, preferDirection, { radius });
     }
 
     function prefetchMushafNeighbors(page) {
+      const p = parseInt(page, 10);
+      if (!Number.isFinite(p)) return;
       scheduleIdle(() => {
-        [page - 1, page + 1]
-          .filter((p) => p >= 1 && p <= MUSHAF_PAGE_MAX && !state.mushafPageCache.has(p))
-          .forEach((p) => {
-            fetchMushafPageVerses(p, AbortSignal.timeout(15000))
-              .then((verses) => {
-                if (verses?.length) {
-                  state.mushafPageCache.set(p, verses);
-                  trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX);
-                }
-              })
-              .catch(() => {});
-          });
-      });
-    }
-
-    function prefetchSurahNeighbors(surahNum) {
-      scheduleIdle(() => {
-        [surahNum - 1, surahNum + 1]
-          .filter((n) => n >= 1 && n <= 114)
-          .forEach((n) => {
-            const key = surahViewCacheKey(n);
-            if (state.surahViewCache.has(key)) return;
-            fetchSurahViewData(n, AbortSignal.timeout(20000))
-              .then((payload) => {
-                if (payload?.enData?.code === 200) storeSurahViewCache(n, payload);
-              })
-              .catch(() => {});
-          });
+        const nums = [];
+        for (let d = 1; d <= 2; d += 1) {
+          if (p + d <= MUSHAF_PAGE_MAX) nums.push(p + d);
+          if (p - d >= 1) nums.push(p - d);
+        }
+        nums.forEach((pageNum) => {
+          if (state.mushafPageCache.has(pageNum)) return;
+          ensureMushafPageCached(pageNum, AbortSignal.timeout(18000)).catch(() => {});
+        });
       });
     }
 
@@ -5029,7 +5387,7 @@
       setReaderNavBusy(true);
       setReaderLoading(true, {
         keepContent: hadContinuous && !targetAyah,
-        label: mushaf ? 'Opening mushaf…' : 'Loading…',
+        label: readerLoadLabelForScript(),
       });
       if (!hadContinuous && versesList) versesList.innerHTML = '';
       if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
@@ -5095,6 +5453,13 @@
           }
         }
         measureAudioBarHeight();
+        scheduleIdle(() => {
+          if (isMushafPageScript(state.currentScriptKey)) {
+            warmMushafPagesFromDb(state.currentMushafPage);
+          } else {
+            warmReaderCacheFromDb(state.currentSurahNum);
+          }
+        });
       }
     }
 
@@ -5473,6 +5838,7 @@
         const data = await res.json();
         if (data && data.verse && data.verse.words) {
           state.wordByWordCache[cacheKey] = data.verse.words;
+          trimWordByWordCache();
           renderWordByWordData(data.verse.words, content);
         } else {
           content.innerHTML = `<span class="text-slate-400 text-xs" dir="ltr">Word breakdown not available.</span>`;
@@ -5738,7 +6104,9 @@
       }
       showToast('Saving surah…');
       try {
-        const payload = await fetchSurahViewData(state.currentSurahNum, AbortSignal.timeout(12000));
+        const payload = await ensureSurahViewCached(state.currentSurahNum, {
+          signal: AbortSignal.timeout(getSurahFetchTimeoutMs()),
+        });
         storeSurahViewCache(state.currentSurahNum, payload);
       } catch {
         /* continue with URL warms below */
