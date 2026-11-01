@@ -1689,6 +1689,14 @@
       </div>
 
       <div class="space-y-4 overflow-y-auto flex-1 p-1 text-xs text-slate-300">
+        <div id="pwaNativeInstallRow" class="hidden bg-brand-600/15 border border-brand-500/40 rounded-xl p-4 space-y-2">
+          <p class="text-[11px] text-slate-200">This browser is ready to install the app on this device.</p>
+          <button type="button" id="btnPwaNativeInstall" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold flex items-center justify-center gap-2">
+            <i class="ph ph-download-simple text-lg"></i>
+            <span>Install app</span>
+          </button>
+          <p class="text-[10px] text-slate-400 leading-snug">If you dismissed the green bar at the top, use this button to open the install dialog.</p>
+        </div>
         <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
           <p class="text-[11px] text-slate-300 mb-3">Scan with a phone camera, or share the link in WhatsApp, iMessage, etc.</p>
           <img
@@ -2607,6 +2615,37 @@
     });
 
     // PWA & IOS INSTALL PROMPT LOGIC
+    function syncPwaInstallUi() {
+      const canNativeInstall = !!state.deferredPwaPrompt;
+      document.getElementById('pwaNativeInstallRow')?.classList.toggle('hidden', !canNativeInstall);
+      const menuInstall = document.getElementById('btnMenuShareInstall');
+      if (menuInstall) {
+        menuInstall.textContent = canNativeInstall ? 'Install app' : 'Share & install';
+      }
+    }
+
+    async function requestPwaInstall() {
+      const installEvent = state.deferredPwaPrompt;
+      if (!installEvent) {
+        return { ok: false, reason: 'unavailable' };
+      }
+      try {
+        await installEvent.prompt();
+        const { outcome } = await installEvent.userChoice;
+        state.deferredPwaPrompt = null;
+        document.getElementById('pwaInstallBanner')?.classList.add('hidden');
+        if (outcome === 'accepted') {
+          safeStorageSet('quran_pwa_banner_dismiss', '1');
+        }
+        syncPwaInstallUi();
+        return { ok: true, outcome };
+      } catch (err) {
+        console.warn('PWA install prompt failed', err);
+        showToast('Install unavailable — try Chrome menu → Install app');
+        return { ok: false, reason: 'error' };
+      }
+    }
+
     function initPwaInstaller() {
       const banner = document.getElementById('pwaInstallBanner');
       const btnInstall = document.getElementById('btnInstallPwa');
@@ -2624,6 +2663,7 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         state.deferredPwaPrompt = e;
+        syncPwaInstallUi();
         if (banner && safeStorageGet('quran_pwa_banner_dismiss') !== '1') {
           banner.classList.remove('hidden');
         }
@@ -2632,21 +2672,24 @@
       window.addEventListener('appinstalled', () => {
         state.deferredPwaPrompt = null;
         banner?.classList.add('hidden');
+        syncPwaInstallUi();
       });
 
       if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
-          if (state.deferredPwaPrompt) {
-            await state.deferredPwaPrompt.prompt();
-            const { outcome } = await state.deferredPwaPrompt.userChoice;
-            if (outcome === 'accepted' && banner) banner.classList.add('hidden');
-            state.deferredPwaPrompt = null;
-            return;
-          }
+          const result = await requestPwaInstall();
+          if (result.ok) return;
           refreshShareInstallModal?.();
           openAppModal('pwaGuideModal');
         });
       }
+
+      document.getElementById('btnPwaNativeInstall')?.addEventListener('click', async () => {
+        const result = await requestPwaInstall();
+        if (result.ok && result.outcome === 'accepted') {
+          closeAppModal('pwaGuideModal');
+        }
+      });
 
       if (btnDismiss && banner) {
         btnDismiss.addEventListener('click', () => {
@@ -4562,14 +4605,11 @@
       document.getElementById('btnMenuShareInstall')?.addEventListener('click', async () => {
         closeAppModal('moreMenuModal');
         if (state.deferredPwaPrompt) {
-          await state.deferredPwaPrompt.prompt();
-          await state.deferredPwaPrompt.userChoice;
-          state.deferredPwaPrompt = null;
-          document.getElementById('pwaInstallBanner')?.classList.add('hidden');
-          return;
+          const result = await requestPwaInstall();
+          if (result.ok) return;
         }
-        openAppModal('pwaGuideModal');
         refreshShareInstallModal?.();
+        openAppModal('pwaGuideModal');
       });
       document.getElementById('closeBookmarkNoteModal')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
       document.getElementById('btnCancelBookmarkNote')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
@@ -4631,6 +4671,7 @@
           link.textContent = APP_PUBLIC_URL;
         }
         if (openBtn) openBtn.href = APP_PUBLIC_URL;
+        syncPwaInstallUi();
       }
       async function copyAppPublicLink(buttonEl) {
         try {
