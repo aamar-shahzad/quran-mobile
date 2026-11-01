@@ -605,12 +605,12 @@
         max-height: min(60vh, 32rem);
       }
     }
-    #tafsirSheetModal .tafsir-content-scroll {
-      max-height: none;
-      flex: 1;
-      min-height: 0;
-    }
     #tafsirSheetModal .tafsir-sheet-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      width: 100%;
       max-height: min(78vh, 640px);
       padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
     }
@@ -623,6 +623,32 @@
     }
     #tafsirSheetModal .tafsir-sheet-grab {
       flex-shrink: 0;
+    }
+    #tafsirSheetModal .tafsir-panel-toolbar {
+      flex-shrink: 0;
+      background: inherit;
+    }
+    #tafsirSheetAyahContext {
+      flex-shrink: 0;
+      max-height: 5.5rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    #tafsirSheetModal #tafsirSheetContent {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      outline: none;
+      direction: ltr;
+    }
+    #tafsirSheetModal #tafsirSheetContent .tafsir-content {
+      direction: rtl;
+    }
+    #tafsirSheetModal #tafsirSheetContent .tafsir-content--en {
+      direction: ltr;
     }
     .tafsir-content {
       user-select: text;
@@ -1731,7 +1757,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=42').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=44').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1967,7 +1993,7 @@
   <!-- TAFSIR BOTTOM SHEET (phones) -->
   <div id="tafsirSheetModal" class="hidden fixed inset-0 z-[68] flex flex-col justify-end pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="tafsirSheetBadge">
     <button type="button" id="tafsirSheetBackdrop" class="tafsir-sheet-backdrop flex-1 w-full bg-slate-950/75 backdrop-blur-sm pointer-events-auto min-h-[12vh]" aria-label="Close tafsir"></button>
-    <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full max-h-[min(78vh,640px)]">
+    <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full max-h-[min(78vh,640px)] min-h-0 overflow-hidden">
       <div class="tafsir-sheet-grab w-10 h-1 rounded-full bg-slate-600 mx-auto mt-2.5 mb-1" aria-hidden="true"></div>
       <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2 px-4 pt-1 pb-2 border-b border-slate-800/90">
         <div class="min-w-0 flex-1">
@@ -1987,7 +2013,8 @@
           </button>
         </div>
       </div>
-      <div id="tafsirSheetContent" class="tafsir-content tafsir-content-scroll tafsir-content--en font-sans px-4 py-3"></div>
+      <div id="tafsirSheetAyahContext" class="hidden px-4 py-2.5 border-b border-slate-800/90 text-sm leading-relaxed text-emerald-100/95 text-right" dir="rtl" aria-label="Ayah text"></div>
+      <div id="tafsirSheetContent" class="tafsir-content tafsir-content--en font-sans"></div>
     </div>
   </div>
 
@@ -3281,6 +3308,26 @@
       if (next) {
         next.onclick = () => navigateTafsirView(surahNum, ayahNum, 1);
       }
+      updateTafsirSheetAyahContext(ayahNum);
+    }
+
+    function updateTafsirSheetAyahContext(ayahNum) {
+      const el = document.getElementById('tafsirSheetAyahContext');
+      if (!el) return;
+      const ayah = state.currentSurahData?.ayahs?.find((a) => a.numberInSurah === ayahNum);
+      const plain = ayah?.text ? String(ayah.text).replace(/\s+/g, ' ').trim() : '';
+      if (!plain) {
+        el.classList.add('hidden');
+        el.textContent = '';
+        return;
+      }
+      el.classList.remove('hidden');
+      el.dir = getAyahDisplayDir(state.currentScriptKey);
+      const scriptClass = isIndopakAyahScript(state.currentScriptKey)
+        ? 'indopak-nastaleeq-text text-right'
+        : 'arabic-text text-right';
+      el.className = `px-4 py-2.5 border-b border-slate-800/90 text-sm leading-relaxed text-emerald-100/95 ${scriptClass}`;
+      el.textContent = plain;
     }
 
     function closeTafsirSheet() {
@@ -3322,7 +3369,7 @@
 
       const tafsirMeta = TAFSIR_ENDPOINTS[state.currentTafsirKey] || TAFSIR_ENDPOINTS.en_ibn_kathir;
       if (badgeEl) badgeEl.textContent = tafsirMeta.name;
-      const sheetPad = contentEl.id === 'tafsirSheetContent' ? ' px-4 pb-4 pt-1' : '';
+      const sheetPad = contentEl.id === 'tafsirSheetContent' ? ' px-4 pb-4 pt-2' : '';
       contentEl.className = `${getTafsirContentClassName(tafsirMeta.lang)} tafsir-content-scroll${sheetPad}`;
 
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
@@ -3384,6 +3431,7 @@
         if (sheetContent) sheetContent.scrollTop = 0;
         document.body.classList.add('tafsir-sheet-open');
         measureAudioBarHeight();
+        requestAnimationFrame(measureAudioBarHeight);
         if (!isTafsirSheetOpen()) {
           openAppModal('tafsirSheetModal');
         }
