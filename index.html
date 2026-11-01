@@ -1084,6 +1084,9 @@
       min-height: 0;
       padding-bottom: 0.35rem;
     }
+    body.mushaf-reading-mode.audio-bar-visible #surahViewport {
+      padding-bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    }
     body.mushaf-reading-mode #appShell {
       max-width: min(100%, 52rem);
     }
@@ -1228,6 +1231,12 @@
       }
       body.mushaf-reading-mode #surahViewport {
         padding-bottom: 0.5rem;
+      }
+      body.mushaf-reading-mode.audio-bar-visible #surahViewport {
+        padding-bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+      }
+      body.mushaf-reading-mode.audio-bar-visible #mushafPageNav {
+        margin-bottom: 0.25rem;
       }
     }
     .pt-safe {
@@ -4262,6 +4271,13 @@
         navigator.mediaSession.playbackState = 'paused';
       }
       syncAudioUi();
+      measureAudioBarHeight();
+      if (!isMushafPageScript(state.currentScriptKey)) {
+        const card = document.getElementById(`verse-card-${ayah.number}`);
+        if (card && !isAnyTafsirPanelOpen()) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
     }
 
     async function ensureSurahDataForPlayback(chapterId) {
@@ -4300,8 +4316,8 @@
       updateNavigationButtons();
       if (isTafsirSheetOpen()) closeTafsirSheet();
       const willLoadMushaf = isMushafPageScript(state.currentScriptKey);
-      const audioSnapshot = !targetAyah && !willLoadMushaf ? captureAudioSession() : null;
-      if (willLoadMushaf || !audioSnapshot) {
+      const audioSnapshot = !targetAyah ? captureAudioSession() : null;
+      if (!audioSnapshot) {
         resetAudioForReadingLayoutChange();
       } else {
         softPauseAudioForReload();
@@ -4321,6 +4337,12 @@
           let page = state.currentMushafPage;
           if (targetAyah) {
             page = await getPageForSurahAyah(state.currentSurahNum, targetAyah, withFetchTimeout(signal));
+          } else if (audioSnapshot) {
+            page = await getPageForSurahAyah(
+              state.currentSurahNum,
+              audioSnapshot.ayahNumberInSurah,
+              withFetchTimeout(signal),
+            );
           } else {
             page = await getStartPageForSurah(state.currentSurahNum, withFetchTimeout(signal));
           }
@@ -4333,6 +4355,15 @@
           }
           if (err?.name !== 'AbortError') finishActiveReaderLoad(signal);
         }
+        syncReaderLayoutChrome();
+        if (audioSnapshot) {
+          if (versesList?.querySelector('.mushaf-page-card')) {
+            resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());
+          } else {
+            resetAudioForReadingLayoutChange();
+          }
+        }
+        measureAudioBarHeight();
         return;
       }
 
@@ -5280,7 +5311,7 @@
       hideTapToPlayOverlay();
 
       const card = document.getElementById(`verse-card-${ayah.number}`);
-      if (card && !isAnyTafsirPanelOpen()) {
+      if (card && !isMushafPageScript(state.currentScriptKey) && !isAnyTafsirPanelOpen()) {
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
 
@@ -5654,6 +5685,7 @@
           } catch (err) {
             console.error('Script change load failed', err);
           }
+          measureAudioBarHeight();
           syncReaderFocusMode();
           if (isMushafPageScript(state.currentScriptKey)) {
             document.getElementById('searchContainer')?.classList.add('hidden');

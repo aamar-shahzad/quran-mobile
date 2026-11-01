@@ -23,6 +23,7 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 ## Background audio
 
 - Lock-screen **play / pause / next / previous** use the Media Session API while recitation is playing.
+- Switching between **Indo-Pak mushaf** and **by ayah** (Reading options → Script) keeps the same ayah playing when possible; mushaf opens the page for that ayah.
 - **Continue listening:** long-press the home-screen icon → _Continue_ (Android), or open `?play=last`.
 - Deep links (`?surah=`, `?ayah=`, `?page=`, `?play=1`) still work if you bookmark or share a URL yourself.
 
