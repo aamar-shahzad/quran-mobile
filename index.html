@@ -1446,7 +1446,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=25').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=26').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -4236,10 +4236,9 @@
         el.className = 'fixed left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-xl border border-slate-700 shadow-lg z-[60] opacity-0 pointer-events-none transition-opacity duration-300';
         document.body.appendChild(el);
       }
-      const barInset = document.body.classList.contains('audio-bar-visible')
+      el.style.bottom = document.body.classList.contains('audio-bar-visible')
         ? `calc(var(--audio-bar-h, 5.5rem) + 0.75rem + env(safe-area-inset-bottom, 0px))`
         : '5rem';
-      el.style.bottom = barInset;
       el.textContent = message;
       el.classList.remove('opacity-0');
       clearTimeout(showToast._timer);
