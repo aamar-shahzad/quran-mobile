@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v17";
+const CACHE_NAME = "quran-mobile-v18";
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
 const AUDIO_CACHE = "quran-mobile-audio-v1";
@@ -21,11 +21,19 @@ function isAppShellRequest(url) {
     const u = new URL(url);
     const path = u.pathname;
     const base = scopeBasePath();
-    if (path.endsWith("/sw.js") || path.includes("manifest.webmanifest") || path.includes("/icons/")) {
+    if (
+      path.endsWith("/sw.js") ||
+      path.includes("manifest.webmanifest") ||
+      path.includes("/icons/")
+    ) {
       return true;
     }
     if (base !== "/" && path.startsWith(base)) {
-      return path === base || path.endsWith("/index.html") || path.endsWith(base.slice(0, -1));
+      return (
+        path === base ||
+        path.endsWith("/index.html") ||
+        path.endsWith(base.slice(0, -1))
+      );
     }
     return path.endsWith("/index.html") || path === "/" || path.endsWith("/");
   } catch {
@@ -140,7 +148,13 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME && key !== ASSETS_CACHE && key !== API_CACHE && key !== AUDIO_CACHE)
+            .filter(
+              (key) =>
+                key !== CACHE_NAME &&
+                key !== ASSETS_CACHE &&
+                key !== API_CACHE &&
+                key !== AUDIO_CACHE,
+            )
             .map((key) => caches.delete(key)),
         ),
       )

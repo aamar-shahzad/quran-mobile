@@ -6,12 +6,11 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar.
 
 **Hadith app:** https://aamar-shahzad.github.io/hadith-mobile/
 
-## Background audio & voice assistants
+## Background audio
 
 - Lock-screen **play / pause / next / previous** use the Media Session API while recitation is playing.
-- **Continue listening:** open `?play=last` or use the Android home-screen shortcut _Continue_.
-- **Play a surah by voice (iOS):** More → _Siri & Assistant_ → copy a link → create a Shortcuts “Open URL” action → “Hey Siri, [shortcut name]”.
-- **iOS note:** Shortcut links open in Safari; audio still plays in the background. iOS may stop audio if the app is force-quit.
+- **Continue listening:** long-press the home-screen icon → _Continue_ (Android), or open `?play=last`.
+- Deep links (`?surah=`, `?play=1`) still work if you bookmark or share a URL yourself.
 
 ## Data sources (authentic APIs)
 
