@@ -318,6 +318,30 @@
       background: rgba(248, 250, 252, 0.95);
       border-color: #e2e8f0;
     }
+    .continuous-mushaf-section {
+      scroll-margin-top: calc(var(--reader-chrome-h, 0px) + 8px);
+    }
+    .continuous-page-header {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(196, 165, 116, 0.45);
+      background: rgba(250, 246, 238, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #5c4a32;
+    }
+    html.dark .continuous-page-header {
+      background: rgba(30, 25, 20, 0.92);
+      border-color: rgba(196, 165, 116, 0.35);
+      color: #e8dcc8;
+    }
     body.indopak-ayah-reading-mode .continuous-surah-header {
       background: rgba(250, 246, 238, 0.95);
       border-color: rgba(196, 165, 116, 0.45);
@@ -1813,7 +1837,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=53').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=54').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2696,7 +2720,7 @@
         safeStorageSet('quran_mushaf_page', String(state.currentMushafPage));
       }
       const targetAyah = ctx.ayah && ctx.ayah > 0 ? ctx.ayah : null;
-      await loadSurah(ctx.surah, targetAyah);
+      await loadSurah(ctx.surah, targetAyah, { mushafPage: ctx.mushafPage });
       if (ctx.audio?.ayahNumberInSurah) {
         state.currentReciter = normalizeReciterId(ctx.audio.reciter || state.currentReciter);
         if (reciterSelect) reciterSelect.value = state.currentReciter;
@@ -3329,14 +3353,6 @@
         if (Math.abs(dx) < SWIPE_MIN_PX) return;
 
         if (isMushafPageScript(state.currentScriptKey)) {
-          // RTL mushaf turn: finger right → next page; finger left → previous
-          if (dx > 0 && state.currentMushafPage < MUSHAF_PAGE_MAX) {
-            const next = beginMushafPageLoad(state.currentMushafPage + 1);
-            loadMushafPage(next.page, next.signal, next.loadId);
-          } else if (dx < 0 && state.currentMushafPage > 1) {
-            const next = beginMushafPageLoad(state.currentMushafPage - 1);
-            loadMushafPage(next.page, next.signal, next.loadId);
-          }
           return;
         }
 
@@ -3764,6 +3780,16 @@
         observeContinuousSectionHeader: (section) => {
           window.QuranContinuousReader?.observeSectionHeader(section);
         },
+        buildMushafPageSectionHtml,
+        fetchMushafPageVerses,
+        ensureQuranChaptersMeta,
+        bindMushafSectionRoot: (root) => bindMushafAyahPlayTargets(root),
+        applyActiveMushafPageFromVerses,
+        getMushafPageMax: () => MUSHAF_PAGE_MAX,
+        getStartPageForSurah,
+        getPageForSurahAyah,
+        prefetchMushafNeighbors,
+        trimMushafPageCache: () => trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX),
         prefetchSurahNeighbors,
         closeAllTafsirPanelsExcept,
         syncReaderFocusMode,
@@ -4078,13 +4104,10 @@
       const indopakAyah = isIndopakAyahScript(state.currentScriptKey);
       document.body.classList.toggle('mushaf-reading-mode', mushaf);
       document.body.classList.toggle('indopak-ayah-reading-mode', indopakAyah && !mushaf);
-      const continuous = !mushaf;
-      document.body.classList.toggle('continuous-scroll-reading-mode', continuous);
-      document.getElementById('readerNavSecondary')?.classList.toggle('hidden', mushaf);
+      document.body.classList.add('continuous-scroll-reading-mode');
+      document.getElementById('readerNavSecondary')?.classList.remove('hidden');
       const mushafNav = document.getElementById('mushafPageNav');
-      if (mushafNav) {
-        mushafNav.classList.toggle('hidden', !mushaf);
-      }
+      if (mushafNav) mushafNav.classList.add('hidden');
       document.getElementById('btnToggleSearch')?.classList.toggle('hidden', mushaf);
       const searchContainer = document.getElementById('searchContainer');
       if (mushaf) {
@@ -4347,10 +4370,7 @@
       });
     }
 
-    function renderMushafPage(verses, pageNum, chaptersById) {
-      if (!versesList) return;
-      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
-      document.getElementById('btnPlaySurahFromStart')?.classList.add('hidden');
+    function buildMushafPageArticleInner(pageNum, verses, chaptersById) {
       const juz = verses[0]?.juz_number;
       const hizb = verses[0]?.hizb_number;
       const manzil = verses[0]?.manzil_number;
@@ -4375,7 +4395,7 @@
       const bodyClass = hasLines
         ? 'mushaf-page-body mushaf-page-body--lines px-1 sm:px-2'
         : 'mushaf-page-body indopak-nastaleeq-text';
-      versesList.innerHTML = `
+      return `
         <article class="mushaf-page-card mx-auto w-full shadow-lg">
           <header class="mushaf-page-header grid grid-cols-3 items-center text-sm gap-1 indopak-nastaleeq-text">
             <span class="text-right truncate">${escapeHtml(headerLeft)}</span>
@@ -4386,13 +4406,42 @@
           ${manzil ? `<p class="text-center text-[11px] opacity-80 pb-1 indopak-nastaleeq-text mushaf-page-line--heading">منزل ${toArabicNumerals(manzil)}</p>` : ''}
           <p class="text-[10px] text-center opacity-70 px-3 pb-3 leading-snug">Tap verse number to play · <a class="underline text-emerald-700 dark:text-emerald-400" href="https://quran.com/page/${pageNum}" target="_blank" rel="noopener noreferrer">Open on Quran.com</a></p>
         </article>`;
+    }
+
+    function buildMushafPageSectionHtml(pageNum, verses, chaptersById) {
+      const juz = verses[0]?.juz_number;
+      const stickyLabel = juz
+        ? `Mushaf page ${pageNum} / ${MUSHAF_PAGE_MAX} · Juz ${juz}`
+        : `Mushaf page ${pageNum} / ${MUSHAF_PAGE_MAX}`;
+      return `
+        <section class="continuous-mushaf-section w-full" data-continuous-page="${pageNum}">
+          <header class="continuous-page-header indopak-nastaleeq-text" data-continuous-page="${pageNum}">
+            ${escapeHtml(stickyLabel)}
+          </header>
+          ${buildMushafPageArticleInner(pageNum, verses, chaptersById)}
+        </section>`;
+    }
+
+    function applyActiveMushafPageFromVerses(pageNum, verses) {
+      const page = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(pageNum, 10) || 1));
+      state.currentMushafPage = page;
+      safeStorageSet('quran_mushaf_page', String(page));
       const mushafPageLabel = document.getElementById('mushafPageLabel');
-      const btnPrevMushafPage = document.getElementById('btnPrevMushafPage');
-      const btnNextMushafPage = document.getElementById('btnNextMushafPage');
-      if (mushafPageLabel) mushafPageLabel.textContent = `Page ${pageNum} / ${MUSHAF_PAGE_MAX}`;
-      if (btnPrevMushafPage) btnPrevMushafPage.disabled = pageNum <= 1;
-      if (btnNextMushafPage) btnNextMushafPage.disabled = pageNum >= MUSHAF_PAGE_MAX;
+      if (mushafPageLabel) mushafPageLabel.textContent = `Page ${page} / ${MUSHAF_PAGE_MAX}`;
+      if (verses?.[0]) {
+        state.currentSurahNum = chapterIdFromVerseKey(verses[0].verse_key);
+        if (surahSelect) surahSelect.value = String(state.currentSurahNum);
+      }
+      updateNavigationButtons();
+    }
+
+    function renderMushafPage(verses, pageNum, chaptersById) {
+      if (!versesList) return;
+      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+      document.getElementById('btnPlaySurahFromStart')?.classList.add('hidden');
+      versesList.innerHTML = buildMushafPageSectionHtml(pageNum, verses, chaptersById);
       bindMushafAyahPlayTargets(versesList);
+      applyActiveMushafPageFromVerses(pageNum, verses);
       requestAnimationFrame(() => {
         measureReaderChromeHeight();
         if (loadingSpinner) loadingSpinner.classList.add('hidden');
@@ -4431,43 +4480,18 @@
     }
 
     async function loadMushafPage(pageNum, signal, loadId) {
+      void loadId;
       const page = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(pageNum, 10) || 1));
-      const seq = loadId ?? ++state.mushafLoadSeq;
-      state.currentMushafPage = page;
-      safeStorageSet('quran_mushaf_page', String(page));
-      const mushafPageLabelEarly = document.getElementById('mushafPageLabel');
-      if (mushafPageLabelEarly) mushafPageLabelEarly.textContent = `Page ${page} / ${MUSHAF_PAGE_MAX}`;
-      syncReaderLayoutChrome();
-
-      const cachedVerses = state.mushafPageCache.get(page);
-      const hadCachedView = !!(cachedVerses?.length && versesList);
-      if (hadCachedView) {
-        renderMushafPageFromCache(cachedVerses, page, signal, seq);
-      } else {
-        setReaderNavBusy(true);
-        setReaderLoading(true, { label: 'Loading page…' });
-        if (versesList) versesList.innerHTML = '';
-      }
-
       try {
-        const verses = await fetchMushafPageVerses(page, signal);
-        if (seq !== state.mushafLoadSeq) return;
-        if (!verses.length) throw new Error('empty page');
-        state.mushafPageCache.set(page, verses);
-        trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX);
-        const chaptersById = await ensureQuranChaptersMeta(withFetchTimeout(signal));
-        if (seq !== state.mushafLoadSeq) return;
-        state.currentSurahNum = chapterIdFromVerseKey(verses[0].verse_key);
-        if (surahSelect) surahSelect.value = String(state.currentSurahNum);
-        updateNavigationButtons();
-        renderMushafPage(verses, page, chaptersById);
-        hideSearchResults();
-        scrollReaderToTop();
-        document.getElementById('resumeReadingBanner')?.classList.add('hidden');
-        prefetchMushafNeighbors(page);
+        await window.QuranContinuousReader?.continuousLoadMushaf(
+          page,
+          state.currentSurahNum,
+          null,
+          signal,
+          { replaceAll: true },
+        );
       } catch (err) {
-        if (err?.name === 'AbortError' || seq !== state.mushafLoadSeq) return;
-        if (hadCachedView) return;
+        if (err?.name === 'AbortError') return;
         if (versesList) {
           versesList.innerHTML = `
             <div class="text-center py-10 px-4 space-y-3">
@@ -4475,8 +4499,9 @@
               <button type="button" id="btnRetryMushafPage" class="text-xs font-semibold text-emerald-400 underline">Try again</button>
             </div>`;
           document.getElementById('btnRetryMushafPage')?.addEventListener('click', () => {
-            const next = beginMushafPageLoad(state.currentMushafPage);
-            loadMushafPage(next.page, next.signal, next.loadId);
+            state.surahLoadController?.abort();
+            state.surahLoadController = new AbortController();
+            loadMushafPage(page, state.surahLoadController.signal, 0);
           });
         }
       } finally {
@@ -4638,7 +4663,6 @@
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
       if (isTafsirSheetOpen()) closeTafsirSheet();
-      const willLoadMushaf = isMushafPageScript(state.currentScriptKey);
       const skipAudioCapture = loadOptions.skipAudioCapture === true;
       const audioSnapshot = !targetAyah && !skipAudioCapture ? captureAudioSession() : null;
       if (!audioSnapshot && !skipAudioCapture) {
@@ -4652,14 +4676,27 @@
       state.surahLoadController?.abort();
       state.surahLoadController = new AbortController();
       const { signal } = state.surahLoadController;
-      const hadReaderContent = !!(
-        versesList?.querySelector('.mushaf-page-card, .mushaf-page-lines, [id^="verse-card-"]')
-      );
 
-      if (isMushafPageScript(state.currentScriptKey)) {
-        setReaderLoading(true, { keepContent: hadReaderContent, label: 'Opening page…' });
-        setReaderNavBusy(!hadReaderContent);
-        try {
+      syncReaderLayoutChrome();
+
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      const hadContinuous = !!versesList?.querySelector('[data-continuous-surah], [data-continuous-page]');
+      setReaderNavBusy(true);
+      setReaderLoading(true, {
+        keepContent: hadContinuous && !targetAyah,
+        label: mushaf ? 'Opening mushaf…' : 'Loading…',
+      });
+      if (!hadContinuous && versesList) versesList.innerHTML = '';
+      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+
+      if (!mushaf && versesList?.querySelector('.mushaf-page-card, .mushaf-page-lines')) {
+        state.currentSurahData = null;
+        state.currentSurahEnData = null;
+      }
+
+      try {
+        if (!window.QuranContinuousReader) throw new Error('continuous reader missing');
+        if (mushaf) {
           let page = state.currentMushafPage;
           if (targetAyah) {
             page = await getPageForSurahAyah(state.currentSurahNum, targetAyah, withFetchTimeout(signal));
@@ -4669,49 +4706,25 @@
               audioSnapshot.ayahNumberInSurah,
               withFetchTimeout(signal),
             );
-          } else {
+          } else if (loadOptions.mushafPage) {
+            page = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(loadOptions.mushafPage, 10) || 1));
+          } else if (!hadContinuous) {
             page = await getStartPageForSurah(state.currentSurahNum, withFetchTimeout(signal));
-          }
-          state.mushafLoadSeq += 1;
-          const loadId = state.mushafLoadSeq;
-          await loadMushafPage(page, signal, loadId);
-        } catch (err) {
-          if (err?.name !== 'AbortError' && versesList && !versesList.querySelector('.mushaf-page-card')) {
-            versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not open mushaf page.</p>';
-          }
-          if (err?.name !== 'AbortError') finishActiveReaderLoad(signal);
-        }
-        syncReaderLayoutChrome();
-        if (audioSnapshot) {
-          if (versesList?.querySelector('.mushaf-page-card')) {
-            resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());
           } else {
-            resetAudioForReadingLayoutChange();
+            page = state.currentMushafPage;
           }
-        }
-        measureAudioBarHeight();
-        return;
-      }
-
-      if (versesList?.querySelector('.mushaf-page-card, .mushaf-page-lines')) {
-        state.currentSurahData = null;
-        state.currentSurahEnData = null;
-      }
-
-      syncReaderLayoutChrome();
-
-      const hadContinuous = !!versesList?.querySelector('[data-continuous-surah]');
-      setReaderNavBusy(true);
-      setReaderLoading(true, {
-        keepContent: hadContinuous && !targetAyah,
-        label: 'Loading…',
-      });
-      if (!hadContinuous && versesList) versesList.innerHTML = '';
-      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
-
-      try {
-        if (!window.QuranContinuousReader) throw new Error('continuous reader missing');
-        if (hadContinuous && targetAyah) {
+          if (hadContinuous && (targetAyah || page !== state.currentMushafPage)) {
+            await window.QuranContinuousReader.jumpToPage(page, state.currentSurahNum, targetAyah);
+          } else {
+            await window.QuranContinuousReader.continuousLoadMushaf(
+              page,
+              state.currentSurahNum,
+              targetAyah,
+              signal,
+              { replaceAll: !hadContinuous },
+            );
+          }
+        } else if (hadContinuous && targetAyah) {
           await window.QuranContinuousReader.jumpToSurah(state.currentSurahNum, targetAyah);
         } else {
           await window.QuranContinuousReader.continuousLoadSurah(
@@ -4730,8 +4743,13 @@
       } finally {
         finishActiveReaderLoad(signal);
         if (audioSnapshot) {
-          resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());
+          if (versesList?.querySelector('.mushaf-page-card, [data-continuous-surah]')) {
+            resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());
+          } else {
+            resetAudioForReadingLayoutChange();
+          }
         }
+        measureAudioBarHeight();
       }
     }
 
@@ -5205,9 +5223,10 @@
         safeStorageSet('quran_script_pref', state.currentScriptKey);
         if (scriptSelect) scriptSelect.value = state.currentScriptKey;
         updateContentSourceHints();
+        syncReaderLayoutChrome();
       }
-      const next = beginMushafPageLoad(page);
-      await loadMushafPage(next.page, next.signal, next.loadId);
+      state.currentSurahNum = state.currentSurahNum || 1;
+      await window.QuranContinuousReader?.jumpToPage(page);
     }
 
     async function collectMushafPagesForSurah(surahNum, signal) {
@@ -5691,7 +5710,12 @@
         await ensureSurahDataForPlayback(nextSurah);
         state.isPlayingContinuous = true;
         await playSingleVerse(0);
-        window.QuranContinuousReader?.scrollToAyahInSection(nextSurah, 1);
+        if (isMushafPageScript(state.currentScriptKey)) {
+          const page = await getStartPageForSurah(nextSurah, withFetchTimeout(null, 15000));
+          window.QuranContinuousReader?.scrollToAyahOnPage(page, nextSurah, 1);
+        } else {
+          window.QuranContinuousReader?.scrollToAyahInSection(nextSurah, 1);
+        }
       } catch (err) {
         console.warn('Next surah playback failed', err);
         showTapToPlayOverlay('Tap to play next surah', 0);
@@ -6200,13 +6224,11 @@
 
       document.getElementById('btnPrevMushafPage')?.addEventListener('click', () => {
         if (state.currentMushafPage <= 1) return;
-        const next = beginMushafPageLoad(state.currentMushafPage - 1);
-        loadMushafPage(next.page, next.signal, next.loadId);
+        window.QuranContinuousReader?.jumpToPage(state.currentMushafPage - 1);
       });
       document.getElementById('btnNextMushafPage')?.addEventListener('click', () => {
         if (state.currentMushafPage >= MUSHAF_PAGE_MAX) return;
-        const next = beginMushafPageLoad(state.currentMushafPage + 1);
-        loadMushafPage(next.page, next.signal, next.loadId);
+        window.QuranContinuousReader?.jumpToPage(state.currentMushafPage + 1);
       });
 
       if (reciterSelect) {
@@ -6227,21 +6249,13 @@
       if (btnPrev) {
         btnPrev.addEventListener('click', () => {
           if (state.currentSurahNum <= 1) return;
-          if (isMushafPageScript(state.currentScriptKey)) {
-            loadSurah(state.currentSurahNum - 1);
-          } else {
-            window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum - 1);
-          }
+          window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum - 1);
         });
       }
       if (btnNext) {
         btnNext.addEventListener('click', () => {
           if (state.currentSurahNum >= 114) return;
-          if (isMushafPageScript(state.currentScriptKey)) {
-            loadSurah(state.currentSurahNum + 1);
-          } else {
-            window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum + 1);
-          }
+          window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum + 1);
         });
       }
 
