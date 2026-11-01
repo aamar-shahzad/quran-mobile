@@ -260,8 +260,7 @@
       background: rgba(248, 250, 252, 0.97);
       border-color: #e2e8f0;
     }
-    html:not(.dark) button[class*="bg-brand-"],
-    html:not(.dark) .player-main-play {
+    html:not(.dark) button[class*="bg-brand-"] {
       color: #fff !important;
     }
     html.dark .verse-display-body--arabic {
@@ -956,25 +955,23 @@
       }
       .player-transport-row {
         display: grid;
-        grid-template-columns: 1fr 1.4fr 1fr 0.9fr;
+        grid-template-columns: 1fr 1fr 1fr 0.9fr;
         align-items: center;
         justify-items: center;
         gap: 0.35rem;
         width: 100%;
-        max-width: 22.5rem;
+        max-width: 20rem;
         margin: 0 auto;
       }
       .player-main-play {
-        width: min(100%, 3.75rem);
-        height: auto;
-        aspect-ratio: 1;
-        max-height: 3.75rem;
-        font-size: 1.55rem;
+        width: min(100%, 2.75rem);
+        height: 2.75rem;
+        font-size: 1.125rem;
       }
       .player-transport-btn,
       .player-speed-btn {
-        width: min(100%, 2.875rem);
-        height: 2.875rem;
+        width: min(100%, 2.75rem);
+        height: 2.75rem;
       }
       .player-speed-btn {
         font-size: 0.6875rem;
@@ -1052,23 +1049,26 @@
       opacity: 0.35;
     }
     .player-main-play {
-      width: 3.25rem;
-      height: 3.25rem;
-      border-radius: 9999px;
-      background: linear-gradient(145deg, #34d399, #10b981);
-      color: #022c22;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.65rem;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      color: #34d399;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.35rem;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-      transition: transform 0.12s, filter 0.15s;
+      font-size: 1.125rem;
+      box-shadow: none;
+      transition: transform 0.12s, background 0.15s, border-color 0.15s;
     }
     .player-main-play:active {
       transform: scale(0.94);
     }
     .player-main-play.is-playing {
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
     }
     .verse-play-btn {
       min-width: 2.25rem;
