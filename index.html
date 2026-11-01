@@ -5241,12 +5241,6 @@
       document.getElementById('readerEdgeRetry')?.classList.add('hidden');
     }
 
-    function dismissReaderEdgeRetryIfStale() {
-      const failure = state.lastEdgeLoadFailure;
-      if (!failure) return;
-      if (Date.now() - failure.at > 120_000) hideReaderEdgeRetry();
-    }
-
     function retryLastEdgeLoad() {
       const failure = state.lastEdgeLoadFailure;
       if (!failure) return;
