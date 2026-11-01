@@ -1759,7 +1759,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=47').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=48').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -4416,17 +4416,20 @@
       }
     }
 
-    async function loadSurah(number, targetAyah = null) {
+    async function loadSurah(number, targetAyah = null, loadOptions = {}) {
       state.currentSurahNum = parseInt(number, 10);
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
       if (isTafsirSheetOpen()) closeTafsirSheet();
       const willLoadMushaf = isMushafPageScript(state.currentScriptKey);
-      const audioSnapshot = !targetAyah ? captureAudioSession() : null;
-      if (!audioSnapshot) {
+      const skipAudioCapture = loadOptions.skipAudioCapture === true;
+      const audioSnapshot = !targetAyah && !skipAudioCapture ? captureAudioSession() : null;
+      if (!audioSnapshot && !skipAudioCapture) {
         resetAudioForReadingLayoutChange();
-      } else {
+      } else if (audioSnapshot) {
         softPauseAudioForReload();
+      } else {
+        quranAudio?.pause();
       }
 
       state.surahLoadController?.abort();
@@ -5437,6 +5440,21 @@
       }
     }
 
+    async function advanceToNextSurahPlayback() {
+      if (state.currentSurahNum >= 114) {
+        stopAudio(false);
+        return;
+      }
+      try {
+        await loadSurah(state.currentSurahNum + 1, null, { skipAudioCapture: true });
+        state.isPlayingContinuous = true;
+        await playSingleVerse(0);
+      } catch (err) {
+        console.warn('Next surah playback failed', err);
+        showTapToPlayOverlay('Tap to play next surah', 0);
+      }
+    }
+
     function playNextVerseAfterEnd() {
       if (!state.currentSurahData || state.currentPlayingAyahIndex < 0) return;
       const nextIndex = state.currentPlayingAyahIndex + 1;
@@ -5445,6 +5463,7 @@
         const url = getAyahAudioUrlSync(state.currentReciter, next.number);
         state.currentPlayingAyahIndex = nextIndex;
         quranAudio.src = url;
+        quranAudio.load();
         const chainPlayId = state.audioPlayId;
         quranAudio.play().then(() => {
           if (chainPlayId !== state.audioPlayId) {
@@ -5459,11 +5478,11 @@
         }).catch(() => showTapToPlayOverlay(`Tap to continue`, nextIndex));
         return;
       }
-      if (state.continueNextSurah && state.currentSurahNum < 114) {
-        loadSurah(state.currentSurahNum + 1).then(() => {
-          state.isPlayingContinuous = true;
-          playSingleVerse(0);
-        });
+      const shouldContinueSurah =
+        state.currentSurahNum < 114 &&
+        (state.isPlayingContinuous || state.continueNextSurah);
+      if (shouldContinueSurah) {
+        advanceToNextSurahPlayback();
         return;
       }
       stopAudio(false);
@@ -5570,6 +5589,7 @@
         ayah: ayah.numberInSurah,
         reciter: state.currentReciter,
         time: quranAudio.currentTime || 0,
+        continuous: state.isPlayingContinuous,
       }));
     }
 
