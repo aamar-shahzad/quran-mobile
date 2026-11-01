@@ -87,6 +87,14 @@
       min-height: 100dvh;
       min-height: -webkit-fill-available;
     }
+    #versesList,
+    #versesList .text-sm,
+    #surahHeaderCard,
+    .tafsir-content,
+    .tafsir-content * {
+      user-select: text;
+      -webkit-user-select: text;
+    }
     @media (display-mode: standalone) {
       body {
         padding-top: max(env(safe-area-inset-top, 0px), 28px);
@@ -760,7 +768,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=18').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=19').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -811,16 +819,16 @@
   </div>
 
   <!-- IOS SAFARI INSTALLATION MODAL / BANNER (Auto-detects iOS) -->
-  <div id="iosInstallModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+  <div id="iosInstallModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="iosInstallModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-6 max-w-sm w-full shadow-2xl relative animate-slide-up">
-      <button id="closeIosModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+      <button type="button" id="closeIosModal" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Close">
         <i class="ph ph-x text-xl"></i>
       </button>
       <div class="text-center">
         <div class="w-14 h-14 bg-brand-500/10 text-brand-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-500/20 text-2xl">
           📲
         </div>
-        <h3 class="text-lg font-bold text-white mb-2">Add to Home Screen</h3>
+        <h3 id="iosInstallModalTitle" class="text-lg font-bold text-white mb-2">Add to Home Screen</h3>
         <p class="text-sm text-slate-300 mb-4">Install Quran on your iPhone or iPad for quick offline access without Safari address bars.</p>
         
         <div class="bg-slate-900/60 rounded-xl p-4 text-left text-xs space-y-3 mb-5 border border-slate-800">
@@ -950,14 +958,14 @@
   </div>
 
   <!-- JUZ SELECTION MODAL -->
-  <div id="juzModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="juzModalTitle" flex items-center justify-center p-4">
+  <div id="juzModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="juzModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-sm w-full shadow-2xl relative max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+        <h3 id="juzModalTitle" class="font-bold text-sm text-white flex items-center gap-2">
           <i class="ph ph-squares-four text-emerald-400"></i>
           <span>Jump to Juz (Para)</span>
         </h3>
-        <button id="closeJuzModal" class="text-slate-400 hover:text-white p-1">
+        <button type="button" id="closeJuzModal" class="text-slate-400 hover:text-white p-1" aria-label="Close">
           <i class="ph ph-x text-lg"></i>
         </button>
       </div>
@@ -968,14 +976,14 @@
   </div>
 
   <!-- BOOKMARKS & REFLECTION NOTES MODAL -->
-  <div id="bookmarksModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="bookmarksModalTitle" flex items-center justify-center p-4">
+  <div id="bookmarksModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="bookmarksModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+        <h3 id="bookmarksModalTitle" class="font-bold text-sm text-white flex items-center gap-2">
           <i class="ph ph-bookmark-simple text-brand-500"></i>
           <span>Saved Verses & Personal Reflections</span>
         </h3>
-        <button id="closeBookmarksModal" class="text-slate-400 hover:text-white p-1">
+        <button type="button" id="closeBookmarksModal" class="text-slate-400 hover:text-white p-1" aria-label="Close">
           <i class="ph ph-x text-lg"></i>
         </button>
       </div>
@@ -986,14 +994,30 @@
   </div>
 
   <!-- AUTHENTIC AZKAR MODAL -->
-  <div id="azkarModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="azkarModalTitle" flex items-center justify-center p-4">
+  <div id="bookmarkNoteModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="bookmarkNoteModalTitle">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-4 max-w-md w-full shadow-2xl space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="bookmarkNoteModalTitle" class="font-bold text-sm text-white">Save bookmark</h3>
+        <button type="button" id="closeBookmarkNoteModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <p id="bookmarkNoteAyahLabel" class="text-xs text-slate-400"></p>
+      <label for="bookmarkNoteInput" class="text-xs text-slate-400">Note (optional)</label>
+      <textarea id="bookmarkNoteInput" rows="3" maxlength="500" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" placeholder="Personal reflection…"></textarea>
+      <div class="flex gap-2">
+        <button type="button" id="btnCancelBookmarkNote" class="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-sm font-semibold">Cancel</button>
+        <button type="button" id="btnSaveBookmarkNote" class="flex-1 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="azkarModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="azkarModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+        <h3 id="azkarModalTitle" class="font-bold text-sm text-white flex items-center gap-2">
           <i class="ph ph-hands-praying text-emerald-400"></i>
           <span>Daily Azkar & Supplications</span>
         </h3>
-        <button id="closeAzkarModal" class="text-slate-400 hover:text-white p-1">
+        <button type="button" id="closeAzkarModal" class="text-slate-400 hover:text-white p-1" aria-label="Close">
           <i class="ph ph-x text-lg"></i>
         </button>
       </div>
@@ -1011,11 +1035,11 @@
   </div>
 
   <!-- DATA SOURCES -->
-  <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="sourcesModalTitle" flex items-center justify-center p-4">
+  <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="sourcesModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 shrink-0">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Verified data sources</h3>
-        <button type="button" id="closeSourcesModal" class="text-slate-400 hover:text-white p-1"><i class="ph ph-x text-lg"></i></button>
+        <h3 id="sourcesModalTitle" class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Verified data sources</h3>
+        <button type="button" id="closeSourcesModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
       </div>
       <div class="overflow-y-auto text-[11px] text-slate-300 space-y-3 pr-1">
         <p>Quran, translation, tafsir, and recitation are loaded live from named APIs. This app does not author or edit that text in code.</p>
@@ -1060,14 +1084,14 @@
   </div>
 
   <!-- PWA INSTALLATION GUIDE MODAL -->
-  <div id="pwaGuideModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="pwaGuideModalTitle" flex items-center justify-center p-4">
+  <div id="pwaGuideModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pwaGuideModalTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+        <h3 id="pwaGuideModalTitle" class="font-bold text-sm text-white flex items-center gap-2">
           <i class="ph ph-share-network text-emerald-400"></i>
           <span>Share & Install</span>
         </h3>
-        <button id="closePwaGuideModal" class="text-slate-400 hover:text-white p-1">
+        <button type="button" id="closePwaGuideModal" class="text-slate-400 hover:text-white p-1" aria-label="Close">
           <i class="ph ph-x text-lg"></i>
         </button>
       </div>
@@ -1134,6 +1158,17 @@
 
   <!-- MAIN SCROLLABLE SURAH VIEWPORT -->
   <main id="surahViewport" class="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 w-full">
+
+    <div id="resumeReadingBanner" class="hidden w-full max-w-3xl mx-auto rounded-2xl border border-brand-500/30 bg-brand-500/10 px-3 py-2.5 flex items-center justify-between gap-2">
+      <div class="min-w-0">
+        <p class="text-[10px] text-brand-300 font-semibold uppercase tracking-wide">Continue</p>
+        <p id="resumeReadingLabel" class="text-xs text-slate-200 truncate">Last recitation</p>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button type="button" id="btnResumeReading" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg">Resume</button>
+        <button type="button" id="btnDismissResumeBanner" class="p-1.5 text-slate-400 hover:text-white rounded-lg" aria-label="Dismiss"><i class="ph ph-x"></i></button>
+      </div>
+    </div>
     
     <!-- Dynamic Loading State -->
     <div id="loadingSpinner" class="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
@@ -1221,6 +1256,7 @@
       deferredPwaPrompt: null,
       continueNextSurah: safeStorageGet("quran_continue_next_surah") === "1",
       pendingAutoplayIndex: null,
+      pendingBookmark: null,
       audioPreloader: null,
       audioErrorRetries: 0,
       modalReturnFocus: null,
@@ -1824,6 +1860,7 @@
           state.surahs = data.data;
           populateSurahDropdown(state.surahs);
           await loadSurah(state.currentSurahNum);
+          showResumeReadingBanner();
           return true;
         }
         throw new Error('Invalid surah list');
@@ -2026,6 +2063,7 @@
                   <div class="absolute right-0 mt-1 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-10 py-1 text-xs">
                     <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="toggleWordByWord(${Number(state.currentSurahNum)}, ${Number(ayahNum)})">Word-by-word</button>
                     <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyVerseByGlobalNumber(${Number(ayah.number)})">Copy ayah</button>
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyAyahLink(${Number(state.currentSurahNum)}, ${Number(ayahNum)})">Copy link</button>
                   </div>
                 </details>
               </div>
@@ -2154,28 +2192,109 @@
 
       if (existingIndex > -1) {
         state.bookmarks.splice(existingIndex, 1);
-      } else {
-        const note = prompt("Add personal reflection/note for this Ayah (optional):") || "";
-        state.bookmarks.push({
-          surahNum,
-          ayahNum,
-          verseKey,
-          surahName: state.currentSurahData.englishName,
-          note,
-          timestamp: Date.now()
-        });
+        safeStorageSet('quran_bookmarks_v2', JSON.stringify(state.bookmarks));
+        updateBookmarkIndicator();
+        refreshBookmarkButton(surahNum, ayahNum);
+        showToast('Bookmark removed');
+        return;
       }
+      openBookmarkNoteModal(surahNum, ayahNum);
+    }
 
-      safeStorageSet('quran_bookmarks_v2', JSON.stringify(state.bookmarks));
-      updateBookmarkIndicator();
+    function refreshBookmarkButton(surahNum, ayahNum) {
+      const verseKey = `${surahNum}:${ayahNum}`;
       const card = document.querySelector(`#verse-card-${state.currentSurahData?.ayahs?.find((a) => a.numberInSurah === ayahNum)?.number}`);
       const btn = card?.querySelector('[data-bookmark-btn]');
-      if (btn) {
-        const isOn = state.bookmarks.some((b) => b.verseKey === verseKey);
-        btn.className = `p-1.5 ${isOn ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition`;
-        const icon = btn.querySelector('i');
-        if (icon) icon.className = `${isOn ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl`;
+      if (!btn) return;
+      const isOn = state.bookmarks.some((b) => b.verseKey === verseKey);
+      btn.className = `p-2 ${isOn ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition`;
+      const icon = btn.querySelector('i');
+      if (icon) icon.className = `${isOn ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl`;
+    }
+
+    function openBookmarkNoteModal(surahNum, ayahNum) {
+      state.pendingBookmark = { surahNum, ayahNum };
+      const label = document.getElementById('bookmarkNoteAyahLabel');
+      const input = document.getElementById('bookmarkNoteInput');
+      if (label) {
+        const name = state.currentSurahData?.englishName || `Surah ${surahNum}`;
+        label.textContent = `${name} · Ayah ${ayahNum}`;
       }
+      if (input) input.value = '';
+      openAppModal('bookmarkNoteModal');
+      input?.focus();
+    }
+
+    function saveBookmarkFromModal() {
+      const pending = state.pendingBookmark;
+      if (!pending) return;
+      const { surahNum, ayahNum } = pending;
+      const verseKey = `${surahNum}:${ayahNum}`;
+      const note = (document.getElementById('bookmarkNoteInput')?.value || '').trim();
+      state.bookmarks.push({
+        surahNum,
+        ayahNum,
+        verseKey,
+        surahName: state.currentSurahData?.englishName || `Surah ${surahNum}`,
+        note,
+        timestamp: Date.now(),
+      });
+      safeStorageSet('quran_bookmarks_v2', JSON.stringify(state.bookmarks));
+      updateBookmarkIndicator();
+      refreshBookmarkButton(surahNum, ayahNum);
+      state.pendingBookmark = null;
+      closeAppModal('bookmarkNoteModal');
+      showToast('Bookmark saved');
+    }
+
+    function copyTextToClipboard(text, successMessage) {
+      const done = () => showToast(successMessage);
+      const fail = () => showToast('Could not copy');
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            done();
+          } catch {
+            fail();
+          }
+        });
+        return;
+      }
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        done();
+      } catch {
+        fail();
+      }
+    }
+
+    function copyAyahLink(surahNum, ayahNum) {
+      copyTextToClipboard(buildDeepLink({ surah: surahNum, ayah: ayahNum }), 'Link copied');
+    }
+
+    function showResumeReadingBanner() {
+      if (safeStorageGet('quran_resume_banner_dismiss') === '1') return;
+      if (new URLSearchParams(window.location.search).get('play')) return;
+      const last = readPlaybackState();
+      const banner = document.getElementById('resumeReadingBanner');
+      const label = document.getElementById('resumeReadingLabel');
+      if (!last || !banner || !label) return;
+      label.textContent = `Surah ${last.surah}, Ayah ${last.ayah}`;
+      banner.classList.remove('hidden');
     }
 
     function updateBookmarkIndicator() {
@@ -2210,7 +2329,7 @@
     }
 
     function jumpToBookmarkedAyah(surahNum, ayahNum) {
-      document.getElementById('bookmarksModal').classList.add('hidden');
+      closeAppModal('bookmarksModal');
       loadSurah(surahNum, ayahNum);
     }
 
@@ -2220,11 +2339,7 @@
       const arAyah = state.currentSurahData.ayahs[index];
       const enAyah = state.currentSurahEnData?.ayahs[index];
       const shareText = `"${arAyah.text}"\n\n"${enAyah?.text || ''}"\n\n— Quran ${state.currentSurahNum}:${arAyah.numberInSurah}`;
-      if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(shareText).then(() => showToast('Ayah copied')).catch(() => window.prompt('Copy ayah:', shareText));
-      } else {
-        window.prompt('Copy ayah:', shareText);
-      }
+      copyTextToClipboard(shareText, 'Ayah copied');
     }
 
     function showToast(message) {
@@ -2232,6 +2347,9 @@
       if (!el) {
         el = document.createElement('div');
         el.id = 'appToast';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.setAttribute('aria-atomic', 'true');
         el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-xl border border-slate-700 shadow-lg z-[60] opacity-0 pointer-events-none transition-opacity duration-300';
         document.body.appendChild(el);
       }
@@ -2701,7 +2819,9 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach((m) => { m.classList.add('hidden'); }); document.getElementById('appShell')?.removeAttribute('inert');
+      const openModals = [...document.querySelectorAll('[id$="Modal"]:not(.hidden)')];
+      if (!openModals.length) return;
+      closeAppModal(openModals[openModals.length - 1].id);
     });
 
     // EVENT LISTENERS & MODAL HANDLERS
@@ -2784,6 +2904,19 @@
       document.getElementById('btnMenuAzkar')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); loadAzkarCategory('morning'); openAppModal('azkarModal'); });
       document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
       document.getElementById('btnMenuShareInstall')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('pwaGuideModal'); refreshShareInstallModal?.(); });
+      document.getElementById('closeBookmarkNoteModal')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
+      document.getElementById('btnCancelBookmarkNote')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
+      document.getElementById('btnSaveBookmarkNote')?.addEventListener('click', () => saveBookmarkFromModal());
+      bindModalBackdropClose(document.getElementById('bookmarkNoteModal'), () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
+      document.getElementById('btnResumeReading')?.addEventListener('click', async () => {
+        const last = readPlaybackState();
+        document.getElementById('resumeReadingBanner')?.classList.add('hidden');
+        if (last) await resumeFromPlaybackState(last);
+      });
+      document.getElementById('btnDismissResumeBanner')?.addEventListener('click', () => {
+        safeStorageSet('quran_resume_banner_dismiss', '1');
+        document.getElementById('resumeReadingBanner')?.classList.add('hidden');
+      });
       document.getElementById('btnTapToPlayOverlay')?.addEventListener('click', () => {
         if (state.pendingAutoplayIndex != null) {
           state.isPlayingContinuous = true;
@@ -2846,7 +2979,7 @@
             }, 2000);
           }
         } catch {
-          window.prompt('Copy this link:', APP_PUBLIC_URL);
+          copyTextToClipboard(APP_PUBLIC_URL, 'Link copied');
         }
       }
       async function nativeShareAppLink() {

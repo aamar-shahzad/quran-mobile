@@ -2,7 +2,7 @@
   "id": "/quran-mobile/",
   "name": "Quran",
   "short_name": "Quran",
-  "description": "Quran with translations, tafsir, and recitation. Works offline after first visit.",
+  "description": "Quran with translations, tafsir, and recitation. Caches the app shell and content you've opened for offline use.",
   "start_url": "/quran-mobile/",
   "scope": "/quran-mobile/",
   "display": "standalone",

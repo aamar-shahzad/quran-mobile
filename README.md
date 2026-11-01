@@ -1,10 +1,16 @@
 # Quran
 
-PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar.
+PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. The service worker caches the app shell and pages or audio you have already opened.
 
 **Live:** https://aamar-shahzad.github.io/quran-mobile/
 
 **Hadith app:** https://aamar-shahzad.github.io/hadith-mobile/
+
+## Offline use
+
+- On install, the service worker tries to cache `index.html`, the manifest, and icons (each request times out after a few seconds so install does not hang).
+- Surah text, tafsir, and audio are cached as you open them. Opening a surah once while online usually makes that surah readable offline later.
+- If the network is slow, navigation falls back to the cached shell instead of waiting indefinitely.
 
 ## Background audio
 

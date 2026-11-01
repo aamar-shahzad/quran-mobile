@@ -1,4 +1,5 @@
-const CACHE_NAME = "quran-mobile-v18";
+const CACHE_NAME = "quran-mobile-v19";
+const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
 const AUDIO_CACHE = "quran-mobile-audio-v1";
@@ -137,8 +138,32 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-self.addEventListener("install", () => {
-  // Wait for user to tap Update (SKIP_WAITING message).
+function precacheShellUrls() {
+  const base = scopeBasePath();
+  return [
+    `${base}index.html`,
+    `${base}manifest.webmanifest`,
+    `${base}icons/icon-192.png`,
+    `${base}icons/icon-512.png`,
+  ];
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.allSettled(
+        precacheShellUrls().map(async (url) => {
+          try {
+            const res = await fetchWithTimeout(url, PRECACHE_TIMEOUT_MS);
+            if (res.ok) await cache.put(url, res);
+          } catch {
+            /* skip failed asset; do not block install */
+          }
+        }),
+      );
+    })(),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -170,7 +195,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          const response = await fetch(event.request);
+          const response = await fetchWithTimeout(event.request, NETWORK_TIMEOUT_MS);
           if (response.ok && isAppShellRequest(url)) {
             event.waitUntil(cachePut(event.request, response, CACHE_NAME));
           }
