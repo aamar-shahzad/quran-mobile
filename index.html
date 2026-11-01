@@ -30,6 +30,10 @@
       document.documentElement.classList.toggle('dark', useDark);
       document.documentElement.dataset.colorTheme = themePref;
 
+      var mobileCoarse =
+        window.matchMedia && window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
+      if (mobileCoarse) document.documentElement.classList.add('mobile-coarse');
+
       var themeColorsDark = { ios: '#000000', android: '#101512', desktop: '#0f172a' };
       var themeColorsLight = { ios: '#f1f5f9', android: '#f1f5f9', desktop: '#f1f5f9' };
       var palette = useDark ? themeColorsDark : themeColorsLight;
@@ -1619,10 +1623,73 @@
       }
     }
     @media (max-width: 640px) and (orientation: landscape) {
-      #surahViewport {
-        padding-top: 0.25rem;
-        padding-bottom: 4.5rem;
+      body.audio-bar-visible #surahViewport {
+        padding-bottom: calc(var(--audio-bar-h, 5.5rem) + 0.35rem);
       }
+      body:not(.audio-bar-visible) #surahViewport {
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* Phone: fixed chrome, safe areas, touch targets (also when html.mobile-coarse from first paint) */
+    @media (max-width: 640px) and (pointer: coarse) {
+      #readerNavSecondary #btnPrevSurah,
+      #readerNavSecondary #btnNextSurah {
+        display: none;
+      }
+      #readerNavSecondary {
+        gap: 0.5rem;
+      }
+      #btnOpenSurahNavModal {
+        flex: 1;
+        justify-content: center;
+        min-height: 2.75rem;
+      }
+      .reader-chrome-btn,
+      #mushafPageNav .mushaf-nav-btn,
+      #mushafPageNav #btnOpenMushafJumpModal {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+      }
+      #surahSelect,
+      #searchInput {
+        font-size: 16px;
+        min-height: 2.75rem;
+      }
+      #btnResumeReading {
+        min-height: 2.75rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+      }
+      #btnDismissResumeBanner {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+      }
+      .verse-card-toolbar .verse-play-btn,
+      .verse-card-toolbar .verse-bookmark-btn {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+      }
+      #surahViewport {
+        padding-left: max(0.65rem, env(safe-area-inset-left, 0px));
+        padding-right: max(0.65rem, env(safe-area-inset-right, 0px));
+      }
+    }
+    html.mobile-coarse #topReaderChrome {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+    html.mobile-coarse #surahViewport {
+      padding-top: var(--reader-chrome-h, 7.5rem);
+    }
+    html.mobile-coarse body.chrome-ui-collapsed #surahViewport {
+      padding-top: max(0.35rem, env(safe-area-inset-top, 0px));
     }
   
     /* ---------- Platform design: Apple HIG (iOS/iPadOS) and Material 3 (Android) ---------- */
@@ -1701,6 +1768,11 @@
       border-radius: 9999px;
       background-color: rgba(120, 120, 128, 0.32);
       color: rgba(235, 235, 245, 0.6);
+    }
+    html[data-platform="android"] #topReaderChrome button,
+    html[data-platform="android"] .reader-chrome-btn {
+      min-width: 48px;
+      min-height: 48px;
     }
     html[data-platform="android"] div[id$="Modal"] button[id^="close"] {
       width: 40px;
@@ -1998,7 +2070,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=66').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=67').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -3371,7 +3443,10 @@
     }
 
     function isMobileReaderViewport() {
-      return window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
+      return (
+        document.documentElement.classList.contains('mobile-coarse') ||
+        window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches
+      );
     }
 
     function useTafsirBottomSheet() {
@@ -3403,7 +3478,9 @@
     let chromeAutoHideInitialized = false;
 
     function initAutoHideReaderChrome() {
-      const mobileCoarse = window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
+      const mobileCoarse =
+        document.documentElement.classList.contains('mobile-coarse') ||
+        window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
       const mushaf = isMushafPageScript(state.currentScriptKey);
       if (!mobileCoarse && !mushaf) return;
 
