@@ -36,7 +36,7 @@
       "description": "Resume last recitation",
       "url": "?play=last",
       "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
       ]
     },
     {
@@ -44,7 +44,7 @@
       "short_name": "Al-Kahf",
       "url": "?surah=18&play=1",
       "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
       ]
     },
     {
@@ -52,7 +52,7 @@
       "short_name": "Ya-Sin",
       "url": "?surah=36&play=1",
       "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
       ]
     },
     {
@@ -60,7 +60,7 @@
       "short_name": "Ar-Rahman",
       "url": "?surah=55&play=1",
       "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
       ]
     },
     {
@@ -68,7 +68,7 @@
       "short_name": "Al-Mulk",
       "url": "?surah=67&play=1",
       "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
       ]
     }
   ]

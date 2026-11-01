@@ -1468,6 +1468,62 @@
     body.chrome-ui-collapsed #readerLoadBar {
       top: max(0.35rem, env(safe-area-inset-top, 0px));
     }
+    .reader-edge-retry {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 46;
+      max-width: min(22rem, calc(100vw - 1.5rem));
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.94);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    .reader-edge-retry--bottom {
+      bottom: calc(var(--audio-bar-h, 0px) + 1rem);
+    }
+    .reader-edge-retry--top {
+      top: calc(var(--reader-chrome-h, 7.25rem) + 0.5rem);
+      bottom: auto;
+    }
+    body.chrome-ui-collapsed .reader-edge-retry--top {
+      top: max(0.5rem, env(safe-area-inset-top, 0px));
+    }
+    .reader-edge-retry__label {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.6875rem;
+      line-height: 1.25;
+      color: #e2e8f0;
+    }
+    .reader-edge-retry__btn {
+      flex-shrink: 0;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      border-radius: 9999px;
+      background: rgb(16, 185, 129);
+      color: #042f2e;
+    }
+    html[data-platform="ios"] .reader-edge-retry {
+      background: rgba(44, 44, 46, 0.92);
+      border-width: 0.5px;
+      border-color: rgba(84, 84, 88, 0.55);
+    }
+    html[data-platform="ios"] .reader-edge-retry__btn {
+      background: #30d158;
+      color: #000;
+    }
+    #versesList [id^="verse-card-"] {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 7rem;
+    }
     #loadingSpinner {
       min-height: 6rem;
     }
@@ -2254,7 +2310,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=76').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=77').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2401,6 +2457,10 @@
   <div id="readerLoadBar" class="reader-load-bar hidden" role="progressbar" aria-label="Loading content" aria-busy="true">
     <div class="reader-load-bar__track"><div class="reader-load-bar__indeterminate"></div></div>
   </div>
+  <div id="readerEdgeRetry" class="reader-edge-retry reader-edge-retry--bottom hidden" role="status" aria-live="polite">
+    <p id="readerEdgeRetryLabel" class="reader-edge-retry__label">Could not load more</p>
+    <button type="button" id="btnReaderEdgeRetry" class="reader-edge-retry__btn">Retry</button>
+  </div>
 
   <div id="moreMenuModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="moreMenuTitle">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-4 max-w-sm w-full shadow-2xl">
@@ -2495,6 +2555,10 @@
       </label>
       <button type="button" id="btnCacheSurahOffline" class="w-full mt-2 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-emerald-300 hover:bg-slate-700">
         Download this surah for offline
+      </button>
+      <p id="readerCacheStatus" class="text-[11px] text-slate-500 pt-2 leading-snug">Reader cache: …</p>
+      <button type="button" id="btnClearReaderCache" class="w-full py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+        Clear saved reader cache
       </button>
     </div>
   </div>
@@ -2853,6 +2917,7 @@
       modalReturnFocus: null,
       openTafsirAyahNum: null,
       continuousScroll: { minSurah: 1, maxSurah: 1, edgeLoading: false, edgeContinueAllowed: false },
+      lastEdgeLoadFailure: null,
       _playbackHighlightMount: false,
       bookmarks: readJsonArray('quran_bookmarks_v2')
     };
@@ -4570,6 +4635,7 @@
         setReaderLoading,
         setReaderEdgeLoading,
         onContinuousEdgeLoadError,
+        hideReaderEdgeRetry,
         storeSurahViewCache,
         normalizeAyahText,
         buildContinuousSurahSectionHtml,
@@ -5142,13 +5208,79 @@
       }
     }
 
-    function onContinuousEdgeLoadError(err) {
+    function onContinuousEdgeLoadError(err, meta = {}) {
       const msg = String(err?.message || err || '');
+      const direction = meta.direction === -1 ? -1 : 1;
+      const kind = meta.kind === 'mushaf' ? 'mushaf' : 'surah';
+      state.lastEdgeLoadFailure = { direction, kind, at: Date.now() };
+      showReaderEdgeRetryBanner(direction, kind);
       if (/timeout|timed out/i.test(msg)) {
-        showToast('Load timed out — Indo-Pak can be slow; try again.');
+        showToast('Load timed out — tap Retry or scroll again.');
         return;
       }
-      showToast('Could not load more — scroll again or check connection.');
+      showToast('Could not load more — tap Retry.');
+    }
+
+    function showReaderEdgeRetryBanner(direction, kind) {
+      const el = document.getElementById('readerEdgeRetry');
+      const label = document.getElementById('readerEdgeRetryLabel');
+      if (!el) return;
+      const isBottom = direction > 0;
+      el.classList.toggle('reader-edge-retry--bottom', isBottom);
+      el.classList.toggle('reader-edge-retry--top', !isBottom);
+      if (label) {
+        if (kind === 'mushaf') {
+          label.textContent = isBottom ? 'Next mushaf page did not load' : 'Previous mushaf page did not load';
+        } else {
+          label.textContent = isBottom ? 'Next surah did not load' : 'Previous surah did not load';
+        }
+      }
+      el.classList.remove('hidden');
+    }
+
+    function hideReaderEdgeRetry() {
+      state.lastEdgeLoadFailure = null;
+      document.getElementById('readerEdgeRetry')?.classList.add('hidden');
+    }
+
+    function retryLastEdgeLoad() {
+      const failure = state.lastEdgeLoadFailure;
+      if (!failure) return;
+      hideReaderEdgeRetry();
+      window.QuranContinuousReader?.retryEdgeLoad?.(failure.direction, failure.kind);
+    }
+
+    async function refreshReaderCacheStatusLabel() {
+      const el = document.getElementById('readerCacheStatus');
+      if (!el) return;
+      const memSurahs = state.surahViewCache?.size ?? 0;
+      const memPages = state.mushafPageCache?.size ?? 0;
+      let idbSurahs = 0;
+      let idbPages = 0;
+      try {
+        await window.QuranReaderCacheDb?.open?.();
+        const counts = await window.QuranReaderCacheDb?.countStores?.();
+        idbSurahs = counts?.surahViews ?? 0;
+        idbPages = counts?.mushafPages ?? 0;
+      } catch {
+        /* ignore */
+      }
+      el.textContent = `Saved offline: ${idbSurahs} surah view${idbSurahs === 1 ? '' : 's'}, ${idbPages} mushaf page${idbPages === 1 ? '' : 's'} (this session: ${memSurahs} / ${memPages}).`;
+    }
+
+    async function clearReaderCacheFromSettings() {
+      const ok = window.confirm('Clear saved surah and mushaf data on this device? You can download again while online.');
+      if (!ok) return;
+      try {
+        state.surahViewCache.clear();
+        state.mushafPageCache.clear();
+        resetBackgroundSurahPrefetch();
+        await window.QuranReaderCacheDb?.clearAllStores?.();
+        await refreshReaderCacheStatusLabel();
+        showToast('Reader cache cleared');
+      } catch {
+        showToast('Could not clear cache');
+      }
     }
 
     function readerLoadLabelForScript() {
@@ -7523,15 +7655,14 @@
           const reciterName = reciterSelect?.options[reciterSelect.selectedIndex]?.text?.replace(/^🎙️\s*/, '')?.trim() || 'Reciter';
           setAudioReciterLabel(reciterName);
           if (state.currentPlayingAyahIndex >= 0) {
-            if (quranAudio && !quranAudio.paused) {
-              playSingleVerse(
-                state.currentPlayingAyahIndex,
-                getPlaybackSurahNum(),
-                getPlaybackSurahData(),
-              );
-            } else {
-              syncAudioUi();
-            }
+            const wasPlaying = quranAudio && !quranAudio.paused;
+            playSingleVerse(
+              state.currentPlayingAyahIndex,
+              getPlaybackSurahNum(),
+              getPlaybackSurahData(),
+            ).then(() => {
+              if (!wasPlaying && quranAudio) quranAudio.pause();
+            });
           }
         });
       }
@@ -7567,7 +7698,14 @@
       document.getElementById('btnOpenMoreMenu')?.addEventListener('click', () => openAppModal('moreMenuModal'));
       document.getElementById('closeMoreMenuModal')?.addEventListener('click', () => closeAppModal('moreMenuModal'));
       bindModalBackdropClose(document.getElementById('moreMenuModal'), () => closeAppModal('moreMenuModal'));
-      document.getElementById('btnMenuReadingOptions')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('readingOptionsModal'); updateContentSourceHints(); });
+      document.getElementById('btnMenuReadingOptions')?.addEventListener('click', () => {
+        closeAppModal('moreMenuModal');
+        openAppModal('readingOptionsModal');
+        updateContentSourceHints();
+        refreshReaderCacheStatusLabel();
+      });
+      document.getElementById('btnReaderEdgeRetry')?.addEventListener('click', () => retryLastEdgeLoad());
+      document.getElementById('btnClearReaderCache')?.addEventListener('click', () => clearReaderCacheFromSettings());
       document.getElementById('closeReadingOptionsModal')?.addEventListener('click', () => closeAppModal('readingOptionsModal'));
       bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
       document.getElementById('tafsirSheetBackdrop')?.addEventListener('click', () => closeTafsirSheet());

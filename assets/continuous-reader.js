@@ -154,10 +154,10 @@
     return h.isIndopakAyahScript?.() ? 2 : WINDOW_RADIUS;
   }
 
-  function reportEdgeLoadError(h, err, context) {
+  function reportEdgeLoadError(h, err, context, meta = {}) {
     if (err?.name === "AbortError") return;
     console.warn(context, err);
-    h.onContinuousEdgeLoadError?.(err);
+    h.onContinuousEdgeLoadError?.(err, meta);
   }
 
   async function fetchPayload(surahNum, signal) {
@@ -364,12 +364,18 @@
         });
       }
     } catch (err) {
-      reportEdgeLoadError(h, err, "Continuous scroll edge load failed");
+      reportEdgeLoadError(h, err, "Continuous scroll edge load failed", {
+        direction,
+        kind: "surah",
+      });
     } finally {
       st.edgeLoading = false;
       st.lastEdgeFinishedAt = Date.now();
       if (showUi) endEdgeLoad(h);
-      if (loaded) maybeContinueEdgeOnce(direction);
+      if (loaded) {
+        h.hideReaderEdgeRetry?.();
+        maybeContinueEdgeOnce(direction);
+      }
     }
   }
 
@@ -542,12 +548,18 @@
       pruneMushafSections(h.getState().currentMushafPage);
       if (loaded) h.prefetchMushafNeighbors(target);
     } catch (err) {
-      reportEdgeLoadError(h, err, "Mushaf scroll edge load failed");
+      reportEdgeLoadError(h, err, "Mushaf scroll edge load failed", {
+        direction,
+        kind: "mushaf",
+      });
     } finally {
       st.edgeLoading = false;
       st.lastEdgeFinishedAt = Date.now();
       if (showUi) endEdgeLoad(h);
-      if (loaded) maybeContinueEdgeOnce(direction);
+      if (loaded) {
+        h.hideReaderEdgeRetry?.();
+        maybeContinueEdgeOnce(direction);
+      }
     }
   }
 
@@ -799,6 +811,11 @@
     pruneMushafSections(getHost().getState().currentMushafPage);
   }
 
+  async function retryEdgeLoad(direction, kind) {
+    if (kind === "mushaf") await loadMushafEdge(direction);
+    else await loadSurahEdge(direction);
+  }
+
   window.QuranContinuousReader = {
     usesContinuousScroll,
     surahNumFromGlobalAyah,
@@ -812,5 +829,6 @@
     applyActiveSurahData,
     scrollToAyahInSection,
     scrollToAyahOnPage,
+    retryEdgeLoad,
   };
 })();

@@ -5,7 +5,8 @@
   "main": "sw.js",
   "scripts": {
     "build:css": "tailwindcss -i ./src/app.css -o ./assets/app.css --minify",
-    "build": "npm run build:css"
+    "build": "npm run build:css",
+    "test:e2e": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/aamar-shahzad/quran-mobile#readme",
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "autoprefixer": "~10.6.2",
     "postcss": "~8.5.32",
     "tailwindcss": "~3.4.17"

@@ -67,6 +67,16 @@ python3 -m http.server 8080
 
 After changing Tailwind **utility classes** in `index.html`, run `npm run build:css` and commit `assets/app.css`. iOS/Android platform styling (blur bars, sheets, player) lives in the inline `<style>` block in `index.html` under `html[data-platform="ios"]` / `android` — edit there when tuning native feel.
 
+```bash
+npm run test:e2e
+```
+
+Runs a Playwright smoke test (load app, play first ayah, assert audio URL).
+
+## Reader cache
+
+**Reading options** shows how many surah views and mushaf pages are stored on device (IndexedDB). **Clear saved reader cache** removes them; in-memory cache for the current session is cleared too.
+
 ## Icons
 
 Custom open-book app icons in `icons/` (192, 512, maskable, Apple touch). See `icons/CREDITS.txt`.

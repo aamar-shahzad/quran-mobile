@@ -131,6 +131,31 @@
     return out;
   }
 
+  async function countStores() {
+    const surahStore = await tx(STORE_SURAH, "readonly");
+    const mushafStore = await tx(STORE_MUSHAF, "readonly");
+    if (!surahStore || !mushafStore) return { surahViews: 0, mushafPages: 0 };
+    const [surahViews, mushafPages] = await Promise.all([
+      reqToPromise(surahStore.count()),
+      reqToPromise(mushafStore.count()),
+    ]);
+    return { surahViews, mushafPages };
+  }
+
+  async function clearAllStores() {
+    const db = await openDb();
+    if (!db) return { surahViews: 0, mushafPages: 0 };
+    const before = await countStores();
+    await new Promise((resolve, reject) => {
+      const txReq = db.transaction([STORE_SURAH, STORE_MUSHAF], "readwrite");
+      txReq.objectStore(STORE_SURAH).clear();
+      txReq.objectStore(STORE_MUSHAF).clear();
+      txReq.oncomplete = () => resolve();
+      txReq.onerror = () => reject(txReq.error);
+    });
+    return before;
+  }
+
   window.QuranReaderCacheDb = {
     open: openDb,
     getSurahView,
@@ -138,6 +163,8 @@
     getMushafPage,
     putMushafPage,
     warmSurahKeys,
+    countStores,
+    clearAllStores,
     mushafPageId: (layoutId, pageNum) => `${layoutId}:${pageNum}`,
   };
 })();
