@@ -1983,6 +1983,31 @@
       color: #30d158;
       border: none;
     }
+    html[data-platform="ios"]:not(.dark) .player-progress-track {
+      background: rgba(60, 60, 67, 0.2);
+    }
+    html[data-platform="ios"]:not(.dark) .player-progress-fill {
+      background: #248a3d;
+    }
+    html[data-platform="ios"]:not(.dark) .player-progress-fill::after {
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    html[data-platform="ios"]:not(.dark) .player-control-btn--play {
+      color: #248a3d;
+    }
+    html[data-platform="ios"]:not(.dark) .player-control-btn--play.is-playing {
+      background: rgba(36, 138, 61, 0.14);
+      color: #248a3d;
+    }
+    html[data-platform="ios"]:not(.dark) .player-verse-label {
+      color: #1c1c1e;
+    }
+    html[data-platform="ios"]:not(.dark) .player-mode-badge {
+      background: rgba(36, 138, 61, 0.12);
+      color: #248a3d;
+    }
+
     html[data-platform="ios"] .player-transport-row {
       gap: 1.75rem;
       max-width: 16rem;
@@ -2229,7 +2254,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=75').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=76').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -5459,6 +5484,22 @@
       return null;
     }
 
+    async function ensurePlaybackTranslationData(chapterId) {
+      const existing = resolvePlaybackEnData(chapterId);
+      if (existing) return existing;
+      try {
+        const payload = await ensureSurahViewCached(chapterId, {
+          signal: AbortSignal.timeout(getSurahFetchTimeoutMs()),
+        });
+        if (payload?.enData?.code === 200 && payload.enData.data?.ayahs?.length) {
+          return payload.enData.data;
+        }
+      } catch {
+        /* translation optional for audio */
+      }
+      return null;
+    }
+
     function findAyahIndexInSurahData(surahData, globalAyahNumber) {
       if (!surahData?.ayahs) return -1;
       return surahData.ayahs.findIndex((a) => a.number === globalAyahNumber);
@@ -6716,7 +6757,16 @@
       const playId = ++state.audioPlayId;
       state.currentPlayingAyahIndex = index;
       state.audioErrorRetries = 0;
-      bindPlaybackSurah(chapter, data);
+      const enData = resolvePlaybackEnData(chapter);
+      bindPlaybackSurah(chapter, data, enData);
+      if (!enData) {
+        ensurePlaybackTranslationData(chapter).then((en) => {
+          if (!en || playId !== state.audioPlayId) return;
+          if (state.audioSurahNum !== chapter || state.currentPlayingAyahIndex !== index) return;
+          state.audioSurahEnData = en;
+          syncMediaSessionWithAudio(true);
+        });
+      }
       const ayah = data.ayahs[index];
 
       const audioUrl = getAyahAudioUrlSync(state.currentReciter, ayah.number);
@@ -7069,6 +7119,11 @@
       return truncateLockScreenText(raw, 140);
     }
 
+    function getPlaybackArabicAyahText(ayah) {
+      const raw = (ayah?.text || '').replace(/\s+/g, ' ').trim();
+      return truncateLockScreenText(raw, 100);
+    }
+
     function mediaSessionArtworkEntries() {
       return [
         { src: mediaSessionArtworkUrl('icons/apple-touch-icon.png'), sizes: '180x180', type: 'image/png' },
@@ -7088,9 +7143,11 @@
       const revelation = playback.revelationType || '';
       const reciterName = getReciterDisplayName();
       const enLine = getPlaybackEnglishAyahText(ayah);
+      const arLine = !enLine ? getPlaybackArabicAyahText(ayah) : '';
+      const verseLine = enLine || arLine;
 
       const title = `${surahNum}. ${englishName} · Ayah ${ayahInSurah}${totalAyahs ? `/${totalAyahs}` : ''}`;
-      const artist = enLine ? `${reciterName} — ${enLine}` : reciterName;
+      const artist = verseLine ? `${reciterName} — ${verseLine}` : reciterName;
 
       const albumParts = [];
       if (arabicName) albumParts.push(arabicName);
@@ -7251,6 +7308,26 @@
           /* ignore */
         }
       });
+      const seekBySeconds = (delta, details) => {
+        if (!quranAudio || !Number.isFinite(quranAudio.duration)) return;
+        const step = details?.seekOffset ?? 15;
+        try {
+          quranAudio.currentTime = Math.max(
+            0,
+            Math.min(quranAudio.duration, quranAudio.currentTime + delta * step),
+          );
+          syncMediaSessionWithAudio(false);
+          savePlaybackState();
+        } catch {
+          /* ignore */
+        }
+      };
+      try {
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => seekBySeconds(-1, details));
+        navigator.mediaSession.setActionHandler('seekforward', (details) => seekBySeconds(1, details));
+      } catch {
+        /* optional on some browsers */
+      }
     }
 
     async function resumeFromPlaybackState(last) {

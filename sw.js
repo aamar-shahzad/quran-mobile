@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v75";
+const CACHE_NAME = "quran-mobile-v76";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -6,6 +6,7 @@ const AUDIO_CACHE = "quran-mobile-audio-v1";
 const API_CACHE_MAX = 500;
 const AUDIO_CACHE_MAX = 40;
 const NETWORK_TIMEOUT_MS = 12000;
+const PHOSPHOR_ICONS_URL = "https://unpkg.com/@phosphor-icons/web@2.1.1";
 
 function scopeBasePath() {
   try {
@@ -160,9 +161,15 @@ function precacheShellUrls() {
     `${base}assets/app.css`,
     `${base}assets/continuous-reader.js`,
     `${base}assets/reader-cache-db.js`,
+    `${base}icons/apple-touch-icon.png`,
     `${base}icons/icon-192.png`,
     `${base}icons/icon-512.png`,
+    `${base}icons/icon-512-maskable.png`,
   ];
+}
+
+function precacheRuntimeUrls() {
+  return [PHOSPHOR_ICONS_URL];
 }
 
 self.addEventListener("install", (event) => {
@@ -176,6 +183,17 @@ self.addEventListener("install", (event) => {
             if (res.ok) await cache.put(url, res);
           } catch {
             /* skip failed asset; do not block install */
+          }
+        }),
+      );
+      const assets = await caches.open(ASSETS_CACHE);
+      await Promise.allSettled(
+        precacheRuntimeUrls().map(async (url) => {
+          try {
+            const res = await fetchWithTimeout(url, PRECACHE_TIMEOUT_MS);
+            if (res.ok) await assets.put(url, res);
+          } catch {
+            /* skip */
           }
         }),
       );

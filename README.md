@@ -8,21 +8,22 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 
 ## Offline use
 
-- On install, the service worker tries to cache `index.html`, the manifest, and icons (each request times out after a few seconds so install does not hang).
+- On install, the service worker tries to cache `index.html`, the manifest, app scripts/CSS, home-screen icons (192, 512, maskable, Apple touch), and the pinned Phosphor icon script (each request times out after a few seconds so install does not hang).
 - Surah text, tafsir, and audio are cached as you open them. Opening a surah once while online usually makes that surah readable offline later.
 - Indo-Pak mushaf pages prefetch the previous and next page in the background after each load.
-- If the network is slow, navigation falls back to the cached shell instead of waiting indefinitely. When online, the app checks for updates on load and when you return to the tab; tap **Update** on the green banner if shown.
+- If the network is slow, navigation falls back to the cached shell instead of waiting indefinitely. When online, the app checks for updates on load and when you return to the tab; tap **Update** on the banner if shown.
 
 ## Mushaf (Indo-Pak)
 
 - **Reading options → Indo-Pak mushaf (15-line)** switches to 610-page layout from Quran.com (`text_indopak_nastaleeq`).
 - Swipe **right** for the next page, **left** for previous (RTL turn). Nav buttons match: ← next, → previous.
 - Share a mushaf page with `?page=134` (opens Indo-Pak mushaf layout).
-- **Reading options → Save this surah’s mushaf pages for offline** caches every mushaf page that contains the current surah (within cache limits).
+- **Reading options → Download surah pages for offline** caches every mushaf page that contains the current surah (within cache limits).
 
 ## Background audio
 
-- Lock-screen **play / pause / next / previous** use the Media Session API while recitation is playing.
+- Lock screen shows surah name, ayah number, reciter, and a short English translation line when available (Arabic ayah text otherwise). Artwork uses the app icon.
+- Lock-screen **play / pause / next / previous** and **±15s seek** (where supported) use the Media Session API while recitation is playing.
 - Switching between **Indo-Pak mushaf** and **by ayah** (Reading options → Script) keeps the same ayah playing when possible; mushaf opens the page for that ayah.
 - **Continue listening:** long-press the home-screen icon → _Continue_ (Android), or open `?play=last`.
 - Deep links (`?surah=`, `?ayah=`, `?page=`, `?play=1`) still work if you bookmark or share a URL yourself.
@@ -51,7 +52,7 @@ Open the live link on your phone → **More** → _Share & install_ → Add to H
 
 On first open, a splash screen shows while the surah list and reader load (matches light/dark theme). The installed PWA uses the same icon and background colors from the manifest.
 
-On Android/desktop Chrome, a green **Install** bar may appear when the app is installable; tap it to run the native install dialog. Chrome may log that its default mini-banner was deferred — that is expected when the app uses its own install button. You can also use **More → Install app** or **Share & install → Install app**.
+On Android/desktop Chrome, an **Install** bar may appear when the app is installable; tap it to run the native install dialog. You can also use **More → Share & install → Install app**.
 
 If you also install the **Hadith** PWA from the same GitHub Pages account, give each app a **unique home-screen icon** and reinstall after manifest updates so iOS does not tie lock-screen audio to the wrong app. Both apps now use distinct PWA `id` values in their manifests.
 
@@ -64,7 +65,7 @@ npm ci && npm run build:css
 python3 -m http.server 8080
 ```
 
-After changing Tailwind classes in `index.html`, run `npm run build:css` and commit `assets/app.css`.
+After changing Tailwind **utility classes** in `index.html`, run `npm run build:css` and commit `assets/app.css`. iOS/Android platform styling (blur bars, sheets, player) lives in the inline `<style>` block in `index.html` under `html[data-platform="ios"]` / `android` — edit there when tuning native feel.
 
 ## Icons
 
