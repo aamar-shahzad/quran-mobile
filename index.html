@@ -240,6 +240,31 @@
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
     }
+    #audioPlayerBar.player-hidden {
+      transform: translateY(110%);
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #surahViewport {
+      padding-bottom: 1.25rem;
+    }
+    body.audio-bar-visible #surahViewport {
+      padding-bottom: 5.75rem;
+    }
+    @media (display-mode: standalone) {
+      #audioPlayerBar:not(.player-hidden) {
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
+      }
+    }
+    @media (max-width: 640px) {
+      #audioSubLabel,
+      #btnToggleAudioSpeed {
+        display: none;
+      }
+      #audioPlayerBar .max-sm-player-row {
+        min-height: 3rem;
+      }
+    }
     .pt-safe {
       padding-top: env(safe-area-inset-top, 0px);
     }
@@ -711,7 +736,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=16').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=17').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -1122,7 +1147,7 @@
   </div>
 
   <!-- MAIN SCROLLABLE SURAH VIEWPORT -->
-  <main id="surahViewport" class="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 pb-28 w-full">
+  <main id="surahViewport" class="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-5 space-y-4 w-full">
     
     <!-- Dynamic Loading State -->
     <div id="loadingSpinner" class="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
@@ -1150,8 +1175,11 @@
   </div>
 
   <!-- PERSISTENT AUDIO PLAYER CONTROL BAR AT BOTTOM -->
-  <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 pt-1 px-3 pb-safe z-30 shadow-2xl transition-transform duration-300">
-    <div class="w-full max-w-[64rem] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3">
+  <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-30 shadow-2xl transition-transform duration-300">
+    <div class="w-full bg-slate-800 h-0.5 overflow-hidden cursor-pointer" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+      <div id="audioProgressBar" class="bg-brand-500 h-full w-0 transition-all duration-100"></div>
+    </div>
+    <div class="w-full max-w-[64rem] mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 max-sm-player-row">
       
       <!-- Current Playing Verse Info -->
       <div class="flex items-center space-x-3 overflow-hidden">
@@ -1159,28 +1187,23 @@
           <i id="globalPlayIcon" class="ph ph-play-fill"></i>
         </button>
         <div class="truncate">
-          <h4 id="audioVerseLabel" class="text-xs font-bold text-slate-200 truncate">Continuous Recitation</h4>
+          <h4 id="audioVerseLabel" class="text-xs font-bold text-slate-200 truncate">Tap play on an ayah</h4>
           <p id="audioSubLabel" class="text-[11px] text-slate-400 truncate">Reciter: Mishary Alafasy</p>
         </div>
       </div>
 
       <!-- Playback Controls -->
       <div class="flex items-center space-x-1 shrink-0">
-        <button id="btnPrevVerse" class="p-2 text-slate-400 hover:text-white rounded-lg text-lg">
+        <button type="button" id="btnPrevVerse" class="p-2 text-slate-400 hover:text-white rounded-lg text-lg" aria-label="Previous ayah">
           <i class="ph ph-skip-back-fill"></i>
         </button>
-        <button id="btnNextVerse" class="p-2 text-slate-400 hover:text-white rounded-lg text-lg">
+        <button type="button" id="btnNextVerse" class="p-2 text-slate-400 hover:text-white rounded-lg text-lg" aria-label="Next ayah">
           <i class="ph ph-skip-forward-fill"></i>
         </button>
-        <button id="btnToggleAudioSpeed" class="px-2 py-1 bg-slate-800 text-[10px] font-bold text-brand-400 border border-slate-700 rounded-md">
+        <button type="button" id="btnToggleAudioSpeed" class="px-2 py-1 bg-slate-800 text-[10px] font-bold text-brand-400 border border-slate-700 rounded-md max-sm:hidden">
           1.0x
         </button>
       </div>
-    </div>
-
-    <!-- Audio Progress Bar -->
-    <div class="w-full bg-slate-800 h-1 mt-2 rounded-full overflow-hidden cursor-pointer" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
-      <div id="audioProgressBar" class="bg-brand-500 h-full w-0 transition-all duration-100"></div>
     </div>
   </footer>
 
@@ -2388,6 +2411,7 @@
       if (globalPlayIcon) globalPlayIcon.className = 'ph ph-play-fill';
       if (audioProgressBar) audioProgressBar.style.width = '0%';
       document.querySelectorAll('.playing-verse').forEach((el) => el.classList.remove('playing-verse'));
+      if (resetContinuous) hideAudioPlayerBar();
     }
 
     function updateNavigationButtons() {
@@ -2484,6 +2508,12 @@
 
     function showAudioPlayerBar() {
       document.getElementById('audioPlayerBar')?.classList.remove('player-hidden');
+      document.body.classList.add('audio-bar-visible');
+    }
+
+    function hideAudioPlayerBar() {
+      document.getElementById('audioPlayerBar')?.classList.add('player-hidden');
+      document.body.classList.remove('audio-bar-visible');
     }
 
     function hideTapToPlayOverlay() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v16";
+const CACHE_NAME = "quran-mobile-v17";
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
 const AUDIO_CACHE = "quran-mobile-audio-v1";
