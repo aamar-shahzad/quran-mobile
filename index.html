@@ -54,7 +54,7 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   
   <title>Quran</title>
 
@@ -1876,6 +1876,165 @@
       box-shadow: none;
     }
 
+    html[data-platform="ios"]:not(.dark) {
+      --ios-bg: #f2f2f7;
+      --ios-grouped: #ffffff;
+      --ios-fill: rgba(120, 120, 128, 0.16);
+      --ios-separator: rgba(60, 60, 67, 0.29);
+      --ios-material: rgba(249, 249, 249, 0.82);
+    }
+
+    html[data-platform="ios"] #topReaderChrome,
+    html[data-platform="ios"] #readerControlsPanel {
+      background-color: var(--ios-material);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      border-color: var(--ios-separator);
+    }
+    html[data-platform="ios"] #readerControlsPanel {
+      border-bottom-width: 0.5px;
+    }
+    html[data-platform="ios"] .reader-chrome-btn,
+    html[data-platform="ios"] #readerNavSecondary button,
+    html[data-platform="ios"] #mushafPageNav button {
+      background-color: var(--ios-fill);
+      border-color: transparent;
+      border-width: 0;
+      border-radius: 10px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+    html[data-platform="ios"] #surahSelect {
+      border-radius: 10px;
+    }
+
+    html[data-platform="ios"] #audioPlayerBar {
+      box-shadow: none;
+      border-top-width: 0.5px;
+    }
+    html[data-platform="ios"] .player-verse-label {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    html[data-platform="ios"] .player-reciter-label {
+      font-size: 0.6875rem;
+      color: rgba(235, 235, 245, 0.55);
+    }
+    html[data-platform="ios"]:not(.dark) .player-reciter-label {
+      color: rgba(60, 60, 67, 0.65);
+    }
+    html[data-platform="ios"] .player-control-btn {
+      background: transparent;
+      border: none;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 9999px;
+    }
+    html[data-platform="ios"] .player-control-btn:active:not(:disabled) {
+      transform: none;
+      opacity: 0.45;
+    }
+    html[data-platform="ios"] .player-control-btn--play {
+      width: 3.25rem;
+      height: 3.25rem;
+      background: var(--ios-fill);
+      color: #30d158;
+    }
+    html[data-platform="ios"] .player-control-btn--play.is-playing {
+      background: rgba(48, 209, 88, 0.18);
+      color: #30d158;
+    }
+    html[data-platform="ios"] .player-control-btn--speed {
+      background: var(--ios-fill);
+      border-radius: 9999px;
+      min-height: 32px;
+    }
+    html[data-platform="ios"] .player-close-btn {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      border-radius: 9999px;
+      background: rgba(120, 120, 128, 0.32);
+      border: none;
+      color: rgba(235, 235, 245, 0.65);
+    }
+    html[data-platform="ios"] .player-progress-track {
+      background: rgba(118, 118, 128, 0.35);
+      border: none;
+      height: 4px;
+      padding: 0;
+    }
+    html[data-platform="ios"] .player-progress-fill {
+      height: 4px;
+      background: #30d158;
+    }
+    html[data-platform="ios"] .player-progress-fill::after {
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    }
+    html[data-platform="ios"] .player-mode-badge {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 600;
+      font-size: 0.625rem;
+      background: rgba(48, 209, 88, 0.16);
+      color: #30d158;
+      border: none;
+    }
+    html[data-platform="ios"] .player-transport-row {
+      gap: 1.75rem;
+      max-width: 16rem;
+    }
+
+    html[data-platform="ios"] #moreMenuModal > div > div:first-child {
+      position: relative;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+    html[data-platform="ios"] #closeMoreMenuModal {
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+    html[data-platform="ios"] #moreMenuTitle {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: rgba(235, 235, 245, 0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    html[data-platform="ios"] #moreMenuModal .more-menu-list {
+      gap: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--ios-fill);
+    }
+    html[data-platform="ios"] #moreMenuModal .more-menu-list > * {
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      min-height: 44px;
+      padding-top: 0.65rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+    html[data-platform="ios"] #moreMenuModal .more-menu-list > *:last-child {
+      border-bottom: none;
+    }
+    html[data-platform="ios"] #moreMenuModal .more-menu-list i.ph {
+      color: #30d158;
+    }
+
+    html[data-platform="ios"] .app-splash__logo {
+      border-radius: 22%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
     /* ===== Android: Material Design 3 ===== */
     html[data-platform="android"] {
       --md-sys-color-primary: #6bd9a4;
@@ -2046,7 +2205,7 @@
 
   <div id="appStartupSplash" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Quran app">
     <div class="app-splash__inner">
-      <img class="app-splash__logo" src="icons/icon-192.png" width="88" height="88" alt="">
+      <img class="app-splash__logo" src="icons/apple-touch-icon.png" width="88" height="88" alt="">
       <p class="app-splash__title-ar" dir="rtl" lang="ar">الْقُرْآنُ الْكَرِيمُ</p>
       <p class="app-splash__title">Quran</p>
       <p id="appSplashStatus" class="app-splash__status">Loading…</p>
@@ -2070,7 +2229,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=74').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=75').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2224,7 +2383,7 @@
         <h3 id="moreMenuTitle" class="font-bold text-sm text-white">Menu</h3>
         <button type="button" id="closeMoreMenuModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
       </div>
-      <div class="grid gap-1.5 max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain">
+      <div class="more-menu-list grid gap-1.5 max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain">
         <button type="button" id="btnMenuReadingOptions" class="w-full flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200 hover:bg-slate-800/80 transition">
           <i class="ph ph-sliders-horizontal text-lg text-slate-400 shrink-0" aria-hidden="true"></i>
           Reading options
@@ -2596,13 +2755,13 @@
       </div>
       <div class="player-transport-row">
         <button type="button" id="btnPrevVerse" class="player-control-btn" aria-label="Previous ayah" disabled>
-          <i class="ph ph-skip-back text-lg" aria-hidden="true"></i>
+          <i id="playerPrevIcon" class="ph ph-skip-back text-lg" aria-hidden="true"></i>
         </button>
         <button type="button" id="btnPlaySurahContinuous" class="player-control-btn player-control-btn--play" aria-label="Play or pause">
           <i id="globalPlayIcon" class="ph ph-play-circle text-2xl" aria-hidden="true"></i>
         </button>
         <button type="button" id="btnNextVerse" class="player-control-btn" aria-label="Next ayah" disabled>
-          <i class="ph ph-skip-forward text-lg" aria-hidden="true"></i>
+          <i id="playerNextIcon" class="ph ph-skip-forward text-lg" aria-hidden="true"></i>
         </button>
       </div>
     </div>
@@ -5286,7 +5445,18 @@
     function bindPlaybackSurah(surahNum, surahData, enData = null) {
       state.audioSurahNum = surahNum;
       state.audioSurahData = surahData;
-      state.audioSurahEnData = enData;
+      state.audioSurahEnData = enData ?? resolvePlaybackEnData(surahNum);
+    }
+
+    function resolvePlaybackEnData(chapterId) {
+      if (state.currentSurahEnData && state.currentSurahNum === chapterId) {
+        return state.currentSurahEnData;
+      }
+      const mem = state.surahViewCache.get(surahViewCacheKey(chapterId));
+      if (mem?.enData?.code === 200 && mem.enData.data?.ayahs?.length) {
+        return mem.enData.data;
+      }
+      return null;
     }
 
     function findAyahIndexInSurahData(surahData, globalAyahNumber) {
@@ -5621,10 +5791,27 @@
       return `${m}:${String(s).padStart(2, '0')}`;
     }
 
+    function isIosPlatform() {
+      return document.documentElement.getAttribute('data-platform') === 'ios';
+    }
+
     function syncGlobalPlayIcon() {
       if (!globalPlayIcon) return;
       const active = state.currentPlayingAyahIndex >= 0 && quranAudio && !quranAudio.paused;
-      globalPlayIcon.className = active ? 'ph ph-pause-circle text-2xl' : 'ph ph-play-circle text-2xl';
+      if (isIosPlatform()) {
+        globalPlayIcon.className = active ? 'ph-fill ph-pause text-2xl' : 'ph-fill ph-play text-2xl';
+      } else {
+        globalPlayIcon.className = active ? 'ph ph-pause-circle text-2xl' : 'ph ph-play-circle text-2xl';
+      }
+      const prevIcon = document.getElementById('playerPrevIcon');
+      const nextIcon = document.getElementById('playerNextIcon');
+      if (isIosPlatform()) {
+        if (prevIcon) prevIcon.className = 'ph-fill ph-skip-back text-xl';
+        if (nextIcon) nextIcon.className = 'ph-fill ph-skip-forward text-xl';
+      } else {
+        if (prevIcon) prevIcon.className = 'ph ph-skip-back text-lg';
+        if (nextIcon) nextIcon.className = 'ph ph-skip-forward text-lg';
+      }
       const playBtn = document.getElementById('btnPlaySurahContinuous');
       playBtn?.classList.toggle('is-playing', active);
       if (playBtn) playBtn.setAttribute('aria-label', active ? 'Pause' : 'Play');
@@ -5660,7 +5847,8 @@
       const data = getPlaybackSurahData();
       const ayah = getPlaybackAyah();
       if (data && ayah) {
-        audioVerseLabel.textContent = `${data.englishName} · ${ayah.numberInSurah}`;
+        const total = data.numberOfAyahs || data.ayahs?.length || '';
+        audioVerseLabel.textContent = `${data.englishName} · ${ayah.numberInSurah}${total ? `/${total}` : ''}`;
       }
     }
 
@@ -5734,6 +5922,7 @@
       updateAudioTransportButtons();
       updatePlayerModeBadge();
       updateNowPlayingLabel();
+      setAudioReciterLabel(getReciterDisplayName());
       syncGlobalPlayIcon();
       updateAudioTimeUi();
       syncMediaSessionWithAudio(false);
@@ -6417,7 +6606,10 @@
 
       quranAudio.addEventListener('loadedmetadata', () => {
         updateAudioTimeUi();
-        syncMediaSessionWithAudio(false);
+        syncMediaSessionWithAudio(true);
+      });
+      quranAudio.addEventListener('playing', () => {
+        syncMediaSessionWithAudio(true);
       });
       quranAudio.addEventListener('play', () => syncAudioUi());
 
@@ -6858,6 +7050,57 @@
       }
     }
 
+    function getReciterDisplayName() {
+      const raw = reciterSelect?.options[reciterSelect.selectedIndex]?.text || '';
+      return raw.replace(/^🎙️\s*/, '').trim() || 'Reciter';
+    }
+
+    function truncateLockScreenText(text, maxLen = 120) {
+      const t = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!t || t.length <= maxLen) return t;
+      return `${t.slice(0, maxLen - 1)}…`;
+    }
+
+    function getPlaybackEnglishAyahText(ayah) {
+      if (!ayah?.numberInSurah) return '';
+      const enBundle = state.audioSurahEnData || state.currentSurahEnData;
+      const enAyah = enBundle?.ayahs?.find((a) => a.numberInSurah === ayah.numberInSurah);
+      const raw = (enAyah?.text || '').replace(/<[^>]*>/g, '');
+      return truncateLockScreenText(raw, 140);
+    }
+
+    function mediaSessionArtworkEntries() {
+      return [
+        { src: mediaSessionArtworkUrl('icons/apple-touch-icon.png'), sizes: '180x180', type: 'image/png' },
+        { src: mediaSessionArtworkUrl('icons/icon-192.png'), sizes: '192x192', type: 'image/png' },
+        { src: mediaSessionArtworkUrl('icons/icon-512-maskable.png'), sizes: '512x512', type: 'image/png' },
+        { src: mediaSessionArtworkUrl('icons/icon-512.png'), sizes: '512x512', type: 'image/png' },
+      ];
+    }
+
+    function buildMediaSessionMetadataFields(playback, ayah) {
+      const surahNum = getPlaybackSurahNum();
+      const englishName = playback.englishName || `Surah ${surahNum}`;
+      const arabicName = (playback.name || '').trim();
+      const ayahInSurah = ayah.numberInSurah;
+      const totalAyahs = playback.numberOfAyahs || playback.ayahs?.length || 0;
+      const globalAyah = ayah.number;
+      const revelation = playback.revelationType || '';
+      const reciterName = getReciterDisplayName();
+      const enLine = getPlaybackEnglishAyahText(ayah);
+
+      const title = `${surahNum}. ${englishName} · Ayah ${ayahInSurah}${totalAyahs ? `/${totalAyahs}` : ''}`;
+      const artist = enLine ? `${reciterName} — ${enLine}` : reciterName;
+
+      const albumParts = [];
+      if (arabicName) albumParts.push(arabicName);
+      if (revelation) albumParts.push(revelation);
+      if (globalAyah) albumParts.push(`Qur'an ${globalAyah}`);
+      const album = albumParts.join(' · ') || 'Holy Qur\'an';
+
+      return { title, artist, album };
+    }
+
     function clearMediaSession() {
       if (!('mediaSession' in navigator)) return;
       try {
@@ -6881,18 +7124,13 @@
       }
       const playback = getPlaybackSurahData();
       if (updateMetadata) {
-        const reciterName = reciterSelect?.options[reciterSelect.selectedIndex]?.text
-          ?.replace(/^🎙️\s*/, '')
-          ?.trim() || 'Reciter';
         try {
+          const fields = buildMediaSessionMetadataFields(playback, ayah);
           navigator.mediaSession.metadata = new MediaMetadata({
-            title: `${playback.englishName} · ${ayah.numberInSurah}`,
-            artist: reciterName,
-            album: 'Quran',
-            artwork: [
-              { src: mediaSessionArtworkUrl('icons/icon-192.png'), sizes: '192x192', type: 'image/png' },
-              { src: mediaSessionArtworkUrl('icons/icon-512.png'), sizes: '512x512', type: 'image/png' },
-            ],
+            title: fields.title,
+            artist: fields.artist,
+            album: fields.album,
+            artwork: mediaSessionArtworkEntries(),
           });
         } catch {
           /* ignore */
