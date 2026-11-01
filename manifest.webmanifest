@@ -1,14 +1,14 @@
 {
   "id": "/quran-mobile/",
-  "name": "Quran Reader & Multilingual Tafsir",
-  "short_name": "Quran Mobile",
-  "description": "Mobile Quran App with Multilingual Tafsirs (EN, AR, UR, RU, BN), Audio & Offline Support",
+  "name": "Quran",
+  "short_name": "Quran",
+  "description": "Quran with translations, tafsir, and recitation. Works offline after first visit.",
   "start_url": "/quran-mobile/",
   "scope": "/quran-mobile/",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#10b981",
-  "orientation": "portrait",
+  "theme_color": "#0f172a",
+  "orientation": "any",
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -27,6 +27,39 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Continue listening",
+      "short_name": "Continue",
+      "description": "Resume last recitation",
+      "url": "./?play=last",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Surah Al-Kahf",
+      "short_name": "Al-Kahf",
+      "url": "./?surah=18&play=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Surah Ya-Sin",
+      "short_name": "Ya-Sin",
+      "url": "./?surah=36&play=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Surah Ar-Rahman",
+      "short_name": "Ar-Rahman",
+      "url": "./?surah=55&play=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Surah Al-Mulk",
+      "short_name": "Al-Mulk",
+      "url": "./?surah=67&play=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

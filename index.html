@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <script>
     /* Platform detection for design language: iOS -> Apple HIG, Android -> Material 3 */
@@ -23,15 +23,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Quran Mobile">
-  <meta name="application-name" content="Quran Mobile">
+  <meta name="apple-mobile-web-app-title" content="Quran">
+  <meta name="application-name" content="Quran">
   <meta name="description" content="Offline-capable Mobile Quran Reader with Audio & Translations">
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   
-  <title>Quran Mobile Reader</title>
+  <title>Quran</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -71,7 +71,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
   <style>
     /* Mobile app scroll & font tweaks */
@@ -693,7 +693,7 @@
 
   <div id="appUpdateBanner" class="hidden fixed bottom-20 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[70] bg-brand-700 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-brand-500 flex items-center justify-between gap-3">
     <span>New version available</span>
-    <button type="button" id="btnApplyAppUpdate" class="shrink-0 bg-white text-brand-800 font-bold px-3 py-1.5 rounded-lg">Update</button>
+    <button type="button" id="btnApplyAppUpdate" class="shrink-0 bg-white text-brand-700 font-bold px-3 py-1.5 rounded-lg">Update</button>
   </div>
 
   <script>
@@ -701,12 +701,13 @@
       window.addEventListener('load', () => {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!navigator.serviceWorker.controller) return;
           if (refreshing) return;
           refreshing = true;
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=14').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=15').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -794,40 +795,26 @@
   <div id="appShell">
   <!-- TOP HEADER BAR -->
   <header class="bg-dark-card border-b border-dark-border px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shrink-0 z-20">
-    <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold text-lg shadow-sm">
+    <div class="flex items-center space-x-3 min-w-0">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold text-lg shadow-sm shrink-0">
         📖
       </div>
-      <div>
-        <h1 class="font-bold text-sm sm:text-base leading-tight text-white">Quran Mobile Pro</h1>
-        <p id="headerSubtitle" class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[9.5rem] sm:max-w-none">Al-Fatiha • Surah 1</p>
+      <div class="min-w-0">
+        <h1 class="font-bold text-sm sm:text-base leading-tight text-white">Quran</h1>
+        <p id="headerSubtitle" class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[11rem] sm:max-w-none">Al-Fatiha • Surah 1</p>
       </div>
     </div>
 
-    <div class="flex items-center space-x-1">
-      <button id="btnToggleReaderControlsMobile" type="button" class="sm:hidden p-2 text-brand-400 hover:text-brand-300 rounded-xl hover:bg-slate-800 transition" title="Reader controls" aria-expanded="true">
-        <i class="ph ph-sliders-horizontal text-lg"></i>
+    <div class="flex items-center space-x-0.5 shrink-0">
+      <button type="button" id="btnToggleSearch" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Search Quran" aria-label="Search Quran">
+        <i class="ph ph-magnifying-glass text-lg"></i>
       </button>
-      <button id="btnOpenBookmarksModal" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Saved Bookmarks & Notes">
+      <button type="button" id="btnOpenBookmarksModal" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Bookmarks" aria-label="Bookmarks">
         <i class="ph ph-bookmark-simple text-lg"></i>
         <span id="bookmarkDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full"></span>
       </button>
-      <span id="headerSecondaryActions" class="flex items-center space-x-1">
-      <button id="btnOpenAzkarModal" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Daily Azkar">
-        <i class="ph ph-hands-praying text-lg"></i>
-      </button>
-      <a href="https://aamar-shahzad.github.io/hadith-mobile/" class="p-2 text-slate-300 hover:text-brand-400 rounded-xl hover:bg-slate-800 transition" title="Hadith app">
-        <i class="ph ph-scroll text-lg"></i>
-      </a>
-      <button id="btnOpenSourcesModal" type="button" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Data sources">
-        <i class="ph ph-info text-lg"></i>
-      </button>
-      <button id="btnOpenPwaGuide" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition relative" title="Share link & install app">
-        <i class="ph ph-share-network text-lg text-emerald-400"></i>
-      </button>
-      </span>
-      <button id="btnToggleSearch" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Search Quran">
-        <i class="ph ph-magnifying-glass text-lg"></i>
+      <button type="button" id="btnOpenMoreMenu" class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition" title="More" aria-label="More menu">
+        <i class="ph ph-dots-three-circle text-lg"></i>
       </button>
     </div>
   </header>
@@ -838,80 +825,22 @@
     <!-- Surah / Juz / Page Selector Navigation Tabs -->
     <div id="readerNavRow" class="flex items-center space-x-2">
       <div class="relative flex-1">
+        <label for="surahSelect" class="sr-only">Surah</label>
         <select id="surahSelect" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl py-2.5 px-3 pr-8 appearance-none focus:outline-none focus:border-brand-500 font-medium">
           <option value="" disabled selected>Loading Surahs...</option>
         </select>
         <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-base"></i>
       </div>
-      
-      <!-- Quick Navigation Modals (Juz & Page) -->
-      <button id="btnOpenJuzModal" class="px-2.5 sm:px-3 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-xs font-semibold text-emerald-400 rounded-xl transition active:scale-95 flex items-center space-x-1">
+      <button type="button" id="btnOpenSurahNavModal" class="px-2.5 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-xs font-semibold text-emerald-400 rounded-xl transition flex items-center space-x-1" aria-label="Jump to Juz or surah">
         <i class="ph ph-squares-four text-sm"></i>
-        <span id="navBtnJuzLabel">Juz</span>
+        <span class="hidden xs:inline">Jump</span>
       </button>
-      <!-- Prev & Next Surah Buttons -->
-      <button id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition active:scale-95 disabled:opacity-40">
+      <button type="button" id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Previous surah">
         <i class="ph ph-caret-left text-lg"></i>
       </button>
-      <button id="btnNextSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition active:scale-95 disabled:opacity-40">
+      <button type="button" id="btnNextSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Next surah">
         <i class="ph ph-caret-right text-lg"></i>
       </button>
-    </div>
-
-    <div id="readerControlsCollapsedBar" class="hidden max-sm:flex items-center justify-between gap-2 py-0.5">
-      <span id="readerCollapsedSummary" class="text-[10px] text-slate-500 truncate min-w-0"></span>
-      <button type="button" id="btnExpandReaderControls" class="text-[10px] font-semibold text-brand-400 shrink-0 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800">
-        Show controls
-      </button>
-    </div>
-
-    <!-- Script, Reciter & Tafsir Control Toolbar -->
-    <div id="readerAdvancedControls" class="reader-advanced-controls">
-      <div class="relative reader-adv-span-2">
-        <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] sm:text-xs rounded-xl py-2 sm:py-2.5 px-2 pr-6 appearance-none focus:outline-none focus:border-brand-500 font-medium">
-          <option value="quran-uthmani">Loading Quran formats…</option>
-        </select>
-        <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
-      </div>
-      <p id="contentSourceHint" class="text-[10px] sm:text-[11px] text-slate-500 leading-snug px-0.5 reader-adv-span-2"></p>
-      <!-- Reciter Selection Dropdown -->
-      <div class="relative">
-        <select id="reciterSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-[11px] sm:text-xs rounded-xl py-2 sm:py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
-          <option value="ar.alafasy">🎙️ Mishary Alafasy</option>
-          <option value="ar.abdulbasitmurattal">🎙️ Abdul Basit (Murattal)</option>
-          <option value="ar.minshawi">🎙️ Mohamed Al-Minshawi</option>
-          <option value="ar.abdurrahmaansudais">🎙️ Abdur-Rahman As-Sudais</option>
-          <option value="ar.husary">🎙️ Mahmoud Al-Husary</option>
-          <option value="ar.husarymujawwad">🎙️ Al-Husary (Mujawwad)</option>
-        </select>
-        <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
-      </div>
-
-      <!-- Multilingual Tafsir Selection Dropdown -->
-      <div class="relative">
-        <select id="tafsirSelect" class="w-full bg-slate-950 border border-slate-800 text-emerald-400 text-[11px] sm:text-xs rounded-xl py-2 sm:py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
-          <optgroup label="🇬🇧 English Tafsirs">
-            <option value="en_ibn_kathir" selected>Tafsir Ibn Kathir</option>
-            <option value="en_maarif">Ma'arif-ul-Quran</option>
-          </optgroup>
-          <optgroup label="🇸🇦 Arabic Tafsirs">
-            <option value="ar_muyassar">التفسير الميسر</option>
-            <option value="ar_jalalayn">تفسير الجلالين</option>
-            <option value="ar_qurtubi">تفسير القرطبي</option>
-          </optgroup>
-          <optgroup label="🇵🇰 Urdu Tafsirs">
-            <option value="ur_bayan">بیان القرآن (Urdu)</option>
-            <option value="ur_ahsan">تفسیر ابنِ کثیر (اردو)</option>
-          </optgroup>
-          <optgroup label="🇷🇺 Russian Tafsir">
-            <option value="ru_sadi">Тафсир ас-Саади</option>
-          </optgroup>
-          <optgroup label="🇧🇩 Bengali Tafsir">
-            <option value="bn_zakaria">তাফসীর জাকারিয়া</option>
-          </optgroup>
-        </select>
-        <i class="ph ph-caret-down absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
-      </div>
     </div>
 
     <!-- Quick Search Input (Collapsible) -->
@@ -922,6 +851,87 @@
         <i class="ph ph-x absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer text-sm" id="btnClearSearch"></i>
       </div>
     </div>
+  </div>
+
+  <div id="moreMenuModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="moreMenuTitle">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-4 max-w-sm w-full shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="moreMenuTitle" class="font-bold text-sm text-white">Menu</h3>
+        <button type="button" id="closeMoreMenuModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <div class="grid gap-2">
+        <button type="button" id="btnMenuReadingOptions" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Reading options</button>
+        <button type="button" id="btnMenuAzkar" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Daily Azkar</button>
+        <button type="button" id="btnMenuAssistant" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Siri &amp; Assistant</button>
+        <a href="https://aamar-shahzad.github.io/hadith-mobile/" class="block px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Hadith app</a>
+        <button type="button" id="btnMenuSources" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-200">Data sources</button>
+        <button type="button" id="btnMenuShareInstall" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-emerald-300">Share &amp; install</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="readingOptionsModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="readingOptionsTitle">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-4 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="readingOptionsTitle" class="font-bold text-sm text-white">Reading options</h3>
+        <button type="button" id="closeReadingOptionsModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <p id="readingOptionsSourceHint" class="text-xs text-slate-400 leading-snug"></p>
+      <label class="block text-xs text-slate-400" for="scriptSelect">Script</label>
+      <div class="relative">
+        <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-6 appearance-none focus:outline-none focus:border-brand-500 font-medium"></select>
+      </div>
+      <label class="block text-xs text-slate-400" for="reciterSelect">Reciter</label>
+      <div class="relative">
+        <select id="reciterSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
+          <option value="ar.alafasy">Mishary Alafasy</option>
+          <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
+          <option value="ar.minshawi">Mohamed Al-Minshawi</option>
+          <option value="ar.abdurrahmaansudais">Abdur-Rahman As-Sudais</option>
+          <option value="ar.husary">Mahmoud Al-Husary</option>
+          <option value="ar.husarymujawwad">Al-Husary (Mujawwad)</option>
+        </select>
+      </div>
+      <label class="block text-xs text-slate-400" for="tafsirSelect">Tafsir</label>
+      <div class="relative">
+        <select id="tafsirSelect" class="w-full bg-slate-950 border border-slate-800 text-emerald-400 text-sm rounded-xl py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
+          <optgroup label="English"><option value="en_ibn_kathir" selected>Ibn Kathir</option><option value="en_maarif">Ma'arif-ul-Quran</option></optgroup>
+          <optgroup label="Arabic"><option value="ar_muyassar">الميسر</option><option value="ar_jalalayn">الجلالين</option><option value="ar_qurtubi">القرطبي</option></optgroup>
+          <optgroup label="Urdu"><option value="ur_bayan">بیان القرآن</option><option value="ur_ahsan">ابن کثیر</option></optgroup>
+          <optgroup label="Russian"><option value="ru_sadi">as-Saadi</option></optgroup>
+          <optgroup label="Bengali"><option value="bn_zakaria">Zakaria</option></optgroup>
+        </select>
+      </div>
+      <label class="flex items-center gap-2 text-xs text-slate-300 pt-1">
+        <input type="checkbox" id="chkContinueNextSurah" class="rounded border-slate-600">
+        Continue to next surah after last ayah
+      </label>
+    </div>
+  </div>
+
+  <div id="assistantModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assistantTitle">
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-4 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl space-y-3 text-sm text-slate-300">
+      <div class="flex items-center justify-between">
+        <h3 id="assistantTitle" class="font-bold text-white">Siri &amp; Assistant</h3>
+        <button type="button" id="closeAssistantModal" class="text-slate-400 hover:text-white p-1" aria-label="Close"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-400">Voice apps cannot start a specific surah without a shortcut or link. Use these links with Siri Shortcuts (iOS) or your home-screen shortcuts (Android).</p>
+      <label class="text-xs text-slate-400" for="assistantSurahPick">Surah link</label>
+      <select id="assistantSurahPick" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-2 text-sm"></select>
+      <div class="flex gap-2">
+        <button type="button" id="btnCopyDeepLink" class="flex-1 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold">Copy play link</button>
+        <button type="button" id="btnCopyResumeLink" class="flex-1 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold">Copy continue link</button>
+      </div>
+      <ol class="list-decimal list-inside text-xs space-y-1 text-slate-400">
+        <li>iOS: Shortcuts → New → Open URL → paste link → name it → “Hey Siri, [name]”</li>
+        <li>Android: Install app → long-press icon for shortcuts, or “Hey Google, open Quran”</li>
+        <li>While playing: lock-screen pause, next, previous work via Siri/Google</li>
+      </ol>
+    </div>
+  </div>
+
+  <div id="tapToPlayOverlay" class="hidden fixed inset-x-0 bottom-0 z-[65] p-4 pb-safe">
+    <button type="button" id="btnTapToPlayOverlay" class="w-full py-4 rounded-2xl bg-brand-600 text-white font-semibold text-sm shadow-xl">Tap to play</button>
   </div>
 
   <!-- JUZ SELECTION MODAL -->
@@ -1112,7 +1122,7 @@
     
     <!-- Dynamic Loading State -->
     <div id="loadingSpinner" class="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
-      <div class="w-8 h-8 border-3 border-slate-700 border-t-brand-500 rounded-full animate-spin"></div>
+      <div class="w-8 h-8 border-[3px] border-slate-700 border-t-brand-500 rounded-full animate-spin"></div>
       <p class="text-xs font-medium">Loading Quranic Verses...</p>
     </div>
 
@@ -1136,7 +1146,7 @@
   </div>
 
   <!-- PERSISTENT AUDIO PLAYER CONTROL BAR AT BOTTOM -->
-  <footer id="audioPlayerBar" class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-3 pb-safe z-30 shadow-2xl transition-transform duration-300">
+  <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 pt-1 px-3 pb-safe z-30 shadow-2xl transition-transform duration-300">
     <div class="w-full max-w-[64rem] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3">
       
       <!-- Current Playing Verse Info -->
@@ -1196,13 +1206,12 @@
       readerControlsExpanded: localStorage.getItem('quran_reader_controls_expanded') !== '0',
       readerControlsPinnedOpen: false,
       deferredPwaPrompt: null,
-      bookmarks: (() => {
-        try {
-          return JSON.parse(localStorage.getItem('quran_bookmarks_v2') || '[]');
-        } catch {
-          return [];
-        }
-      })()
+      continueNextSurah: safeStorageGet("quran_continue_next_surah") === "1",
+      pendingAutoplayIndex: null,
+      audioPreloader: null,
+      audioErrorRetries: 0,
+      modalReturnFocus: null,
+      bookmarks: readJsonArray('quran_bookmarks_v2')
     };
 
     // DOM Elements
@@ -1405,6 +1414,33 @@
         .replace(/"/g, '&quot;');
     }
 
+    function safeStorageGet(key, fallback = '') {
+      try {
+        const v = localStorage.getItem(key);
+        return v == null ? fallback : v;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function safeStorageSet(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function readJsonArray(key) {
+      try {
+        const parsed = JSON.parse(safeStorageGet(key, '[]'));
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
     const TAFSIR_ALLOWED_TAGS = new Set([
       'P', 'BR', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI',
       'B', 'STRONG', 'I', 'EM', 'SPAN', 'DIV', 'BLOCKQUOTE', 'SUP', 'SUB',
@@ -1477,7 +1513,7 @@
     }
 
     function resolveStoredScriptKey() {
-      const stored = localStorage.getItem('quran_script_pref') || 'quran-uthmani';
+      const stored = safeStorageGet('quran_script_pref', 'quran-uthmani');
       const migrated = SCRIPT_LEGACY_KEYS[stored] || stored;
       const valid = QURAN_TEXT_FORMATS.some((f) => f.key === migrated);
       return valid ? migrated : 'quran-uthmani';
@@ -1550,7 +1586,7 @@
     }
 
     function updateContentSourceHints() {
-      const el = document.getElementById('contentSourceHint');
+      const el = document.getElementById('readingOptionsSourceHint');
       if (!el) return;
       el.textContent = [
         getScriptSourceAttribution(state.currentScriptKey),
@@ -1577,29 +1613,7 @@
     }
 
     function syncReaderFocusMode() {
-      const advanced = document.getElementById('readerAdvancedControls');
-      const collapsedBar = document.getElementById('readerControlsCollapsedBar');
-      const mobileToggle = document.getElementById('btnToggleReaderControlsMobile');
-      const expandBtn = document.getElementById('btnExpandReaderControls');
-      const mobile = isMobileReaderViewport();
-      const autoFocus = mobile && isAnyTafsirPanelOpen();
-      const shouldCollapse = mobile && (autoFocus || !state.readerControlsExpanded) && !state.readerControlsPinnedOpen;
-
-      document.body.classList.toggle('reader-focus-mode', mobile && autoFocus);
-
-      if (advanced) {
-        advanced.classList.toggle('is-collapsed', shouldCollapse);
-      }
-      if (collapsedBar) {
-        collapsedBar.classList.toggle('hidden', !mobile || !shouldCollapse);
-      }
-      if (mobileToggle) {
-        mobileToggle.setAttribute('aria-expanded', shouldCollapse ? 'false' : 'true');
-      }
-      if (expandBtn) {
-        expandBtn.textContent = state.readerControlsPinnedOpen ? 'Hide controls' : 'Show controls';
-      }
-      updateReaderCollapsedSummary();
+      document.body.classList.toggle('reader-focus-mode', isMobileReaderViewport() && isAnyTafsirPanelOpen());
     }
 
     function setReaderControlsExpanded(expanded, { pin = false } = {}) {
@@ -1640,26 +1654,31 @@
     function getAyahDisplayContainerClass(scriptKey) {
       const fmt = getScriptFormat(scriptKey);
       if (fmt.mode === 'transliteration') {
-        return 'text-left text-lg text-slate-200 font-sans mb-3 dir-ltr';
+        return 'text-left text-lg text-slate-200 font-sans mb-3';
       }
       if (fmt.mode === 'wordbyword') {
-        return 'mb-3 dir-rtl';
+        return 'mb-3';
       }
       if (fmt.mode === 'indopak') {
-        return 'hifzi-naskh-text text-right text-xl text-emerald-200 mb-3 dir-rtl';
+        return 'hifzi-naskh-text text-right text-xl text-emerald-200 mb-3';
       }
-      return 'arabic-text text-right text-2xl text-emerald-300 mb-3 dir-rtl';
+      return 'arabic-text text-right text-2xl text-emerald-300 mb-3';
+    }
+
+    function getAyahDisplayDir(scriptKey) {
+      const fmt = getScriptFormat(scriptKey);
+      return fmt.mode === 'transliteration' ? 'ltr' : 'rtl';
     }
 
     // INITIALIZATION
     window.addEventListener('DOMContentLoaded', () => {
       state.currentScriptKey = resolveStoredScriptKey();
-      state.currentReciter = normalizeReciterId(localStorage.getItem('quran_reciter_pref') || 'ar.alafasy');
-      localStorage.setItem('quran_reciter_pref', state.currentReciter);
+      state.currentReciter = normalizeReciterId(safeStorageGet('quran_reciter_pref', 'ar.alafasy'));
+      safeStorageSet('quran_reciter_pref', state.currentReciter);
       populateScriptFormats();
       initPwaInstaller();
-      state.currentTafsirKey = normalizeTafsirKey(localStorage.getItem('quran_tafsir_pref') || 'en_ibn_kathir');
-      localStorage.setItem('quran_tafsir_pref', state.currentTafsirKey);
+      state.currentTafsirKey = normalizeTafsirKey(safeStorageGet('quran_tafsir_pref', 'en_ibn_kathir'));
+      safeStorageSet('quran_tafsir_pref', state.currentTafsirKey);
       if (tafsirSelect) tafsirSelect.value = state.currentTafsirKey;
       if (scriptSelect) scriptSelect.value = state.currentScriptKey;
       if (reciterSelect) {
@@ -1668,7 +1687,8 @@
         const audioSubLabel = document.getElementById('audioSubLabel');
         if (audioSubLabel) audioSubLabel.textContent = `Reciter: ${reciterName}`;
       }
-      fetchSurahList();
+      setupMediaSessionHandlers();
+      fetchSurahList().then(() => handleDeepLinkQuery());
       setupEventListeners();
       setupJuzGrid();
       updateBookmarkIndicator();
@@ -1720,26 +1740,45 @@
 
     // SURAH LIST & DATA FETCHING
     async function fetchSurahList() {
+      if (surahSelect) {
+        surahSelect.innerHTML = '<option value="" disabled selected>Loading Surahs...</option>';
+      }
       try {
         const res = await fetch('https://api.alquran.cloud/v1/surah');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data && data.data) {
           state.surahs = data.data;
           populateSurahDropdown(state.surahs);
-          loadSurah(state.currentSurahNum);
+          await loadSurah(state.currentSurahNum);
+          return true;
         }
+        throw new Error('Invalid surah list');
       } catch (err) {
         console.error('Error fetching Surah list:', err);
+        if (surahSelect) {
+          surahSelect.innerHTML = '<option value="" disabled selected>Could not load surahs</option>';
+        }
+        if (versesList) {
+          versesList.innerHTML = `<div class="text-center py-10 px-4 text-slate-300 text-sm space-y-3">
+            <p class="text-red-400">Could not load the surah list. Check your connection.</p>
+            <button type="button" id="btnRetrySurahList" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold">Retry</button>
+          </div>`;
+          document.getElementById('btnRetrySurahList')?.addEventListener('click', () => fetchSurahList());
+        }
+        return false;
       }
     }
 
     function populateSurahDropdown(surahList) {
       if (!surahSelect) return;
       surahSelect.innerHTML = surahList.map(s => 
-        `<option value="${s.number}" ${s.number === state.currentSurahNum ? 'selected' : ''}>
-          ${s.number}. ${s.englishName} (${s.name})
+        `<option value="${Number(s.number)}" ${s.number === state.currentSurahNum ? 'selected' : ''}>
+          ${Number(s.number)}. ${escapeHtml(s.englishName)} (${escapeHtml(s.name)})
         </option>`
       ).join('');
+      const asp = document.getElementById('assistantSurahPick');
+      if (asp) asp.innerHTML = surahList.map((s) => `<option value="${Number(s.number)}">${Number(s.number)}. ${escapeHtml(s.englishName)}</option>`).join('');
     }
 
     const RECITER_ID_ALIASES = {
@@ -1796,6 +1835,7 @@
 
     async function loadSurah(number, targetAyah = null) {
       state.currentSurahNum = parseInt(number, 10);
+      if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
       stopAudio();
 
@@ -1862,7 +1902,9 @@
           versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load Surah. Please check internet connection.</div>`;
         }
       } finally {
-        if (loadingSpinner) loadingSpinner.classList.add('hidden');
+        if (signal === state.surahLoadController?.signal && loadingSpinner) {
+          loadingSpinner.classList.add('hidden');
+        }
       }
     }
 
@@ -1903,32 +1945,30 @@
               </span>
 
               <div class="flex items-center space-x-1">
-                <button onclick="playVerseAudio(${ayah.number}, false)" class="p-1.5 text-slate-400 hover:text-brand-400 rounded-lg hover:bg-slate-800 transition" title="Listen Audio">
+                <button type="button" onclick="playVerseAudio(${Number(ayah.number)}, false)" class="p-2 text-brand-400 hover:text-brand-300 rounded-lg hover:bg-slate-800 transition" title="Play" aria-label="Play ayah">
                   <i class="ph ph-play-circle text-xl"></i>
                 </button>
-                <button onclick="toggleWordByWord(${state.currentSurahNum}, ${ayahNum})" class="p-1.5 text-slate-400 hover:text-emerald-400 rounded-lg hover:bg-slate-800 transition" title="Word-by-Word Translation">
-                  <i class="ph ph-translate text-xl"></i>
-                </button>
-                <button onclick="toggleBookmarkPrompt(${state.currentSurahNum}, ${ayahNum})" class="p-1.5 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark Verse">
+                <button type="button" onclick="toggleTafsirView(${Number(state.currentSurahNum)}, ${Number(ayahNum)})" class="px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg">Tafsir</button>
+                <button type="button" data-bookmark-btn onclick="toggleBookmarkPrompt(${Number(state.currentSurahNum)}, ${Number(ayahNum)})" class="p-2 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark" aria-label="Bookmark">
                   <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl"></i>
                 </button>
-                <button onclick="copyVerseByGlobalNumber(${ayah.number})" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Share Ayah">
-                  <i class="ph ph-copy text-xl"></i>
-                </button>
-                <button onclick="toggleTafsirView(${state.currentSurahNum}, ${ayahNum})" class="px-2 py-1 bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 rounded-lg transition flex items-center space-x-1">
-                  <i class="ph ph-book-open text-emerald-400"></i>
-                  <span>Tafsir</span>
-                </button>
+                <details class="relative">
+                  <summary class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 list-none cursor-pointer" aria-label="More actions"><i class="ph ph-dots-three-vertical text-xl"></i></summary>
+                  <div class="absolute right-0 mt-1 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-10 py-1 text-xs">
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="toggleWordByWord(${Number(state.currentSurahNum)}, ${Number(ayahNum)})">Word-by-word</button>
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyVerseByGlobalNumber(${Number(ayah.number)})">Copy ayah</button>
+                  </div>
+                </details>
               </div>
             </div>
 
-            <div class="${ayahBodyClass}">
+            <div class="${ayahBodyClass}" dir="${getAyahDisplayDir(scriptKey)}">
               ${ayahDisplayHtml}
             </div>
 
             <!-- English Translation -->
-            <div class="text-xs text-slate-300 leading-relaxed font-sans mb-2">
-              ${enTranslation}
+            <div class="text-sm text-slate-300 leading-relaxed font-sans mb-2">
+              ${escapeHtml(enTranslation)}
             </div>
 
             <!-- Word-by-Word Breakdown Box -->
@@ -1999,6 +2039,8 @@
         if (data && data.verse && data.verse.words) {
           state.wordByWordCache[cacheKey] = data.verse.words;
           renderWordByWordData(data.verse.words, content);
+        } else {
+          content.innerHTML = `<span class="text-slate-400 text-xs" dir="ltr">Word breakdown not available.</span>`;
         }
       } catch (err) {
         content.innerHTML = `<span class="text-red-400 text-xs">Failed to load word translation.</span>`;
@@ -2008,8 +2050,8 @@
     function renderWordByWordData(words, container) {
       container.innerHTML = words.map(w => `
         <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center inline-block min-w-[70px]">
-          <div class="arabic-text text-base text-emerald-300">${w.text_uthmani}</div>
-          <div class="text-[10px] text-slate-400 font-sans mt-0.5 dir-ltr">${w.translation ? w.translation.text : ''}</div>
+          <div class="arabic-text text-base text-emerald-300">${escapeHtml(w.text_uthmani || '')}</div>
+          <div class="text-[10px] text-slate-400 font-sans mt-0.5" dir="ltr">${w.translation ? escapeHtml(w.translation.text) : ''}</div>
         </div>
       `).join('');
     }
@@ -2055,10 +2097,15 @@
         });
       }
 
-      localStorage.setItem('quran_bookmarks_v2', JSON.stringify(state.bookmarks));
+      safeStorageSet('quran_bookmarks_v2', JSON.stringify(state.bookmarks));
       updateBookmarkIndicator();
-      if (state.currentSurahData) {
-        renderVerses(state.currentSurahData.ayahs, state.currentSurahEnData.ayahs);
+      const card = document.querySelector(`#verse-card-${state.currentSurahData?.ayahs?.find((a) => a.numberInSurah === ayahNum)?.number}`);
+      const btn = card?.querySelector('[data-bookmark-btn]');
+      if (btn) {
+        const isOn = state.bookmarks.some((b) => b.verseKey === verseKey);
+        btn.className = `p-1.5 ${isOn ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition`;
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = `${isOn ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl`;
       }
     }
 
@@ -2148,19 +2195,25 @@
     }
 
     async function loadJuz(juzNum) {
-      document.getElementById('juzModal').classList.add('hidden');
+      document.getElementById('juzModal')?.classList.add('hidden');
       if (loadingSpinner) loadingSpinner.classList.remove('hidden');
       try {
         const res = await fetch(`https://api.alquran.cloud/v1/juz/${juzNum}/${getScriptEdition(state.currentScriptKey)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data && data.data && data.data.ayahs.length > 0) {
+        if (data?.data?.ayahs?.length > 0) {
           const firstAyah = data.data.ayahs[0];
           state.currentSurahNum = firstAyah.surah.number;
           if (surahSelect) surahSelect.value = String(state.currentSurahNum);
-          loadSurah(firstAyah.surah.number, firstAyah.numberInSurah);
+          await loadSurah(firstAyah.surah.number, firstAyah.numberInSurah);
+        } else {
+          showToast('Could not open this Juz');
         }
       } catch (err) {
         console.error('Failed to load Juz mapping', err);
+        showToast('Failed to load Juz');
+      } finally {
+        if (loadingSpinner) loadingSpinner.classList.add('hidden');
       }
     }
 
@@ -2180,6 +2233,11 @@
       });
 
       quranAudio.addEventListener('error', () => {
+        if (state.audioErrorRetries < 1 && state.currentPlayingAyahIndex >= 0) {
+          state.audioErrorRetries += 1;
+          playSingleVerse(state.currentPlayingAyahIndex);
+          return;
+        }
         showToast('Audio failed — try another reciter');
         stopAudio();
       });
@@ -2194,16 +2252,15 @@
       }
 
       quranAudio.addEventListener('ended', () => {
-        if (state.isPlayingContinuous && state.currentSurahData) {
-          if (state.currentPlayingAyahIndex < state.currentSurahData.ayahs.length - 1) {
-            playSingleVerse(state.currentPlayingAyahIndex + 1);
-          } else {
-            stopAudio();
-          }
-        } else {
-          stopAudio(false);
-        }
+        if (state.isPlayingContinuous && state.currentSurahData) playNextVerseAfterEnd();
+        else stopAudio(false);
       });
+      quranAudio.addEventListener('pause', () => {
+        if (globalPlayIcon && quranAudio.paused) globalPlayIcon.className = 'ph ph-play-fill';
+        savePlaybackState();
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      });
+      setInterval(() => { if (quranAudio && !quranAudio.paused) savePlaybackState(); }, 5000);
 
       const btnPlayContinuous = document.getElementById('btnPlaySurahContinuous');
       if (btnPlayContinuous) {
@@ -2255,14 +2312,10 @@
 
       const playId = ++state.audioPlayId;
       state.currentPlayingAyahIndex = index;
+      state.audioErrorRetries = 0;
 
-      const audioUrl = await resolveAyahAudioUrl(state.currentReciter, ayah.number);
+      const audioUrl = getAyahAudioUrlSync(state.currentReciter, ayah.number);
       if (playId !== state.audioPlayId) return;
-      if (!audioUrl) {
-        showToast('Audio unavailable for this reciter');
-        stopAudio(false);
-        return;
-      }
 
       quranAudio.pause();
       quranAudio.src = audioUrl;
@@ -2270,24 +2323,54 @@
       quranAudio.playbackRate = state.playbackRate;
       quranAudio.load();
 
+      showAudioPlayerBar();
       if (globalPlayIcon) globalPlayIcon.className = 'ph ph-pause-fill';
-      if (audioVerseLabel) {
-        audioVerseLabel.textContent = `${state.currentSurahData.englishName} (Verse ${ayah.numberInSurah})`;
-      }
-
+      if (audioVerseLabel) audioVerseLabel.textContent = `${state.currentSurahData.englishName} · ${ayah.numberInSurah}`;
+      updateMediaSessionForAyah(ayah);
+      preloadNextAyahAudio(index);
       refreshPlayingVerseHighlight();
+      savePlaybackState();
+      hideTapToPlayOverlay();
+
       const card = document.getElementById(`verse-card-${ayah.number}`);
       if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       try {
         await quranAudio.play();
         if (playId !== state.audioPlayId) return;
+        navigator.mediaSession && (navigator.mediaSession.playbackState = 'playing');
       } catch (err) {
         if (playId !== state.audioPlayId) return;
-        console.warn('Audio play blocked or failed', err);
-        showToast('Tap play again to start audio');
-        stopAudio(false);
+        showTapToPlayOverlay(`Tap to play ${state.currentSurahData.englishName}`, index);
       }
+    }
+
+    function playNextVerseAfterEnd() {
+      if (!state.currentSurahData || state.currentPlayingAyahIndex < 0) return;
+      const nextIndex = state.currentPlayingAyahIndex + 1;
+      if (nextIndex < state.currentSurahData.ayahs.length) {
+        const next = state.currentSurahData.ayahs[nextIndex];
+        const url = getAyahAudioUrlSync(state.currentReciter, next.number);
+        state.currentPlayingAyahIndex = nextIndex;
+        quranAudio.src = url;
+        quranAudio.play().then(() => {
+          if (globalPlayIcon) globalPlayIcon.className = 'ph ph-pause-fill';
+          if (audioVerseLabel) audioVerseLabel.textContent = `${state.currentSurahData.englishName} · ${next.numberInSurah}`;
+          updateMediaSessionForAyah(next);
+          preloadNextAyahAudio(nextIndex);
+          refreshPlayingVerseHighlight();
+          savePlaybackState();
+        }).catch(() => showTapToPlayOverlay(`Tap to continue`, nextIndex));
+        return;
+      }
+      if (state.continueNextSurah && state.currentSurahNum < 114) {
+        loadSurah(state.currentSurahNum + 1).then(() => {
+          state.isPlayingContinuous = true;
+          playSingleVerse(0);
+        });
+        return;
+      }
+      stopAudio(false);
     }
 
     function stopAudio(resetContinuous = true) {
@@ -2377,6 +2460,170 @@
     }
     window.toggleTafsirView = toggleTafsirView;
 
+    function getAyahAudioUrlSync(reciter, globalAyahNumber) {
+      const normalizedReciter = normalizeReciterId(reciter);
+      const cacheKey = `${normalizedReciter}:${globalAyahNumber}`;
+      if (state.audioUrlCache[cacheKey]) return state.audioUrlCache[cacheKey];
+      const url = buildCdnAyahAudioUrl(normalizedReciter, globalAyahNumber, 128);
+      state.audioUrlCache[cacheKey] = url;
+      return url;
+    }
+
+    function preloadNextAyahAudio(index) {
+      if (!state.currentSurahData?.ayahs?.[index + 1]) return;
+      const next = state.currentSurahData.ayahs[index + 1];
+      const url = getAyahAudioUrlSync(state.currentReciter, next.number);
+      if (!state.audioPreloader) state.audioPreloader = new Audio();
+      state.audioPreloader.preload = 'auto';
+      state.audioPreloader.src = url;
+    }
+
+    function showAudioPlayerBar() {
+      document.getElementById('audioPlayerBar')?.classList.remove('player-hidden');
+    }
+
+    function hideTapToPlayOverlay() {
+      document.getElementById('tapToPlayOverlay')?.classList.add('hidden');
+    }
+
+    function showTapToPlayOverlay(label, index) {
+      state.pendingAutoplayIndex = index;
+      const btn = document.getElementById('btnTapToPlayOverlay');
+      const overlay = document.getElementById('tapToPlayOverlay');
+      if (btn) btn.textContent = label || 'Tap to play';
+      overlay?.classList.remove('hidden');
+    }
+
+    function savePlaybackState() {
+      if (!state.currentSurahData || state.currentPlayingAyahIndex < 0) return;
+      const ayah = state.currentSurahData.ayahs[state.currentPlayingAyahIndex];
+      if (!ayah || !quranAudio) return;
+      safeStorageSet('quran_last_playback', JSON.stringify({
+        surah: state.currentSurahNum,
+        ayah: ayah.numberInSurah,
+        reciter: state.currentReciter,
+        time: quranAudio.currentTime || 0,
+      }));
+    }
+
+    function readPlaybackState() {
+      try {
+        const raw = safeStorageGet('quran_last_playback', '');
+        if (!raw) return null;
+        const o = JSON.parse(raw);
+        if (!o || typeof o.surah !== 'number') return null;
+        return o;
+      } catch {
+        return null;
+      }
+    }
+
+    function updateMediaSessionForAyah(ayah) {
+      if (!('mediaSession' in navigator) || !state.currentSurahData) return;
+      const reciterName = reciterSelect?.options[reciterSelect.selectedIndex]?.text?.replace(/^🎙️\\s*/, '') || 'Reciter';
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `${state.currentSurahData.englishName} · ${ayah.numberInSurah}`,
+        artist: reciterName,
+        album: 'Quran',
+        artwork: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      });
+      navigator.mediaSession.playbackState = quranAudio && !quranAudio.paused ? 'playing' : 'paused';
+    }
+
+    function setupMediaSessionHandlers() {
+      if (!('mediaSession' in navigator)) return;
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (state.currentPlayingAyahIndex >= 0) playSingleVerse(state.currentPlayingAyahIndex);
+        else {
+          const last = readPlaybackState();
+          if (last) resumeFromPlaybackState(last);
+        }
+      });
+      navigator.mediaSession.setActionHandler('pause', () => { quranAudio?.pause(); if (globalPlayIcon) globalPlayIcon.className = 'ph ph-play-fill'; });
+      navigator.mediaSession.setActionHandler('previoustrack', () => document.getElementById('btnPrevVerse')?.click());
+      navigator.mediaSession.setActionHandler('nexttrack', () => document.getElementById('btnNextVerse')?.click());
+      navigator.mediaSession.setActionHandler('seekto', (d) => { if (quranAudio && d.seekTime != null) quranAudio.currentTime = d.seekTime; });
+    }
+
+    async function resumeFromPlaybackState(last) {
+      state.currentReciter = normalizeReciterId(last.reciter || state.currentReciter);
+      if (reciterSelect) reciterSelect.value = state.currentReciter;
+      await loadSurah(last.surah, last.ayah);
+      const idx = state.currentSurahData?.ayahs?.findIndex((a) => a.numberInSurah === last.ayah) ?? -1;
+      if (idx >= 0) {
+        state.isPlayingContinuous = true;
+        await playSingleVerse(idx);
+        if (quranAudio && last.time) quranAudio.currentTime = last.time;
+      }
+    }
+
+    function buildDeepLink({ surah, ayah, reciter, play }) {
+      const u = new URL(window.location.href);
+      u.search = '';
+      if (surah) u.searchParams.set('surah', String(surah));
+      if (ayah) u.searchParams.set('ayah', String(ayah));
+      if (reciter) u.searchParams.set('reciter', normalizeReciterId(reciter));
+      if (play === 'last') u.searchParams.set('play', 'last');
+      else if (play) u.searchParams.set('play', '1');
+      return u.toString();
+    }
+
+    async function handleDeepLinkQuery() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.toString()) return;
+      const play = params.get('play');
+      const reciter = params.get('reciter');
+      if (reciter) {
+        state.currentReciter = normalizeReciterId(reciter);
+        if (reciterSelect) reciterSelect.value = state.currentReciter;
+      }
+      if (play === 'last') {
+        const last = readPlaybackState();
+        if (last) await resumeFromPlaybackState(last);
+        history.replaceState({}, '', window.location.pathname);
+        return;
+      }
+      const surahRaw = params.get('surah');
+      if (surahRaw) {
+        const surah = parseInt(surahRaw, 10);
+        if (surah >= 1 && surah <= 114) {
+          const ayahRaw = params.get('ayah');
+          const ayah = ayahRaw ? parseInt(ayahRaw, 10) : null;
+          await loadSurah(surah, ayah && ayah > 0 ? ayah : null);
+          if (play === '1') {
+            const idx = ayah ? state.currentSurahData?.ayahs?.findIndex((a) => a.numberInSurah === ayah) : 0;
+            if (idx >= 0) {
+              state.isPlayingContinuous = true;
+              await playSingleVerse(idx);
+            }
+          }
+        }
+      }
+      history.replaceState({}, '', window.location.pathname);
+    }
+
+    let modalFocusTrap = null;
+    function openAppModal(id) {
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      state.modalReturnFocus = document.activeElement;
+      modal.classList.remove('hidden');
+      const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      focusable?.focus();
+    }
+    function closeAppModal(id) {
+      document.getElementById(id)?.classList.add('hidden');
+      if (state.modalReturnFocus?.focus) state.modalReturnFocus.focus();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach((m) => m.classList.add('hidden'));
+    });
+
     // EVENT LISTENERS & MODAL HANDLERS
     function setupEventListeners() {
       if (surahSelect) {
@@ -2389,7 +2636,7 @@
         tafsirSelect.addEventListener('change', (e) => {
           state.currentTafsirKey = normalizeTafsirKey(e.target.value);
           tafsirSelect.value = state.currentTafsirKey;
-          localStorage.setItem('quran_tafsir_pref', state.currentTafsirKey);
+          safeStorageSet('quran_tafsir_pref', state.currentTafsirKey);
           state.tafsirCache = {};
           updateContentSourceHints();
           document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
@@ -2401,7 +2648,7 @@
       if (scriptSelect) {
         scriptSelect.addEventListener('change', (e) => {
           state.currentScriptKey = e.target.value;
-          localStorage.setItem('quran_script_pref', state.currentScriptKey);
+          safeStorageSet('quran_script_pref', state.currentScriptKey);
           updateContentSourceHints();
           loadSurah(state.currentSurahNum);
           syncReaderFocusMode();
@@ -2421,7 +2668,7 @@
         reciterSelect.addEventListener('change', (e) => {
           state.currentReciter = normalizeReciterId(e.target.value);
           reciterSelect.value = state.currentReciter;
-          localStorage.setItem('quran_reciter_pref', state.currentReciter);
+          safeStorageSet('quran_reciter_pref', state.currentReciter);
           const reciterName = reciterSelect.options[reciterSelect.selectedIndex].text;
           document.getElementById('audioSubLabel').textContent = `Reciter: ${reciterName}`;
           if (state.currentPlayingAyahIndex >= 0 && quranAudio && !quranAudio.paused) {
@@ -2456,7 +2703,43 @@
       document.getElementById('closeSourcesModal')?.addEventListener('click', () => sourcesModal?.classList.add('hidden'));
       bindModalBackdropClose(sourcesModal, () => sourcesModal?.classList.add('hidden'));
 
-      document.getElementById('btnOpenJuzModal')?.addEventListener('click', () => juzModal.classList.remove('hidden'));
+      document.getElementById('btnOpenSurahNavModal')?.addEventListener('click', () => openAppModal('juzModal'));
+      document.getElementById('btnOpenMoreMenu')?.addEventListener('click', () => openAppModal('moreMenuModal'));
+      document.getElementById('closeMoreMenuModal')?.addEventListener('click', () => closeAppModal('moreMenuModal'));
+      bindModalBackdropClose(document.getElementById('moreMenuModal'), () => closeAppModal('moreMenuModal'));
+      document.getElementById('btnMenuReadingOptions')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('readingOptionsModal'); updateContentSourceHints(); });
+      document.getElementById('closeReadingOptionsModal')?.addEventListener('click', () => closeAppModal('readingOptionsModal'));
+      bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
+      document.getElementById('btnMenuAzkar')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); loadAzkarCategory('morning'); openAppModal('azkarModal'); });
+      document.getElementById('btnMenuAssistant')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('assistantModal'); });
+      document.getElementById('closeAssistantModal')?.addEventListener('click', () => closeAppModal('assistantModal'));
+      bindModalBackdropClose(document.getElementById('assistantModal'), () => closeAppModal('assistantModal'));
+      document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
+      document.getElementById('btnMenuShareInstall')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('pwaGuideModal'); refreshShareInstallModal?.(); });
+      document.getElementById('btnOpenSurahNavModal')?.addEventListener('click', () => openAppModal('juzModal'));
+      document.getElementById('btnTapToPlayOverlay')?.addEventListener('click', () => {
+        if (state.pendingAutoplayIndex != null) {
+          state.isPlayingContinuous = true;
+          playSingleVerse(state.pendingAutoplayIndex);
+        }
+      });
+      document.getElementById('chkContinueNextSurah')?.addEventListener('change', (e) => {
+        state.continueNextSurah = e.target.checked;
+        safeStorageSet('quran_continue_next_surah', state.continueNextSurah ? '1' : '0');
+      });
+      const chk = document.getElementById('chkContinueNextSurah');
+      if (chk) chk.checked = state.continueNextSurah;
+      document.getElementById('btnCopyDeepLink')?.addEventListener('click', () => {
+        const surah = parseInt(document.getElementById('assistantSurahPick')?.value || state.currentSurahNum, 10);
+        const link = buildDeepLink({ surah, play: '1', reciter: state.currentReciter });
+        navigator.clipboard?.writeText(link);
+        showToast('Link copied');
+      });
+      document.getElementById('btnCopyResumeLink')?.addEventListener('click', () => {
+        navigator.clipboard?.writeText(buildDeepLink({ play: 'last' }));
+        showToast('Continue link copied');
+      });
+
       document.getElementById('closeJuzModal')?.addEventListener('click', () => juzModal.classList.add('hidden'));
       bindModalBackdropClose(juzModal, () => juzModal.classList.add('hidden'));
 
