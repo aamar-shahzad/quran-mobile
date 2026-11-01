@@ -171,6 +171,17 @@
     html:not(.dark) #readingOptionsTitle {
       color: #0f172a !important;
     }
+    html:not(.dark) .player-verse-label {
+      color: #1e293b;
+    }
+    html:not(.dark) .player-reciter-label,
+    html:not(.dark) .player-time {
+      color: #64748b;
+    }
+    html:not(.dark) #audioPlayerBar {
+      background: rgba(248, 250, 252, 0.97);
+      border-color: #e2e8f0;
+    }
     html:not(.dark) button[class*="bg-brand-"],
     html:not(.dark) .player-main-play {
       color: #fff !important;
@@ -515,16 +526,164 @@
       visibility: hidden;
       pointer-events: none;
     }
+    #audioPlayerBar:not(.player-hidden) {
+      padding-bottom: 0;
+    }
     #audioProgressContainer {
-      min-height: 4px;
-      background: rgba(30, 41, 59, 0.9);
+      min-height: 3px;
+      height: 3px;
+      background: rgba(30, 41, 59, 0.95);
+      touch-action: none;
+    }
+    #audioProgressBar {
+      height: 100%;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+    }
+    @media (max-width: 640px) and (pointer: coarse) {
+      #audioProgressContainer {
+        height: auto;
+        min-height: 21px;
+        padding: 10px 0 6px;
+        margin: 0;
+        background: transparent;
+        position: relative;
+      }
+      #audioProgressContainer::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 10px;
+        height: 5px;
+        border-radius: 9999px;
+        background: rgba(30, 41, 59, 0.95);
+      }
+      #audioProgressBar {
+        position: relative;
+        z-index: 1;
+        margin-top: 10px;
+        height: 5px !important;
+        border-radius: 9999px;
+      }
     }
     #audioProgressContainer:focus-visible {
       outline: 2px solid rgba(16, 185, 129, 0.6);
       outline-offset: -2px;
     }
-    #audioProgressBar {
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+    .player-shell {
+      padding: 0.5rem 0.75rem max(0.65rem, env(safe-area-inset-bottom, 0px));
+    }
+    @media (min-width: 641px) {
+      .player-shell {
+        padding: 0.65rem 1rem 0.75rem;
+      }
+    }
+    .player-now-playing {
+      display: grid;
+      grid-template-columns: 2.75rem 1fr 2.75rem;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+    .player-time {
+      font-size: 0.6875rem;
+      line-height: 1;
+      color: #94a3b8;
+      font-variant-numeric: tabular-nums;
+    }
+    .player-time-end {
+      text-align: right;
+    }
+    .player-now-playing-text {
+      min-width: 0;
+      text-align: center;
+    }
+    .player-verse-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-reciter-label {
+      font-size: 0.625rem;
+      color: #64748b;
+      line-height: 1.2;
+      margin-top: 0.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-transport-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .player-transport-cluster {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      flex: 1;
+      max-width: 14rem;
+    }
+    .player-utility-cluster {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-left: 0.25rem;
+      flex-shrink: 0;
+    }
+    .player-speed-btn {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+      padding: 0 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      border-radius: 0.65rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      color: #34d399;
+    }
+    @media (max-width: 640px) and (pointer: coarse) {
+      .player-transport-row {
+        justify-content: space-between;
+        width: 100%;
+        gap: 0.25rem;
+      }
+      .player-transport-cluster {
+        gap: 0.5rem;
+        max-width: none;
+        flex: 1;
+        justify-content: center;
+      }
+      .player-utility-cluster {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: 0.35rem;
+        flex-shrink: 0;
+      }
+      .player-main-play {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.5rem;
+      }
+      .player-transport-btn {
+        width: 2.875rem;
+        height: 2.875rem;
+      }
+      .player-speed-btn {
+        min-width: 2.875rem;
+        min-height: 2rem;
+        padding: 0 0.35rem;
+      }
     }
     .player-transport-btn {
       width: 2.75rem;
@@ -642,7 +801,10 @@
       border: 1px solid rgba(51, 65, 85, 0.9);
     }
     body.audio-bar-visible #appUpdateBanner {
-      bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    }
+    body.audio-bar-visible #tapToPlayOverlay {
+      bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px));
     }
     #surahViewport {
       -webkit-overflow-scrolling: touch;
@@ -661,19 +823,11 @@
       max-width: min(100%, 28rem);
     }
     body.audio-bar-visible #surahViewport {
-      padding-bottom: 7.25rem;
+      padding-bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
     }
     @media (display-mode: standalone) {
-      #audioPlayerBar:not(.player-hidden) {
-        padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
-      }
-    }
-    @media (max-width: 640px) {
-      #audioSubLabel {
-        max-width: 55%;
-      }
-      #audioPlayerBar .max-sm-player-row {
-        min-height: 3.5rem;
+      #audioPlayerBar:not(.player-hidden) .player-shell {
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
       }
     }
     @media (max-width: 640px) and (pointer: coarse) {
@@ -1639,31 +1793,33 @@
 
   <!-- PERSISTENT AUDIO PLAYER CONTROL BAR AT BOTTOM -->
   <footer id="audioPlayerBar" class="player-hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 z-30 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-transform duration-300">
-    <div class="w-full h-1 overflow-hidden cursor-pointer touch-none" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+    <div class="w-full overflow-hidden cursor-pointer touch-none" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
       <div id="audioProgressBar" class="bg-gradient-to-r from-emerald-400 to-brand-500 h-full w-0 transition-[width] duration-100 ease-linear"></div>
     </div>
-    <div class="w-full max-w-[64rem] mx-auto px-3 sm:px-4 py-2.5 flex flex-col gap-2 max-sm-player-row">
-      <div class="flex items-center gap-2 text-[10px] text-slate-500 tabular-nums min-h-[1rem]">
-        <span id="audioTimeCurrent" class="w-9 shrink-0">0:00</span>
-        <p id="audioVerseLabel" class="flex-1 text-center text-xs font-semibold text-slate-200 truncate">Tap play on an ayah</p>
-        <span id="audioTimeDuration" class="w-9 shrink-0 text-right">0:00</span>
+    <div class="player-shell w-full max-w-[64rem] mx-auto">
+      <div class="player-now-playing">
+        <span id="audioTimeCurrent" class="player-time">0:00</span>
+        <div class="player-now-playing-text">
+          <p id="audioVerseLabel" class="player-verse-label">Tap play on an ayah</p>
+          <p id="audioSubLabel" class="player-reciter-label">Mishary Alafasy</p>
+        </div>
+        <span id="audioTimeDuration" class="player-time player-time-end">0:00</span>
       </div>
-      <div class="flex items-center justify-center gap-3 sm:gap-4">
-        <button type="button" id="btnPrevVerse" class="player-transport-btn" aria-label="Previous ayah" disabled>
-          <i class="ph ph-skip-back-fill text-xl"></i>
-        </button>
-        <button type="button" id="btnPlaySurahContinuous" class="player-main-play shrink-0" aria-label="Play or pause">
-          <i id="globalPlayIcon" class="ph ph-play-fill"></i>
-        </button>
-        <button type="button" id="btnNextVerse" class="player-transport-btn" aria-label="Next ayah" disabled>
-          <i class="ph ph-skip-forward-fill text-xl"></i>
-        </button>
-      </div>
-      <div class="flex items-center justify-between gap-2">
-        <p id="audioSubLabel" class="text-[10px] text-slate-500 truncate min-w-0">Reciter: Mishary Alafasy</p>
-        <div class="flex items-center gap-1 shrink-0">
-          <button type="button" id="btnToggleAudioSpeed" class="px-2.5 py-1 min-w-[2.75rem] bg-slate-800/90 text-[10px] font-bold text-brand-400 border border-slate-700 rounded-lg" aria-label="Playback speed">1.0x</button>
-          <button type="button" id="btnStopAudio" class="player-transport-btn !w-9 !h-9 text-slate-400" aria-label="Stop playback">
+      <div class="player-transport-row">
+        <div class="player-transport-cluster">
+          <button type="button" id="btnPrevVerse" class="player-transport-btn" aria-label="Previous ayah" disabled>
+            <i class="ph ph-skip-back-fill text-xl"></i>
+          </button>
+          <button type="button" id="btnPlaySurahContinuous" class="player-main-play shrink-0" aria-label="Play or pause">
+            <i id="globalPlayIcon" class="ph ph-play-fill"></i>
+          </button>
+          <button type="button" id="btnNextVerse" class="player-transport-btn" aria-label="Next ayah" disabled>
+            <i class="ph ph-skip-forward-fill text-xl"></i>
+          </button>
+        </div>
+        <div class="player-utility-cluster">
+          <button type="button" id="btnToggleAudioSpeed" class="player-speed-btn" aria-label="Playback speed">1.0x</button>
+          <button type="button" id="btnStopAudio" class="player-transport-btn !w-11 !h-11 text-slate-400" aria-label="Stop playback">
             <i class="ph ph-stop-fill text-lg"></i>
           </button>
         </div>
@@ -2427,7 +2583,7 @@
         reciterSelect.value = state.currentReciter;
         const reciterName = reciterSelect.options[reciterSelect.selectedIndex]?.text?.replace(/^🎙️\s*/, '') || 'Mishary Alafasy';
         const audioSubLabel = document.getElementById('audioSubLabel');
-        if (audioSubLabel) audioSubLabel.textContent = `Reciter: ${reciterName}`;
+        if (audioSubLabel) setAudioReciterLabel(reciterName);
       }
       setupMediaSessionHandlers();
       fetchSurahList().then(() => handleDeepLinkQuery());
@@ -2441,7 +2597,10 @@
       setupAudioPlayerEvents();
       updateContentSourceHints();
       syncReaderFocusMode();
-      window.addEventListener('resize', () => syncReaderFocusMode(), { passive: true });
+      window.addEventListener('resize', () => {
+        syncReaderFocusMode();
+        measureAudioBarHeight();
+      }, { passive: true });
       if (document.fonts?.ready) {
         document.fonts.ready.then(() => measureReaderChromeHeight()).catch(() => {});
       }
@@ -3241,6 +3400,11 @@
         `;
       }).join('');
       syncAudioUi();
+    }
+
+    function setAudioReciterLabel(reciterName) {
+      const el = document.getElementById('audioSubLabel');
+      if (el) el.textContent = String(reciterName || '').replace(/^🎙️\s*/, '').trim() || 'Reciter';
     }
 
     function formatAudioTime(seconds) {
@@ -4088,14 +4252,26 @@
       state.audioPreloader.src = url;
     }
 
+    function measureAudioBarHeight() {
+      const bar = document.getElementById('audioPlayerBar');
+      if (!bar || bar.classList.contains('player-hidden')) {
+        document.documentElement.style.setProperty('--audio-bar-h', '0px');
+        return;
+      }
+      const h = bar.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--audio-bar-h', `${Math.ceil(h)}px`);
+    }
+
     function showAudioPlayerBar() {
       document.getElementById('audioPlayerBar')?.classList.remove('player-hidden');
       document.body.classList.add('audio-bar-visible');
+      requestAnimationFrame(measureAudioBarHeight);
     }
 
     function hideAudioPlayerBar() {
       document.getElementById('audioPlayerBar')?.classList.add('player-hidden');
       document.body.classList.remove('audio-bar-visible');
+      measureAudioBarHeight();
     }
 
     function hideTapToPlayOverlay() {
@@ -4340,7 +4516,7 @@
           reciterSelect.value = state.currentReciter;
           safeStorageSet('quran_reciter_pref', state.currentReciter);
           const reciterName = reciterSelect.options[reciterSelect.selectedIndex].text;
-          document.getElementById('audioSubLabel').textContent = `Reciter: ${reciterName}`;
+          setAudioReciterLabel(reciterName);
           if (state.currentPlayingAyahIndex >= 0 && quranAudio && !quranAudio.paused) {
             playSingleVerse(state.currentPlayingAyahIndex);
           }
