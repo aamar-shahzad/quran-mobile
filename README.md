@@ -20,17 +20,17 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 
 ## Data sources (authentic APIs)
 
-| Content             | Provider                                            | Notes                                                     |
-| ------------------- | --------------------------------------------------- | --------------------------------------------------------- |
-| Arabic Quran text   | [Al Quran Cloud](https://alquran.cloud/)            | Hafs Uthmani (`quran-uthmani`) and other catalog editions |
-| Indo-Pak Naskh      | [Quran.com API](https://quran.com)                  | Hifzi-style `text_indopak` by ayah (Script menu)          |
-| English translation | Al Quran Cloud `en.sahih`                           | Sahih International                                       |
-| Tafsir              | [Quran.com API](https://quran.com) + Al Quran Cloud | Ibn Kathir, Jalalayn, Muyassar, etc.                      |
-| Audio               | [Islamic Network CDN](https://islamic.network)      | Per-ayah recitation MP3                                   |
-| Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                   |
-| Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API            |
+| Content             | Provider                                            | Notes                                                                |
+| ------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| Arabic Quran text   | [Al Quran Cloud](https://alquran.cloud/)            | Hafs Uthmani (`quran-uthmani`) and other catalog editions            |
+| Indo-Pak Naskh      | [Quran.com API](https://quran.com)                  | Ayah mode + **15-line mushaf** (610 pages, `text_indopak_nastaleeq`) |
+| English translation | Al Quran Cloud `en.sahih`                           | Sahih International                                                  |
+| Tafsir              | [Quran.com API](https://quran.com) + Al Quran Cloud | Ibn Kathir, Jalalayn, Muyassar, etc.                                 |
+| Audio               | [Islamic Network CDN](https://islamic.network)      | Per-ayah recitation MP3                                              |
+| Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                              |
+| Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API                       |
 
-In the app: **More** → _Data sources_ for the full list.
+In the app: **More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. **More** → _Data sources_ for the full list.
 
 ## Install
 
