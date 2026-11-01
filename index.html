@@ -783,7 +783,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=21').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=22').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -1276,6 +1276,7 @@
       currentReciter: 'ar.alafasy',
       currentTranslationKey: 'en.sahih',
       currentMushafPage: Math.min(604, Math.max(1, parseInt(safeStorageGet('quran_mushaf_page', '1'), 10) || 1)),
+      mushafLoadSeq: 0,
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
       currentPlayingAyahIndex: -1,
@@ -1402,11 +1403,29 @@
     }
 
     async function fetchQuranComJson(url, signal) {
-      const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
-      if (!res.ok) {
-        throw new Error(`Quran.com HTTP ${res.status}`);
+      const attempts = 3;
+      let lastErr;
+      for (let i = 0; i < attempts; i += 1) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        try {
+          const res = await fetch(url, {
+            signal,
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          });
+          if (!res.ok) {
+            throw new Error(`Quran.com HTTP ${res.status}`);
+          }
+          return await res.json();
+        } catch (err) {
+          lastErr = err;
+          if (err?.name === 'AbortError') throw err;
+          if (i < attempts - 1) {
+            await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+          }
+        }
       }
-      return res.json();
+      throw lastErr || new Error('Quran.com request failed');
     }
 
     async function fetchIndopakChapterAyahs(surahNum, signal) {
@@ -2065,11 +2084,17 @@
     }
 
     async function fetchMushafPageVerses(pageNum, signal) {
-      const data = await fetchQuranComJson(
-        `https://api.quran.com/api/v4/verses/by_page/${pageNum}?words=false&fields=text_indopak,verse_key,juz_number&per_page=50`,
-        signal,
-      );
-      return data.verses || [];
+      const base = `https://api.quran.com/api/v4/verses/by_page/${pageNum}?words=false&fields=text_indopak,juz_number&per_page=50`;
+      let page = 1;
+      const verses = [];
+      while (true) {
+        const data = await fetchQuranComJson(`${base}&page=${page}`, signal);
+        verses.push(...(data.verses || []));
+        const totalPages = data.pagination?.total_pages || 1;
+        if (page >= totalPages) break;
+        page += 1;
+      }
+      return verses;
     }
 
     function renderMushafPage(verses, pageNum) {
@@ -2099,9 +2124,12 @@
           <div class="mushaf-page-body hifzi-naskh-text" dir="rtl">${bodyHtml}</div>
           <p class="text-[10px] text-center opacity-70 px-3 pb-3 leading-snug">Indo-Pak 604-page layout · Quran.com <code class="text-[9px]">text_indopak</code> · tap verse number to play · not a scanned print</p>
         </article>`;
-      document.getElementById('mushafPageLabel').textContent = `Page ${pageNum} / 604`;
-      document.getElementById('btnPrevMushafPage').disabled = pageNum <= 1;
-      document.getElementById('btnNextMushafPage').disabled = pageNum >= 604;
+      const mushafPageLabel = document.getElementById('mushafPageLabel');
+      const btnPrevMushafPage = document.getElementById('btnPrevMushafPage');
+      const btnNextMushafPage = document.getElementById('btnNextMushafPage');
+      if (mushafPageLabel) mushafPageLabel.textContent = `Page ${pageNum} / 604`;
+      if (btnPrevMushafPage) btnPrevMushafPage.disabled = pageNum <= 1;
+      if (btnNextMushafPage) btnNextMushafPage.disabled = pageNum >= 604;
       versesList.querySelectorAll('.mushaf-ayah-marker').forEach((btn) => {
         btn.addEventListener('click', () => {
           playMushafAyah(parseInt(btn.getAttribute('data-surah'), 10), parseInt(btn.getAttribute('data-ayah'), 10));
@@ -2109,8 +2137,16 @@
       });
     }
 
-    async function loadMushafPage(pageNum, signal) {
+    function beginMushafPageLoad(pageNum) {
+      state.surahLoadController?.abort();
+      state.surahLoadController = new AbortController();
+      state.mushafLoadSeq += 1;
+      return { signal: state.surahLoadController.signal, loadId: state.mushafLoadSeq, page: pageNum };
+    }
+
+    async function loadMushafPage(pageNum, signal, loadId) {
       const page = Math.min(604, Math.max(1, parseInt(pageNum, 10) || 1));
+      const seq = loadId ?? ++state.mushafLoadSeq;
       state.currentMushafPage = page;
       safeStorageSet('quran_mushaf_page', String(page));
       syncReaderLayoutChrome();
@@ -2118,6 +2154,7 @@
       if (versesList) versesList.innerHTML = '';
       try {
         const verses = await fetchMushafPageVerses(page, signal);
+        if (seq !== state.mushafLoadSeq) return;
         if (!verses.length) throw new Error('empty page');
         state.currentSurahNum = chapterIdFromVerseKey(verses[0].verse_key);
         if (surahSelect) surahSelect.value = String(state.currentSurahNum);
@@ -2125,12 +2162,20 @@
         renderMushafPage(verses, page);
         hideSearchResults();
       } catch (err) {
-        if (err?.name === 'AbortError') return;
+        if (err?.name === 'AbortError' || seq !== state.mushafLoadSeq) return;
         if (versesList) {
-          versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not load this mushaf page.</p>';
+          versesList.innerHTML = `
+            <div class="text-center py-10 px-4 space-y-3">
+              <p class="text-red-400 text-xs">Could not load this mushaf page. Check your connection.</p>
+              <button type="button" id="btnRetryMushafPage" class="text-xs font-semibold text-emerald-400 underline">Try again</button>
+            </div>`;
+          document.getElementById('btnRetryMushafPage')?.addEventListener('click', () => {
+            const next = beginMushafPageLoad(state.currentMushafPage);
+            loadMushafPage(next.page, next.signal, next.loadId);
+          });
         }
       } finally {
-        if (signal === state.surahLoadController?.signal && loadingSpinner) {
+        if (seq === state.mushafLoadSeq && signal === state.surahLoadController?.signal && loadingSpinner) {
           loadingSpinner.classList.add('hidden');
         }
       }
@@ -2180,7 +2225,9 @@
           } else {
             page = await getStartPageForSurah(state.currentSurahNum, signal);
           }
-          await loadMushafPage(page, signal);
+          state.mushafLoadSeq += 1;
+          const loadId = state.mushafLoadSeq;
+          await loadMushafPage(page, signal, loadId);
         } catch (err) {
           if (err?.name !== 'AbortError' && versesList) {
             versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not open mushaf page.</p>';
@@ -2596,9 +2643,8 @@
         if (scriptSelect) scriptSelect.value = state.currentScriptKey;
         updateContentSourceHints();
       }
-      state.surahLoadController?.abort();
-      state.surahLoadController = new AbortController();
-      await loadMushafPage(page, state.surahLoadController.signal);
+      const next = beginMushafPageLoad(page);
+      await loadMushafPage(next.page, next.signal, next.loadId);
     }
 
     async function cacheCurrentSurahForOffline() {
@@ -3323,15 +3369,13 @@
 
       document.getElementById('btnPrevMushafPage')?.addEventListener('click', () => {
         if (state.currentMushafPage <= 1) return;
-        state.surahLoadController?.abort();
-        state.surahLoadController = new AbortController();
-        loadMushafPage(state.currentMushafPage - 1, state.surahLoadController.signal);
+        const next = beginMushafPageLoad(state.currentMushafPage - 1);
+        loadMushafPage(next.page, next.signal, next.loadId);
       });
       document.getElementById('btnNextMushafPage')?.addEventListener('click', () => {
         if (state.currentMushafPage >= 604) return;
-        state.surahLoadController?.abort();
-        state.surahLoadController = new AbortController();
-        loadMushafPage(state.currentMushafPage + 1, state.surahLoadController.signal);
+        const next = beginMushafPageLoad(state.currentMushafPage + 1);
+        loadMushafPage(next.page, next.signal, next.loadId);
       });
 
       if (reciterSelect) {

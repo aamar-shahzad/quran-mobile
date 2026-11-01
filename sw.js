@@ -1,11 +1,11 @@
-const CACHE_NAME = "quran-mobile-v21";
+const CACHE_NAME = "quran-mobile-v22";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
 const AUDIO_CACHE = "quran-mobile-audio-v1";
 const API_CACHE_MAX = 500;
 const AUDIO_CACHE_MAX = 40;
-const NETWORK_TIMEOUT_MS = 4000;
+const NETWORK_TIMEOUT_MS = 12000;
 
 function scopeBasePath() {
   try {
