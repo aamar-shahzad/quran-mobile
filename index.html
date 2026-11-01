@@ -1759,7 +1759,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=50').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=51').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2573,6 +2573,87 @@
 
     const STARTUP_SPLASH_MIN_MS = 500;
     let startupSplashShownAt = Date.now();
+    const LAYOUT_RELOAD_STORAGE_KEY = 'quran_layout_reload_v1';
+
+    function captureReaderReloadContext() {
+      const ctx = { surah: state.currentSurahNum };
+      if (isMushafPageScript(state.currentScriptKey)) {
+        ctx.mushafPage = state.currentMushafPage;
+      } else if (state.openTafsirAyahNum) {
+        ctx.ayah = state.openTafsirAyahNum;
+      } else if (state.currentPlayingAyahIndex >= 0 && state.currentSurahData?.ayahs) {
+        const ayah = state.currentSurahData.ayahs[state.currentPlayingAyahIndex];
+        if (ayah) ctx.ayah = ayah.numberInSurah;
+      }
+      const snap = captureAudioSession();
+      if (snap) {
+        ctx.audio = {
+          ayahNumberInSurah: snap.ayahNumberInSurah,
+          time: snap.time,
+          continuous: snap.continuous,
+          wasPlaying: snap.wasPlaying,
+          reciter: state.currentReciter,
+        };
+      }
+      return ctx;
+    }
+
+    function consumeLayoutReloadContext() {
+      const raw = safeStorageGet(LAYOUT_RELOAD_STORAGE_KEY, '');
+      if (!raw) return null;
+      safeStorageSet(LAYOUT_RELOAD_STORAGE_KEY, '');
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.surah !== 'number') return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function scheduleReaderLayoutReload(statusMessage = 'Applying reading options…') {
+      try {
+        safeStorageSet(LAYOUT_RELOAD_STORAGE_KEY, JSON.stringify(captureReaderReloadContext()));
+      } catch (err) {
+        console.warn('Could not save layout reload context', err);
+      }
+      closeAppModal('readingOptionsModal');
+      closeAppModal('moreMenuModal');
+      document.body.classList.add('app-is-booting');
+      const splash = document.getElementById('appStartupSplash');
+      if (splash) {
+        splash.classList.remove('app-splash--hide');
+        splash.setAttribute('aria-busy', 'true');
+      }
+      setStartupSplashStatus(statusMessage);
+      window.setTimeout(() => window.location.reload(), 80);
+    }
+
+    async function applyLayoutReloadContext(ctx) {
+      state.currentSurahNum = ctx.surah;
+      if (surahSelect) surahSelect.value = String(ctx.surah);
+      updateNavigationButtons();
+      if (ctx.mushafPage && isMushafPageScript(state.currentScriptKey)) {
+        state.currentMushafPage = Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(ctx.mushafPage, 10) || 1));
+        safeStorageSet('quran_mushaf_page', String(state.currentMushafPage));
+      }
+      const targetAyah = ctx.ayah && ctx.ayah > 0 ? ctx.ayah : null;
+      await loadSurah(ctx.surah, targetAyah);
+      if (ctx.audio?.ayahNumberInSurah) {
+        state.currentReciter = normalizeReciterId(ctx.audio.reciter || state.currentReciter);
+        if (reciterSelect) reciterSelect.value = state.currentReciter;
+        await resumeAudioSession({
+          ayahNumberInSurah: ctx.audio.ayahNumberInSurah,
+          time: ctx.audio.time || 0,
+          continuous: !!ctx.audio.continuous,
+          wasPlaying: !!ctx.audio.wasPlaying,
+        });
+      }
+      syncReaderLayoutChrome();
+      syncReaderFocusMode();
+      measureAudioBarHeight();
+      showResumeReadingBanner();
+    }
 
     function setStartupSplashStatus(message) {
       const el = document.getElementById('appSplashStatus');
@@ -2591,11 +2672,16 @@
     }
 
     async function bootstrapApp() {
+      const layoutReload = consumeLayoutReloadContext();
       try {
-        setStartupSplashStatus('Loading surah list…');
-        await fetchSurahList();
+        setStartupSplashStatus(layoutReload ? 'Applying reading options…' : 'Loading surah list…');
+        await fetchSurahList({ skipInitialSurahLoad: !!layoutReload });
         setStartupSplashStatus('Opening reader…');
-        await handleDeepLinkQuery();
+        if (layoutReload) {
+          await applyLayoutReloadContext(layoutReload);
+        } else {
+          await handleDeepLinkQuery();
+        }
       } finally {
         await hideStartupSplash();
       }
@@ -3671,14 +3757,20 @@
     }
 
     // SURAH LIST & DATA FETCHING
-    async function fetchSurahList() {
+    async function fetchSurahList(listOptions = {}) {
+      const skipInitialSurahLoad = listOptions.skipInitialSurahLoad === true;
       let initialContentLoad = null;
       const startInitialContentLoad = () => {
+        if (skipInitialSurahLoad) return Promise.resolve();
         if (initialContentLoad) return initialContentLoad;
         setStartupSplashStatus('Loading Quran…');
         setReaderLoading(true, { label: 'Loading Quran…' });
         initialContentLoad = loadSurah(state.currentSurahNum);
         return initialContentLoad;
+      };
+      const finishInitialLoad = async () => {
+        if (skipInitialSurahLoad) return;
+        await (initialContentLoad || startInitialContentLoad());
       };
 
       if (surahSelect) {
@@ -3710,21 +3802,21 @@
             /* quota */
           }
           populateSurahDropdown(state.surahs);
-          await (initialContentLoad || startInitialContentLoad());
-          showResumeReadingBanner();
+          await finishInitialLoad();
+          if (!skipInitialSurahLoad) showResumeReadingBanner();
           return true;
         }
         if (state.surahs.length === 114) {
-          await (initialContentLoad || startInitialContentLoad());
-          showResumeReadingBanner();
+          await finishInitialLoad();
+          if (!skipInitialSurahLoad) showResumeReadingBanner();
           return true;
         }
         throw new Error('Invalid surah list');
       } catch (err) {
         console.error('Error fetching Surah list:', err);
         if (state.surahs.length === 114) {
-          await (initialContentLoad || startInitialContentLoad());
-          showResumeReadingBanner();
+          await finishInitialLoad();
+          if (!skipInitialSurahLoad) showResumeReadingBanner();
           return true;
         }
         if (surahSelect) {
@@ -5939,24 +6031,10 @@
       }
 
         if (scriptSelect) {
-        scriptSelect.addEventListener('change', async (e) => {
+        scriptSelect.addEventListener('change', (e) => {
           state.currentScriptKey = e.target.value;
           safeStorageSet('quran_script_pref', state.currentScriptKey);
-          updateContentSourceHints();
-          syncReaderLayoutChrome();
-          syncAutoHideReaderChrome();
-          closeAppModal('readingOptionsModal');
-          try {
-            await loadSurah(state.currentSurahNum);
-          } catch (err) {
-            console.error('Script change load failed', err);
-          }
-          measureAudioBarHeight();
-          syncReaderFocusMode();
-          if (isMushafPageScript(state.currentScriptKey)) {
-            document.getElementById('searchContainer')?.classList.add('hidden');
-            hideSearchResults();
-          }
+          scheduleReaderLayoutReload('Switching script…');
         });
       }
 
@@ -6173,16 +6251,11 @@
         });
       }
 
-      document.getElementById('translationSelect')?.addEventListener('change', async (e) => {
+      document.getElementById('translationSelect')?.addEventListener('change', (e) => {
         state.currentTranslationKey = normalizeTranslationKey(e.target.value);
         safeStorageSet('quran_translation_pref', state.currentTranslationKey);
-        updateContentSourceHints();
         if (isMushafPageScript(state.currentScriptKey)) return;
-        try {
-          await loadSurah(state.currentSurahNum);
-        } catch (err) {
-          console.error('Translation change load failed', err);
-        }
+        scheduleReaderLayoutReload('Updating translation…');
       });
       document.getElementById('btnCacheSurahOffline')?.addEventListener('click', () => {
         closeAppModal('readingOptionsModal');
