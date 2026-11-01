@@ -2310,7 +2310,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=78').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=79').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2860,8 +2860,8 @@
   <audio id="quranAudio" class="hidden" preload="metadata" playsinline webkit-playsinline></audio>
 
   <!-- APP JAVASCRIPT ARCHITECTURE -->
-  <script src="assets/reader-cache-db.js"></script>
-  <script src="assets/continuous-reader.js"></script>
+  <script src="assets/reader-cache-db.js?v=2"></script>
+  <script src="assets/continuous-reader.js?v=2"></script>
   <script>
     // State Management
     const MUSHAF_PAGE_LAYOUT_ID = 6;
@@ -3419,6 +3419,7 @@
           : null;
       if (!signal) return timeout;
       if (!timeout) return signal;
+      if (typeof signal.addEventListener !== 'function') return timeout;
       if (typeof AbortSignal.any === 'function') {
         return AbortSignal.any([signal, timeout]);
       }
@@ -5791,6 +5792,9 @@
         }
       } finally {
         finishActiveReaderLoad(signal);
+        if (versesList?.querySelector('[data-continuous-surah], [data-continuous-page]')) {
+          hideReaderEdgeRetry();
+        }
         if (audioSnapshot) {
           if (versesList?.querySelector('.mushaf-page-card, [data-continuous-surah]')) {
             resumeAudioSession(audioSnapshot).catch(() => resetAudioForReadingLayoutChange());

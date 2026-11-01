@@ -125,21 +125,15 @@
     h.setReaderEdgeLoading?.(false);
   }
 
-  function getEdgeLoadSignal(h) {
-    const timeoutMs = h.getSurahFetchTimeoutMs?.() ?? 22000;
-    const timeout =
+  function getEdgeLoadSignal(_h) {
+    const timeoutMs = _h.getSurahFetchTimeoutMs?.() ?? 22000;
+    if (
       typeof AbortSignal !== "undefined" &&
       typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(timeoutMs)
-        : null;
-    const main = h.getState().surahLoadController?.signal;
-    if (main && !main.aborted) {
-      if (timeout && typeof AbortSignal.any === "function") {
-        return AbortSignal.any([main, timeout]);
-      }
-      return main;
+    ) {
+      return AbortSignal.timeout(timeoutMs);
     }
-    return timeout || undefined;
+    return undefined;
   }
 
   function pruneAnchorSurah(anchorSurah) {
@@ -156,7 +150,7 @@
   }
 
   function reportEdgeLoadError(h, err, context, meta = {}) {
-    if (err?.name === "AbortError") return;
+    if (err?.name === "AbortError" || err?.name === "TimeoutError") return;
     console.warn(context, err);
     h.onContinuousEdgeLoadError?.(err, meta);
   }
@@ -165,10 +159,13 @@
     const h = getHost();
     const key = h.surahViewCacheKey(surahNum);
     const cached = h.getState().surahViewCache.get(key);
-    if (cached?.arSurahPayload?.ayahs?.length && cached?.enData?.code === 200) {
+    if (cached?.arSurahPayload?.ayahs?.length) {
       return {
         arSurahPayload: h.cloneViewPayload(cached.arSurahPayload),
-        enData: h.cloneViewPayload(cached.enData),
+        enData:
+          cached?.enData?.code === 200
+            ? h.cloneViewPayload(cached.enData)
+            : { code: 200, data: { ayahs: [] } },
       };
     }
     const payload = await h.ensureSurahViewCached(surahNum, {
@@ -176,7 +173,10 @@
     });
     return {
       arSurahPayload: h.cloneViewPayload(payload.arSurahPayload),
-      enData: h.cloneViewPayload(payload.enData),
+      enData:
+        payload?.enData?.code === 200
+          ? h.cloneViewPayload(payload.enData)
+          : { code: 200, data: { ayahs: [] } },
     };
   }
 
@@ -228,12 +228,16 @@
   async function mountSurah(surahNum, signal, position) {
     if (sectionEl(surahNum)) return;
     const payload = await fetchPayload(surahNum, signal);
-    if (payload.enData?.code !== 200) throw new Error("translation");
+    if (!payload?.arSurahPayload?.ayahs?.length) throw new Error("empty surah");
+    const enData =
+      payload.enData?.code === 200
+        ? payload.enData
+        : { code: 200, data: { ayahs: [] } };
     const ar = normalizePayload(
       surahNum,
       getHost().cloneViewPayload(payload.arSurahPayload),
     );
-    mountSection(surahNum, ar, payload.enData, position);
+    mountSection(surahNum, ar, enData, position);
     syncSurahRangeFromDom();
   }
 
@@ -342,33 +346,52 @@
     const min = range[0];
     const max = range[range.length - 1];
     const target = edgeSurahTarget(direction, min, max);
-    if (target == null || sectionEl(target)) return;
+    if (target == null || sectionEl(target)) {
+      if (target != null && sectionEl(target)) h.hideReaderEdgeRetry?.();
+      return;
+    }
 
-    const signal = getEdgeLoadSignal(h);
     h.getState().continuousScroll = st;
     st.edgeLoading = true;
     const showUi = !surahViewCached(h, target);
     if (showUi) beginEdgeLoad(h, edgeLoadLabel(h, direction, "surah"));
     let loaded = false;
+    let lastErr = null;
     try {
-      await mountSurah(
-        target,
-        signal,
-        direction > 0 ? "append" : "prepend",
-      );
-      loaded = !!sectionEl(target);
-      pruneSurahSections(h.getState().currentSurahNum);
-      if (loaded) {
-        h.prefetchSurahNeighbors(target, {
-          preferDirection: direction,
-          radius: 1,
+      for (let attempt = 0; attempt < 2 && !loaded; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 500));
+          if (sectionEl(target)) {
+            loaded = true;
+            break;
+          }
+        }
+        try {
+          await mountSurah(
+            target,
+            getEdgeLoadSignal(h),
+            direction > 0 ? "append" : "prepend",
+          );
+          loaded = !!sectionEl(target);
+          if (loaded) {
+            pruneSurahSections(h.getState().currentSurahNum);
+            h.prefetchSurahNeighbors(target, {
+              preferDirection: direction,
+              radius: 1,
+            });
+          }
+          lastErr = null;
+        } catch (err) {
+          lastErr = err;
+          if (err?.name === "AbortError" || err?.name === "TimeoutError") break;
+        }
+      }
+      if (!loaded && lastErr) {
+        reportEdgeLoadError(h, lastErr, "Continuous scroll edge load failed", {
+          direction,
+          kind: "surah",
         });
       }
-    } catch (err) {
-      reportEdgeLoadError(h, err, "Continuous scroll edge load failed", {
-        direction,
-        kind: "surah",
-      });
     } finally {
       st.edgeLoading = false;
       st.lastEdgeFinishedAt = Date.now();
@@ -645,6 +668,17 @@
       if (scrollTop > lastScrollTop + 6) scrollDirectionBias = 1;
       else if (scrollTop < lastScrollTop - 6) scrollDirectionBias = -1;
       lastScrollTop = scrollTop;
+      const fail = getHost().getState().lastEdgeLoadFailure;
+      if (fail) {
+        const nearBottom = scrollHeight - scrollTop - clientHeight < EDGE_PX;
+        const nearTop = scrollTop < EDGE_PX;
+        if (
+          (fail.direction > 0 && !nearBottom) ||
+          (fail.direction < 0 && !nearTop)
+        ) {
+          getHost().hideReaderEdgeRetry?.();
+        }
+      }
       if (!isMushafMode()) {
         syncActiveSurahFromScroll();
         scheduleScrollPrefetchWarm(getHost());
