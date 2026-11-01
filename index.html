@@ -1598,7 +1598,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=33').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=34').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2838,12 +2838,36 @@
       window.addEventListener('resize', measureChrome);
       scheduleHide();
 
+      const TOP_REVEAL_PX = 96;
+
+      const touchY = (e) => e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY ?? null;
+
+      const isChromeControlTarget = (target) =>
+        target?.closest?.('#topReaderChrome, button, a, input, select, textarea, .mushaf-ayah-end');
+
       viewport.addEventListener('scroll', scheduleHide, { passive: true });
-      document.addEventListener('touchstart', () => revealChrome(), { passive: true });
+      viewport.addEventListener(
+        'touchstart',
+        (e) => {
+          if (isChromeControlTarget(e.target)) return;
+          const y = touchY(e);
+          if (y != null && y <= TOP_REVEAL_PX) revealChrome();
+        },
+        { passive: true },
+      );
+      viewport.addEventListener(
+        'touchend',
+        (e) => {
+          if (isChromeControlTarget(e.target)) return;
+          const y = touchY(e);
+          if (y != null && y > TOP_REVEAL_PX) scheduleHide();
+        },
+        { passive: true },
+      );
       viewport.addEventListener(
         'mousemove',
         (e) => {
-          if (e.clientY <= 88) revealChrome();
+          if (e.clientY <= TOP_REVEAL_PX) revealChrome();
           else scheduleHide();
         },
         { passive: true },
