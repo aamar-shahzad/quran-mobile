@@ -880,15 +880,31 @@
       border-color: rgba(71, 85, 105, 0.8);
     }
     body.mushaf-reading-mode.chrome-auto-hide #topReaderChrome {
-      transform: none !important;
-      opacity: 1 !important;
-      pointer-events: auto !important;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      padding-top: env(safe-area-inset-top, 0px);
+      transition: transform 0.32s ease, opacity 0.28s ease;
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+    }
+    body.mushaf-reading-mode.chrome-auto-hide #topReaderChrome.chrome-collapsed {
+      transform: translateY(calc(-100% - 2px));
+      opacity: 0;
+      pointer-events: none;
     }
     body.mushaf-reading-mode.chrome-auto-hide #surahViewport {
-      padding-top: var(--reader-chrome-h, 7.5rem);
+      padding-top: var(--reader-chrome-h, 7.25rem) !important;
+      transition: padding-top 0.32s ease;
     }
     body.mushaf-reading-mode.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
-      padding-top: var(--reader-chrome-h, 7.5rem);
+      padding-top: max(0.25rem, env(safe-area-inset-top, 0px)) !important;
+    }
+    body.mushaf-reading-mode #readerControlsPanel {
+      padding-top: 0.35rem;
+      padding-bottom: 0.35rem;
+      gap: 0.35rem;
     }
     body.mushaf-reading-mode #surahViewport {
       background-color: #e8e2d6;
@@ -949,7 +965,6 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      padding-top: 0.25rem;
       padding-bottom: 0.35rem;
     }
     body.mushaf-reading-mode #appShell {
@@ -1094,13 +1109,8 @@
       body.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
         padding-top: max(0.35rem, env(safe-area-inset-top, 0px));
       }
-      body.mushaf-reading-mode.chrome-auto-hide #surahViewport,
-      body.mushaf-reading-mode.chrome-auto-hide.chrome-ui-collapsed #surahViewport {
-        padding-top: var(--reader-chrome-h, 7.25rem);
-      }
       body.mushaf-reading-mode #surahViewport {
-        padding-top: var(--reader-chrome-h, 7.25rem) !important;
-        padding-bottom: 1rem;
+        padding-bottom: 0.5rem;
       }
     }
     .pt-safe {
@@ -2777,20 +2787,31 @@
       document.body.classList.toggle('reader-focus-mode', isMobileReaderViewport() && isAnyTafsirPanelOpen());
     }
 
+    let chromeAutoHideInitialized = false;
+
     function initAutoHideReaderChrome() {
-      if (!window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches) return;
+      const mobileCoarse = window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      if (!mobileCoarse && !mushaf) return;
+
       const chrome = document.getElementById('topReaderChrome');
       const viewport = document.getElementById('surahViewport');
       if (!chrome || !viewport) return;
 
       document.body.classList.add('chrome-auto-hide');
+
+      if (chromeAutoHideInitialized) {
+        measureReaderChromeHeight();
+        return;
+      }
+      chromeAutoHideInitialized = true;
+
       let hideTimer = null;
-      const CHROME_IDLE_MS = 3500;
+      const chromeIdleMs = () => (isMushafPageScript(state.currentScriptKey) ? 2200 : 3500);
 
       const measureChrome = () => measureReaderChromeHeight();
 
       const chromeShouldStayOpen = () => {
-        if (isMushafPageScript(state.currentScriptKey)) return true;
         const search = document.getElementById('searchContainer');
         return !!(search && !search.classList.contains('hidden'));
       };
@@ -2804,7 +2825,7 @@
       const scheduleHide = () => {
         clearTimeout(hideTimer);
         if (chromeShouldStayOpen()) return;
-        hideTimer = setTimeout(() => setCollapsed(true), CHROME_IDLE_MS);
+        hideTimer = setTimeout(() => setCollapsed(true), chromeIdleMs());
       };
 
       const revealChrome = () => {
@@ -2819,6 +2840,14 @@
 
       viewport.addEventListener('scroll', scheduleHide, { passive: true });
       document.addEventListener('touchstart', () => revealChrome(), { passive: true });
+      viewport.addEventListener(
+        'mousemove',
+        (e) => {
+          if (e.clientY <= 88) revealChrome();
+          else scheduleHide();
+        },
+        { passive: true },
+      );
       chrome.addEventListener('focusin', () => revealChrome());
       chrome.querySelectorAll('button, select, input').forEach((el) => {
         el.addEventListener('click', () => revealChrome());
@@ -2831,6 +2860,18 @@
           else scheduleHide();
         }).observe(searchObs, { attributes: true, attributeFilter: ['class'] });
       }
+    }
+
+    function syncAutoHideReaderChrome() {
+      const mobileCoarse = window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      if (mushaf || mobileCoarse) {
+        initAutoHideReaderChrome();
+        return;
+      }
+      document.body.classList.remove('chrome-auto-hide', 'chrome-ui-collapsed');
+      document.getElementById('topReaderChrome')?.classList.remove('chrome-collapsed');
+      measureReaderChromeHeight();
     }
 
     function scrollReaderToTop() {
@@ -3332,6 +3373,7 @@
         juzTitle.textContent = mushaf ? 'Jump — Juz or mushaf page' : 'Jump to Juz (Para)';
       }
       requestAnimationFrame(measureReaderChromeHeight);
+      syncAutoHideReaderChrome();
     }
 
     function chapterIdFromVerseKey(verseKey) {
@@ -3622,6 +3664,9 @@
       requestAnimationFrame(() => {
         measureReaderChromeHeight();
         if (loadingSpinner) loadingSpinner.classList.add('hidden');
+        if (document.body.classList.contains('chrome-auto-hide')) {
+          document.getElementById('surahViewport')?.dispatchEvent(new Event('scroll'));
+        }
       });
     }
 
@@ -3637,12 +3682,12 @@
       state.currentSurahNum = chapterIdFromVerseKey(cachedVerses[0].verse_key);
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
-      renderMushafPage(cachedVerses, page, chaptersById);
-      hideSearchResults();
-      scrollReaderToTop();
-      document.getElementById('resumeReadingBanner')?.classList.add('hidden');
-      setReaderLoading(true, { keepContent: true, label: 'Updating page…' });
-      setReaderNavBusy(false);
+        renderMushafPage(cachedVerses, page, chaptersById);
+        hideSearchResults();
+        scrollReaderToTop();
+        document.getElementById('resumeReadingBanner')?.classList.add('hidden');
+        setReaderLoading(true, { keepContent: true, label: 'Updating page…' });
+        setReaderNavBusy(false);
       if (!state.quranChaptersById) {
         ensureQuranChaptersMeta(withFetchTimeout(signal))
           .then((meta) => {
