@@ -39,7 +39,9 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 | Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                              |
 | Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API                       |
 
-In the app: **More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. Changing **script** or **translation** reloads the app with the splash screen so mushaf ↔ ayah layouts apply cleanly (same surah/ayah and playback resume when possible). On phones, **Tafsir** opens in a bottom sheet (swipe-friendly scroll, prev/next ayah, Close) so long commentary does not bury the ayah list. **More** → _Data sources_ for the full list.
+In the app: **Ayah reading (Uthmani & Indo-Pak list):** One **vertical scroll** through the Quran — surah sections load as you scroll (sticky surah headers). Prev/next surah and the surah picker **jump** within the scroll. **Mushaf (610 pages)** still uses page turn, not infinite ayah scroll.
+
+**More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. Changing **script** or **translation** reloads the app with the splash screen so mushaf ↔ ayah layouts apply cleanly (same surah/ayah and playback resume when possible). On phones, **Tafsir** opens in a bottom sheet (swipe-friendly scroll, prev/next ayah, Close) so long commentary does not bury the ayah list. **More** → _Data sources_ for the full list.
 
 **Simple by design:** Home screen is read + listen (play on ayah or mushaf). Meaning lives in **Tafsir** when you need it — not a wall of English under every Indo-Pak ayah unless you turn that on in Reading options.
 

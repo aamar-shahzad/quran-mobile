@@ -296,6 +296,32 @@
     body.indopak-ayah-reading-mode #versesList {
       gap: 0.65rem;
     }
+    body.continuous-scroll-reading-mode #surahHeaderCard {
+      display: none !important;
+    }
+    .continuous-surah-section {
+      scroll-margin-top: calc(var(--reader-chrome-h, 0px) + 8px);
+    }
+    .continuous-surah-header {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      margin-bottom: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    html:not(.dark) .continuous-surah-header {
+      background: rgba(248, 250, 252, 0.95);
+      border-color: #e2e8f0;
+    }
+    body.indopak-ayah-reading-mode .continuous-surah-header {
+      background: rgba(250, 246, 238, 0.95);
+      border-color: rgba(196, 165, 116, 0.45);
+    }
     body.indopak-ayah-reading-mode .indopak-ayah-card {
       border-radius: 4px;
     }
@@ -806,6 +832,34 @@
     .player-shell {
       padding: 0.5rem 0.75rem max(0.65rem, env(safe-area-inset-bottom, 0px));
     }
+    .player-bar-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+    .player-bar-top .player-now-playing {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+    .player-close-btn {
+      flex-shrink: 0;
+      width: 2.75rem;
+      height: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.65rem;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      touch-action: manipulation;
+    }
+    .player-close-btn:active {
+      background: rgba(51, 65, 85, 0.85);
+      color: #e2e8f0;
+    }
     @media (min-width: 641px) {
       .player-shell {
         padding: 0.65rem 1rem 0.75rem;
@@ -878,7 +932,7 @@
       }
       .player-transport-row {
         display: grid;
-        grid-template-columns: 1fr 1.4fr 1fr 0.9fr 0.9fr;
+        grid-template-columns: 1fr 1.4fr 1fr 0.9fr;
         align-items: center;
         justify-items: center;
         gap: 0.35rem;
@@ -1759,7 +1813,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=51').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=53').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2283,13 +2337,18 @@
       <div id="audioProgressBar" class="bg-gradient-to-r from-emerald-400 to-brand-500 h-full w-0 transition-[width] duration-100 ease-linear"></div>
     </div>
     <div class="player-shell w-full max-w-[64rem] mx-auto">
-      <div class="player-now-playing">
-        <span id="audioTimeCurrent" class="player-time">0:00</span>
-        <div class="player-now-playing-text">
-          <p id="audioVerseLabel" class="player-verse-label">Tap play on an ayah</p>
-          <p id="audioSubLabel" class="player-reciter-label">Mishary Alafasy</p>
+      <div class="player-bar-top">
+        <div class="player-now-playing">
+          <span id="audioTimeCurrent" class="player-time">0:00</span>
+          <div class="player-now-playing-text">
+            <p id="audioVerseLabel" class="player-verse-label">Tap play on an ayah</p>
+            <p id="audioSubLabel" class="player-reciter-label">Mishary Alafasy</p>
+          </div>
+          <span id="audioTimeDuration" class="player-time player-time-end">0:00</span>
         </div>
-        <span id="audioTimeDuration" class="player-time player-time-end">0:00</span>
+        <button type="button" id="btnCloseAudioPlayer" class="player-close-btn" aria-label="Close player and stop audio">
+          <i class="ph ph-x text-xl" aria-hidden="true"></i>
+        </button>
       </div>
       <div class="player-transport-row">
         <button type="button" id="btnPrevVerse" class="player-transport-btn" aria-label="Previous ayah" disabled>
@@ -2302,9 +2361,6 @@
           <i class="ph ph-skip-forward-fill text-xl"></i>
         </button>
         <button type="button" id="btnToggleAudioSpeed" class="player-speed-btn" aria-label="Playback speed">1.0x</button>
-        <button type="button" id="btnStopAudio" class="player-transport-btn player-stop-btn text-slate-400" aria-label="Stop playback">
-          <i class="ph ph-stop-fill text-lg"></i>
-        </button>
       </div>
     </div>
   </footer>
@@ -2313,6 +2369,7 @@
   <audio id="quranAudio" class="hidden" preload="metadata" playsinline webkit-playsinline></audio>
 
   <!-- APP JAVASCRIPT ARCHITECTURE -->
+  <script src="assets/continuous-reader.js"></script>
   <script>
     // State Management
     const MUSHAF_PAGE_LAYOUT_ID = 6;
@@ -2358,6 +2415,7 @@
       audioErrorRetries: 0,
       modalReturnFocus: null,
       openTafsirAyahNum: null,
+      continuousScroll: { minSurah: 1, maxSurah: 1, edgeLoading: false },
       bookmarks: readJsonArray('quran_bookmarks_v2')
     };
 
@@ -3283,9 +3341,17 @@
         }
 
         if (dx > 0 && state.currentSurahNum < 114) {
-          loadSurah(state.currentSurahNum + 1);
+          if (window.QuranContinuousReader?.usesContinuousScroll()) {
+            window.QuranContinuousReader.jumpToSurah(state.currentSurahNum + 1);
+          } else {
+            loadSurah(state.currentSurahNum + 1);
+          }
         } else if (dx < 0 && state.currentSurahNum > 1) {
-          loadSurah(state.currentSurahNum - 1);
+          if (window.QuranContinuousReader?.usesContinuousScroll()) {
+            window.QuranContinuousReader.jumpToSurah(state.currentSurahNum - 1);
+          } else {
+            loadSurah(state.currentSurahNum - 1);
+          }
         }
       };
 
@@ -3349,9 +3415,13 @@
       syncReaderFocusMode();
     }
 
-    function closeAllTafsirPanelsExcept(exceptAyahNum = null) {
+    function closeAllTafsirPanelsExcept(exceptSurahNum = null, exceptAyahNum = null) {
+      const keepId =
+        exceptSurahNum != null && exceptAyahNum != null
+          ? tafsirBoxId(exceptSurahNum, exceptAyahNum)
+          : null;
       document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
-        if (exceptAyahNum != null && box.id === `tafsir-box-${exceptAyahNum}`) return;
+        if (keepId && box.id === keepId) return;
         box.classList.add('hidden');
       });
       syncTafsirButtonStates();
@@ -3441,8 +3511,32 @@
       }
     }
 
+    function verseUiKey(surahNum, ayahNum) {
+      return `${surahNum}-${ayahNum}`;
+    }
+
+    function tafsirBoxId(surahNum, ayahNum) {
+      return `tafsir-box-${verseUiKey(surahNum, ayahNum)}`;
+    }
+
+    function tafsirContentId(surahNum, ayahNum) {
+      return `tafsir-content-${verseUiKey(surahNum, ayahNum)}`;
+    }
+
+    function tafsirBadgeId(surahNum, ayahNum) {
+      return `tafsir-badge-${verseUiKey(surahNum, ayahNum)}`;
+    }
+
+    function wbwBoxId(surahNum, ayahNum) {
+      return `wbw-box-${verseUiKey(surahNum, ayahNum)}`;
+    }
+
+    function wbwContentId(surahNum, ayahNum) {
+      return `wbw-content-${verseUiKey(surahNum, ayahNum)}`;
+    }
+
     function updateTafsirToolbar(surahNum, ayahNum) {
-      const box = document.getElementById(`tafsir-box-${ayahNum}`);
+      const box = document.getElementById(tafsirBoxId(surahNum, ayahNum));
       if (!box) return;
       const len = state.currentSurahData?.ayahs?.length ?? 0;
       const prev = box.querySelector('[data-tafsir-nav="prev"]');
@@ -3451,12 +3545,16 @@
       if (next) next.disabled = !len || ayahNum >= len;
     }
 
-    function closeTafsirView(ayahNum) {
+    function closeTafsirView(surahNum, ayahNum) {
+      if (typeof surahNum === 'number' && ayahNum == null) {
+        ayahNum = surahNum;
+        surahNum = state.currentSurahNum;
+      }
       if (isTafsirSheetOpen()) {
         closeTafsirSheet();
         return;
       }
-      const box = document.getElementById(`tafsir-box-${ayahNum}`);
+      const box = document.getElementById(tafsirBoxId(surahNum, ayahNum));
       if (box) box.classList.add('hidden');
       state.readerControlsPinnedOpen = false;
       syncTafsirButtonStates();
@@ -3513,8 +3611,8 @@
     }
 
     async function loadTafsirIntoPanel(surahNum, ayahNum) {
-      const content = document.getElementById(`tafsir-content-${ayahNum}`);
-      const badge = document.getElementById(`tafsir-badge-${ayahNum}`);
+      const content = document.getElementById(tafsirContentId(surahNum, ayahNum));
+      const badge = document.getElementById(tafsirBadgeId(surahNum, ayahNum));
       if (!content) return;
       await loadTafsirContent(surahNum, ayahNum, content, badge);
     }
@@ -3544,10 +3642,10 @@
         return;
       }
 
-      const box = document.getElementById(`tafsir-box-${ayahNum}`);
+      const box = document.getElementById(tafsirBoxId(surahNum, ayahNum));
       if (!box) return;
 
-      closeAllTafsirPanelsExcept(ayahNum);
+      closeAllTafsirPanelsExcept(surahNum, ayahNum);
       box.classList.remove('hidden');
       if (isMobileReaderViewport()) {
         state.readerControlsExpanded = false;
@@ -3572,8 +3670,18 @@
     async function navigateTafsirView(surahNum, ayahNum, delta) {
       const len = state.currentSurahData?.ayahs?.length ?? 0;
       const nextAyah = ayahNum + delta;
-      if (nextAyah < 1 || nextAyah > len) return;
-      await openTafsirView(surahNum, nextAyah);
+      if (nextAyah >= 1 && nextAyah <= len) {
+        await openTafsirView(surahNum, nextAyah);
+        return;
+      }
+      if (delta > 0 && nextAyah > len && surahNum < 114) {
+        await openTafsirView(surahNum + 1, 1);
+        return;
+      }
+      if (delta < 0 && nextAyah < 1 && surahNum > 1) {
+        const prevLen = state.surahs.find((s) => s.number === surahNum - 1)?.numberOfAyahs;
+        if (prevLen) await openTafsirView(surahNum - 1, prevLen);
+      }
     }
     window.navigateTafsirView = navigateTafsirView;
 
@@ -3640,6 +3748,28 @@
         if (audioSubLabel) setAudioReciterLabel(reciterName);
       }
       setupMediaSessionHandlers();
+      window.__quranContinuousHost = {
+        getState: () => state,
+        getSurahs: () => state.surahs,
+        getScriptKey: () => state.currentScriptKey,
+        isMushafPageScript,
+        getScriptFormat,
+        surahViewCacheKey,
+        cloneViewPayload,
+        fetchSurahViewData,
+        withFetchTimeout,
+        storeSurahViewCache,
+        normalizeAyahText,
+        buildContinuousSurahSectionHtml,
+        observeContinuousSectionHeader: (section) => {
+          window.QuranContinuousReader?.observeSectionHeader(section);
+        },
+        prefetchSurahNeighbors,
+        closeAllTafsirPanelsExcept,
+        syncReaderFocusMode,
+        updateNavigationButtons,
+        syncAudioUi,
+      };
       scheduleIdle(() => {
         ensureQuranChaptersMeta(withFetchTimeout(null, 15000)).catch(() => {});
       });
@@ -3948,6 +4078,8 @@
       const indopakAyah = isIndopakAyahScript(state.currentScriptKey);
       document.body.classList.toggle('mushaf-reading-mode', mushaf);
       document.body.classList.toggle('indopak-ayah-reading-mode', indopakAyah && !mushaf);
+      const continuous = !mushaf;
+      document.body.classList.toggle('continuous-scroll-reading-mode', continuous);
       document.getElementById('readerNavSecondary')?.classList.toggle('hidden', mushaf);
       const mushafNav = document.getElementById('mushafPageNav');
       if (mushafNav) {
@@ -4568,36 +4700,32 @@
 
       syncReaderLayoutChrome();
 
-      const cacheKey = surahViewCacheKey(state.currentSurahNum);
-      const cachedView = state.surahViewCache.get(cacheKey);
-      const hadCachedView = !!cachedView;
-      if (hadCachedView) {
-        if (surahHeaderCard) surahHeaderCard.classList.remove('hidden');
-        applySurahViewData(
-          cloneViewPayload(cachedView.arSurahPayload),
-          cloneViewPayload(cachedView.enData),
-          targetAyah,
-        );
-        setReaderLoading(true, { keepContent: true, label: 'Updating surah…' });
-        setReaderNavBusy(false);
-      } else {
-        setReaderNavBusy(true);
-        setReaderLoading(true, { label: 'Loading surah…' });
-        if (versesList) versesList.innerHTML = '';
-        if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
-      }
+      const hadContinuous = !!versesList?.querySelector('[data-continuous-surah]');
+      setReaderNavBusy(true);
+      setReaderLoading(true, {
+        keepContent: hadContinuous && !targetAyah,
+        label: 'Loading…',
+      });
+      if (!hadContinuous && versesList) versesList.innerHTML = '';
+      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
 
       try {
-        const payload = await fetchSurahViewData(state.currentSurahNum, withFetchTimeout(signal));
-        storeSurahViewCache(state.currentSurahNum, payload);
-        applySurahViewData(payload.arSurahPayload, payload.enData, targetAyah);
-        prefetchSurahNeighbors(state.currentSurahNum);
+        if (!window.QuranContinuousReader) throw new Error('continuous reader missing');
+        if (hadContinuous && targetAyah) {
+          await window.QuranContinuousReader.jumpToSurah(state.currentSurahNum, targetAyah);
+        } else {
+          await window.QuranContinuousReader.continuousLoadSurah(
+            state.currentSurahNum,
+            targetAyah,
+            signal,
+            { replaceAll: !hadContinuous },
+          );
+        }
       } catch (err) {
         if (err?.name === 'AbortError') return;
-        if (hadCachedView) return;
-        console.error('Error loading Surah:', err);
+        console.error('Error loading continuous reader:', err);
         if (versesList) {
-          versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load Surah. Please check internet connection.</div>`;
+          versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load. Please check internet connection.</div>`;
         }
       } finally {
         finishActiveReaderLoad(signal);
@@ -4606,6 +4734,105 @@
         }
       }
     }
+
+    function buildVerseCardsHtml(surahNum, arabicAyahs, englishAyahs) {
+      const scriptKey = state.currentScriptKey;
+      const ayahBodyClass = getAyahDisplayContainerClass(scriptKey);
+      const indopakAyahUi = isIndopakAyahScript(scriptKey);
+      const verseCardClass = indopakAyahUi
+        ? 'indopak-ayah-card mushaf-page-card p-3 sm:p-4 transition-all duration-200'
+        : 'bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
+      const ayahNumBadgeClass = indopakAyahUi
+        ? 'indopak-ayah-num w-7 h-7 shrink-0 rounded-sm font-bold text-[11px] flex items-center justify-center border border-[#c4a574]/70 text-[#5c4a32] bg-[#faf6ee]/90'
+        : 'w-7 h-7 shrink-0 rounded-lg bg-slate-900 text-brand-400 font-bold text-xs flex items-center justify-center border border-slate-800';
+
+      return arabicAyahs
+        .map((ayah, i) => {
+          const ayahNum = ayah.numberInSurah;
+          const verseKey = `${surahNum}:${ayahNum}`;
+          const bookmarkObj = state.bookmarks.find((b) => b.verseKey === verseKey);
+          const isBookmarked = !!bookmarkObj;
+          const enTranslation = englishAyahs[i] ? englishAyahs[i].text : '';
+          const ayahDisplayHtml = buildAyahDisplayHtml(ayah.text, scriptKey, ayahNum);
+          const ui = verseUiKey(surahNum, ayahNum);
+
+          return `
+          <div id="verse-card-${ayah.number}" data-ayah-global="${ayah.number}" data-ayah-in-surah="${ayahNum}" data-surah="${surahNum}" class="${verseCardClass}">
+            <div class="verse-card-header">
+              <span class="${ayahNumBadgeClass}">${ayahNum}</span>
+              <div class="verse-card-toolbar">
+                <button type="button" class="verse-play-btn" data-global-ayah="${Number(ayah.number)}" onclick="playVerseAudio(${Number(ayah.number)}, false)" aria-label="Play ayah ${ayahNum}">
+                  <i class="ph ph-play-fill verse-play-icon text-lg"></i>
+                </button>
+                <button type="button" class="verse-play-continuous-btn" onclick="playVerseAudio(${Number(ayah.number)}, true)" aria-label="Play from ayah ${ayahNum} through surah" title="Play from here">
+                  <i class="ph ph-playlist text-lg"></i>
+                </button>
+                <button type="button" onclick="toggleTafsirView(${Number(surahNum)}, ${Number(ayahNum)})" class="verse-tafsir-btn inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg" aria-label="Tafsir">
+                  <i class="ph ph-book-open-text text-base"></i>
+                  <span class="verse-tafsir-word">Tafsir</span>
+                </button>
+                <button type="button" data-bookmark-btn onclick="toggleBookmarkPrompt(${Number(surahNum)}, ${Number(ayahNum)})" class="p-2 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark" aria-label="Bookmark">
+                  <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl"></i>
+                </button>
+                <details class="relative">
+                  <summary class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 list-none cursor-pointer" aria-label="More actions"><i class="ph ph-dots-three-vertical text-xl"></i></summary>
+                  <div class="absolute right-0 mt-1 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-10 py-1 text-xs">
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="toggleWordByWord(${Number(surahNum)}, ${Number(ayahNum)})">Word-by-word</button>
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyVerseByGlobalNumber(${Number(ayah.number)})">Copy ayah</button>
+                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyAyahLink(${Number(surahNum)}, ${Number(ayahNum)})">Copy link</button>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <div class="${ayahBodyClass}" dir="${getAyahDisplayDir(scriptKey)}">${ayahDisplayHtml}</div>
+            <div class="verse-translation text-sm text-slate-300 leading-relaxed font-sans mb-2">${escapeHtml(enTranslation)}</div>
+            <div id="${wbwBoxId(surahNum, ayahNum)}" class="hidden mt-3 pt-3 border-t border-slate-800/80">
+              <div class="text-[10px] font-bold text-emerald-400 mb-2 uppercase tracking-wider">Word-by-Word Analysis</div>
+              <div id="${wbwContentId(surahNum, ayahNum)}" class="flex flex-wrap gap-2 justify-end" dir="rtl"></div>
+            </div>
+            <div id="${tafsirBoxId(surahNum, ayahNum)}" class="hidden mt-4 pt-3 border-t border-slate-800 tafsir-panel">
+              <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2">
+                <span id="${tafsirBadgeId(surahNum, ayahNum)}" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider shrink-0">Tafsir</span>
+                <div class="flex flex-wrap items-center gap-1.5 ms-auto">
+                  <button type="button" class="tafsir-nav-btn" data-tafsir-nav="prev" onclick="navigateTafsirView(${Number(surahNum)}, ${Number(ayahNum)}, -1)" aria-label="Previous ayah tafsir"><i class="ph ph-caret-left text-base"></i></button>
+                  <span class="text-[11px] text-slate-400 font-medium px-0.5 tabular-nums">Ayah ${ayahNum}</span>
+                  <button type="button" class="tafsir-nav-btn" data-tafsir-nav="next" onclick="navigateTafsirView(${Number(surahNum)}, ${Number(ayahNum)}, 1)" aria-label="Next ayah tafsir"><i class="ph ph-caret-right text-base"></i></button>
+                  <button type="button" class="tafsir-close-btn" onclick="closeTafsirView(${Number(surahNum)}, ${Number(ayahNum)})" aria-label="Close tafsir"><i class="ph ph-x text-base"></i><span>Close</span></button>
+                </div>
+              </div>
+              <div id="${tafsirContentId(surahNum, ayahNum)}" class="tafsir-content tafsir-content-scroll tafsir-content--en font-sans"></div>
+            </div>
+          </div>`;
+        })
+        .join('');
+    }
+
+    function buildContinuousSurahSectionHtml(surahNum, arPayload, englishAyahs, meta) {
+      const titleEn = meta?.englishName || arPayload.englishName || `Surah ${surahNum}`;
+      const titleAr = meta?.name || arPayload.name || '';
+      const metaLine = `${meta?.revelationType || arPayload.revelationType || ''} · ${meta?.numberOfAyahs || arPayload.numberOfAyahs || ''} ayahs`;
+      return `
+        <section class="continuous-surah-section space-y-3 sm:space-y-4" data-continuous-surah="${surahNum}">
+          <header class="continuous-surah-header" data-continuous-surah="${surahNum}">
+            <h2 class="arabic-text text-xl font-bold text-brand-500 text-center leading-snug">${escapeHtml(titleAr)}</h2>
+            <p class="text-sm font-semibold text-slate-200 text-center">${escapeHtml(titleEn)}</p>
+            <p class="text-[11px] text-slate-400 text-center">${escapeHtml(metaLine)}</p>
+            <button type="button" class="mt-2 w-full py-2 rounded-xl bg-brand-500/15 border border-brand-500/40 text-brand-300 text-xs font-semibold active:scale-[0.98]" onclick="playSurahFromStart(${surahNum})">Play surah</button>
+          </header>
+          ${buildVerseCardsHtml(surahNum, arPayload.ayahs, englishAyahs)}
+        </section>`;
+    }
+
+    async function playSurahFromStart(surahNum) {
+      try {
+        await ensureSurahDataForPlayback(surahNum);
+        state.isPlayingContinuous = true;
+        await playSingleVerse(0);
+      } catch {
+        showToast('Could not play surah');
+      }
+    }
+    window.playSurahFromStart = playSurahFromStart;
 
     function renderSurahHeader(surah) {
       if (!surahHeaderCard) return;
@@ -4628,95 +4855,7 @@
 
     function renderVerses(arabicAyahs, englishAyahs) {
       if (!versesList) return;
-      
-      const scriptKey = state.currentScriptKey;
-      const ayahBodyClass = getAyahDisplayContainerClass(scriptKey);
-      const indopakAyahUi = isIndopakAyahScript(scriptKey);
-      const verseCardClass = indopakAyahUi
-        ? 'indopak-ayah-card mushaf-page-card p-3 sm:p-4 transition-all duration-200'
-        : 'bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
-      const ayahNumBadgeClass = indopakAyahUi
-        ? 'indopak-ayah-num w-7 h-7 shrink-0 rounded-sm font-bold text-[11px] flex items-center justify-center border border-[#c4a574]/70 text-[#5c4a32] bg-[#faf6ee]/90'
-        : 'w-7 h-7 shrink-0 rounded-lg bg-slate-900 text-brand-400 font-bold text-xs flex items-center justify-center border border-slate-800';
-
-      versesList.innerHTML = arabicAyahs.map((ayah, i) => {
-        const ayahNum = ayah.numberInSurah;
-        const verseKey = `${state.currentSurahNum}:${ayahNum}`;
-        const bookmarkObj = state.bookmarks.find(b => b.verseKey === verseKey);
-        const isBookmarked = !!bookmarkObj;
-        const enTranslation = englishAyahs[i] ? englishAyahs[i].text : '';
-        const ayahDisplayHtml = buildAyahDisplayHtml(ayah.text, scriptKey, ayahNum);
-
-        return `
-          <div id="verse-card-${ayah.number}" data-ayah-global="${ayah.number}" class="${verseCardClass}">
-            <div class="verse-card-header">
-              <span class="${ayahNumBadgeClass}">
-                ${ayahNum}
-              </span>
-
-              <div class="verse-card-toolbar">
-                <button type="button" class="verse-play-btn" data-global-ayah="${Number(ayah.number)}" onclick="playVerseAudio(${Number(ayah.number)}, false)" aria-label="Play ayah ${ayahNum}">
-                  <i class="ph ph-play-fill verse-play-icon text-lg"></i>
-                </button>
-                <button type="button" class="verse-play-continuous-btn" onclick="playVerseAudio(${Number(ayah.number)}, true)" aria-label="Play from ayah ${ayahNum} through surah" title="Play from here">
-                  <i class="ph ph-playlist text-lg"></i>
-                </button>
-                <button type="button" onclick="toggleTafsirView(${Number(state.currentSurahNum)}, ${Number(ayahNum)})" class="verse-tafsir-btn inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg" aria-label="Tafsir">
-                  <i class="ph ph-book-open-text text-base"></i>
-                  <span class="verse-tafsir-word">Tafsir</span>
-                </button>
-                <button type="button" data-bookmark-btn onclick="toggleBookmarkPrompt(${Number(state.currentSurahNum)}, ${Number(ayahNum)})" class="p-2 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark" aria-label="Bookmark">
-                  <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl"></i>
-                </button>
-                <details class="relative">
-                  <summary class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 list-none cursor-pointer" aria-label="More actions"><i class="ph ph-dots-three-vertical text-xl"></i></summary>
-                  <div class="absolute right-0 mt-1 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-10 py-1 text-xs">
-                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="toggleWordByWord(${Number(state.currentSurahNum)}, ${Number(ayahNum)})">Word-by-word</button>
-                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyVerseByGlobalNumber(${Number(ayah.number)})">Copy ayah</button>
-                    <button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-800" onclick="copyAyahLink(${Number(state.currentSurahNum)}, ${Number(ayahNum)})">Copy link</button>
-                  </div>
-                </details>
-              </div>
-            </div>
-
-            <div class="${ayahBodyClass}" dir="${getAyahDisplayDir(scriptKey)}">
-              ${ayahDisplayHtml}
-            </div>
-
-            <!-- English Translation -->
-            <div class="verse-translation text-sm text-slate-300 leading-relaxed font-sans mb-2">
-              ${escapeHtml(enTranslation)}
-            </div>
-
-            <!-- Word-by-Word Breakdown Box -->
-            <div id="wbw-box-${ayahNum}" class="hidden mt-3 pt-3 border-t border-slate-800/80">
-              <div class="text-[10px] font-bold text-emerald-400 mb-2 uppercase tracking-wider">Word-by-Word Analysis</div>
-              <div id="wbw-content-${ayahNum}" class="flex flex-wrap gap-2 justify-end" dir="rtl"></div>
-            </div>
-
-            <!-- Dynamic Tafsir Container -->
-            <div id="tafsir-box-${ayahNum}" class="hidden mt-4 pt-3 border-t border-slate-800 tafsir-panel">
-              <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2">
-                <span id="tafsir-badge-${ayahNum}" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider shrink-0">Tafsir</span>
-                <div class="flex flex-wrap items-center gap-1.5 ms-auto">
-                  <button type="button" class="tafsir-nav-btn" data-tafsir-nav="prev" onclick="navigateTafsirView(${Number(state.currentSurahNum)}, ${Number(ayahNum)}, -1)" aria-label="Previous ayah tafsir" title="Previous ayah">
-                    <i class="ph ph-caret-left text-base" aria-hidden="true"></i>
-                  </button>
-                  <span class="text-[11px] text-slate-400 font-medium px-0.5 tabular-nums">Ayah ${ayahNum}</span>
-                  <button type="button" class="tafsir-nav-btn" data-tafsir-nav="next" onclick="navigateTafsirView(${Number(state.currentSurahNum)}, ${Number(ayahNum)}, 1)" aria-label="Next ayah tafsir" title="Next ayah">
-                    <i class="ph ph-caret-right text-base" aria-hidden="true"></i>
-                  </button>
-                  <button type="button" class="tafsir-close-btn" onclick="closeTafsirView(${Number(ayahNum)})" aria-label="Close tafsir">
-                    <i class="ph ph-x text-base" aria-hidden="true"></i>
-                    <span>Close</span>
-                  </button>
-                </div>
-              </div>
-              <div id="tafsir-content-${ayahNum}" class="tafsir-content tafsir-content-scroll tafsir-content--en font-sans"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
+      versesList.innerHTML = buildVerseCardsHtml(state.currentSurahNum, arabicAyahs, englishAyahs);
       syncAudioUi();
     }
 
@@ -4779,7 +4918,14 @@
       return state.currentSurahData.ayahs.findIndex((a) => a.number === globalAyahNumber);
     }
 
-    function playVerseAudio(globalAyahNumber, continuous) {
+    async function playVerseAudio(globalAyahNumber, continuous) {
+      const surahNum = window.QuranContinuousReader?.surahNumFromGlobalAyah(globalAyahNumber) ?? state.currentSurahNum;
+      try {
+        await ensureSurahDataForPlayback(surahNum);
+      } catch {
+        showToast('Could not load audio');
+        return;
+      }
       const index = findAyahIndexByGlobalNumber(globalAyahNumber);
       if (index < 0) return;
       if (
@@ -4825,8 +4971,8 @@
 
     // WORD-BY-WORD FETCHING ENGINE
     async function toggleWordByWord(surahNum, ayahNum) {
-      const box = document.getElementById(`wbw-box-${ayahNum}`);
-      const content = document.getElementById(`wbw-content-${ayahNum}`);
+      const box = document.getElementById(wbwBoxId(surahNum, ayahNum));
+      const content = document.getElementById(wbwContentId(surahNum, ayahNum));
       if (!box || !content) return;
 
       if (!box.classList.contains('hidden')) {
@@ -5442,7 +5588,7 @@
         });
       }
 
-      document.getElementById('btnStopAudio')?.addEventListener('click', () => stopAudio());
+      document.getElementById('btnCloseAudioPlayer')?.addEventListener('click', () => stopAudio());
 
       document.getElementById('btnPlaySurahFromStart')?.addEventListener('click', () => {
         if (!state.currentSurahData?.ayahs?.length) return;
@@ -5537,10 +5683,15 @@
         stopAudio(false);
         return;
       }
+      const nextSurah = state.currentSurahNum + 1;
       try {
-        await loadSurah(state.currentSurahNum + 1, null, { skipAudioCapture: true });
+        if (window.QuranContinuousReader) {
+          await window.QuranContinuousReader.ensureSurahSection(nextSurah);
+        }
+        await ensureSurahDataForPlayback(nextSurah);
         state.isPlayingContinuous = true;
         await playSingleVerse(0);
+        window.QuranContinuousReader?.scrollToAyahInSection(nextSurah, 1);
       } catch (err) {
         console.warn('Next surah playback failed', err);
         showTapToPlayOverlay('Tap to play next surah', 0);
@@ -5582,6 +5733,7 @@
 
     function stopAudio(resetContinuous = true) {
       state.audioPlayId += 1;
+      hideTapToPlayOverlay();
       if (quranAudio) {
         quranAudio.pause();
         quranAudio.currentTime = 0;
@@ -5590,6 +5742,7 @@
       state.currentPlayingAyahIndex = -1;
       if (audioProgressBar) audioProgressBar.style.width = '0%';
       if (audioProgressContainer) audioProgressContainer.setAttribute('aria-valuenow', '0');
+      clearMediaSession();
       syncAudioUi();
       if (resetContinuous) hideAudioPlayerBar();
     }
@@ -5610,10 +5763,10 @@
         await openTafsirView(surahNum, ayahNum);
         return;
       }
-      const box = document.getElementById(`tafsir-box-${ayahNum}`);
+      const box = document.getElementById(tafsirBoxId(surahNum, ayahNum));
       if (!box) return;
       if (!box.classList.contains('hidden')) {
-        closeTafsirView(ayahNum);
+        closeTafsirView(surahNum, ayahNum);
         return;
       }
       await openTafsirView(surahNum, ayahNum);
@@ -6010,7 +6163,14 @@
     function setupEventListeners() {
       if (surahSelect) {
         surahSelect.addEventListener('change', (e) => {
-          loadSurah(e.target.value);
+          const n = parseInt(e.target.value, 10);
+          if (!Number.isFinite(n)) return;
+          state.currentSurahNum = n;
+          if (isMushafPageScript(state.currentScriptKey)) {
+            loadSurah(n);
+            return;
+          }
+          window.QuranContinuousReader?.jumpToSurah(n);
         });
       }
 
@@ -6067,13 +6227,21 @@
       if (btnPrev) {
         btnPrev.addEventListener('click', () => {
           if (state.currentSurahNum <= 1) return;
-          loadSurah(state.currentSurahNum - 1);
+          if (isMushafPageScript(state.currentScriptKey)) {
+            loadSurah(state.currentSurahNum - 1);
+          } else {
+            window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum - 1);
+          }
         });
       }
       if (btnNext) {
         btnNext.addEventListener('click', () => {
           if (state.currentSurahNum >= 114) return;
-          loadSurah(state.currentSurahNum + 1);
+          if (isMushafPageScript(state.currentScriptKey)) {
+            loadSurah(state.currentSurahNum + 1);
+          } else {
+            window.QuranContinuousReader?.jumpToSurah(state.currentSurahNum + 1);
+          }
         });
       }
 

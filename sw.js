@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v51";
+const CACHE_NAME = "quran-mobile-v53";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -158,6 +158,7 @@ function precacheShellUrls() {
     `${base}index.html`,
     `${base}manifest.webmanifest`,
     `${base}assets/app.css`,
+    `${base}assets/continuous-reader.js`,
     `${base}icons/icon-192.png`,
     `${base}icons/icon-512.png`,
   ];
