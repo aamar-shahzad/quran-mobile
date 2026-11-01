@@ -1804,30 +1804,48 @@
       const iosModal = document.getElementById('iosInstallModal');
       const closeIosModal = document.getElementById('closeIosModal');
       const ackIosModal = document.getElementById('ackIosModal');
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+      if (isStandalone) {
+        banner?.classList.add('hidden');
+        return;
+      }
 
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         state.deferredPwaPrompt = e;
-        if (banner) banner.classList.remove('hidden');
+        if (banner && safeStorageGet('quran_pwa_banner_dismiss') !== '1') {
+          banner.classList.remove('hidden');
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        state.deferredPwaPrompt = null;
+        banner?.classList.add('hidden');
       });
 
       if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
           if (state.deferredPwaPrompt) {
-            state.deferredPwaPrompt.prompt();
+            await state.deferredPwaPrompt.prompt();
             const { outcome } = await state.deferredPwaPrompt.userChoice;
             if (outcome === 'accepted' && banner) banner.classList.add('hidden');
             state.deferredPwaPrompt = null;
+            return;
           }
+          refreshShareInstallModal?.();
+          openAppModal('pwaGuideModal');
         });
       }
 
       if (btnDismiss && banner) {
-        btnDismiss.addEventListener('click', () => banner.classList.add('hidden'));
+        btnDismiss.addEventListener('click', () => {
+          banner.classList.add('hidden');
+          safeStorageSet('quran_pwa_banner_dismiss', '1');
+        });
       }
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       if (isIOS && !isStandalone && iosModal) {
         setTimeout(() => iosModal.classList.remove('hidden'), 2000);
       }
@@ -3145,7 +3163,18 @@
       bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
       document.getElementById('btnMenuAzkar')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); loadAzkarCategory('morning'); openAppModal('azkarModal'); });
       document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
-      document.getElementById('btnMenuShareInstall')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('pwaGuideModal'); refreshShareInstallModal?.(); });
+      document.getElementById('btnMenuShareInstall')?.addEventListener('click', async () => {
+        closeAppModal('moreMenuModal');
+        if (state.deferredPwaPrompt) {
+          await state.deferredPwaPrompt.prompt();
+          await state.deferredPwaPrompt.userChoice;
+          state.deferredPwaPrompt = null;
+          document.getElementById('pwaInstallBanner')?.classList.add('hidden');
+          return;
+        }
+        openAppModal('pwaGuideModal');
+        refreshShareInstallModal?.();
+      });
       document.getElementById('closeBookmarkNoteModal')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
       document.getElementById('btnCancelBookmarkNote')?.addEventListener('click', () => { state.pendingBookmark = null; closeAppModal('bookmarkNoteModal'); });
       document.getElementById('btnSaveBookmarkNote')?.addEventListener('click', () => saveBookmarkFromModal());

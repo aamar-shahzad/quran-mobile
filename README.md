@@ -36,6 +36,10 @@ In the app: **More** → _Data sources_ for the full list.
 
 Open the live link on your phone → **More** → _Share & install_ → Add to Home Screen (iOS Safari) or Install app (Android Chrome).
 
+On Android/desktop Chrome, a green **Install** bar may appear when the app is installable; tap it to run the native install dialog (Chrome may log that its default banner was deferred — that is expected).
+
+Serve the repo root locally (`python3 -m http.server 8080`); manifest scope is `./` so install and shortcuts work at `http://127.0.0.1:8080/` and on GitHub Pages.
+
 ## Local preview
 
 ```bash

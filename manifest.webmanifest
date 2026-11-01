@@ -1,10 +1,10 @@
 {
-  "id": "/quran-mobile/",
+  "id": "./",
   "name": "Quran",
   "short_name": "Quran",
   "description": "Quran with translations, tafsir, and recitation. Caches the app shell and content you've opened for offline use.",
-  "start_url": "/quran-mobile/",
-  "scope": "/quran-mobile/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -34,7 +34,7 @@
       "name": "Continue listening",
       "short_name": "Continue",
       "description": "Resume last recitation",
-      "url": "./?play=last",
+      "url": "?play=last",
       "icons": [
         { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -42,7 +42,7 @@
     {
       "name": "Surah Al-Kahf",
       "short_name": "Al-Kahf",
-      "url": "./?surah=18&play=1",
+      "url": "?surah=18&play=1",
       "icons": [
         { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -50,7 +50,7 @@
     {
       "name": "Surah Ya-Sin",
       "short_name": "Ya-Sin",
-      "url": "./?surah=36&play=1",
+      "url": "?surah=36&play=1",
       "icons": [
         { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -58,7 +58,7 @@
     {
       "name": "Surah Ar-Rahman",
       "short_name": "Ar-Rahman",
-      "url": "./?surah=55&play=1",
+      "url": "?surah=55&play=1",
       "icons": [
         { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -66,7 +66,7 @@
     {
       "name": "Surah Al-Mulk",
       "short_name": "Al-Mulk",
-      "url": "./?surah=67&play=1",
+      "url": "?surah=67&play=1",
       "icons": [
         { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
