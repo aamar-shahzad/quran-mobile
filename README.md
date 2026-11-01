@@ -17,12 +17,14 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 
 - **Reading options → Indo-Pak mushaf (15-line)** switches to 610-page layout from Quran.com (`text_indopak_nastaleeq`).
 - Swipe **right** for the next page, **left** for previous (RTL turn). Nav buttons match: ← next, → previous.
+- Share a mushaf page with `?page=134` (opens Indo-Pak mushaf layout).
+- **Reading options → Save this surah’s mushaf pages for offline** caches every mushaf page that contains the current surah (within cache limits).
 
 ## Background audio
 
 - Lock-screen **play / pause / next / previous** use the Media Session API while recitation is playing.
 - **Continue listening:** long-press the home-screen icon → _Continue_ (Android), or open `?play=last`.
-- Deep links (`?surah=`, `?play=1`) still work if you bookmark or share a URL yourself.
+- Deep links (`?surah=`, `?ayah=`, `?page=`, `?play=1`) still work if you bookmark or share a URL yourself.
 
 ## Data sources (authentic APIs)
 

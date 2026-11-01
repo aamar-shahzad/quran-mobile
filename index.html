@@ -1446,7 +1446,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=27').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=28').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1560,15 +1560,15 @@
       </button>
     </div>
     <div id="readerNavSecondary" class="flex items-center justify-center gap-2 sm:justify-start">
-      <button type="button" id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Previous surah">
-        <i class="ph ph-caret-left text-lg"></i>
+      <button type="button" id="btnNextSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Next surah">
+        <i class="ph ph-caret-left text-lg" aria-hidden="true"></i>
       </button>
       <button type="button" id="btnOpenSurahNavModal" class="px-3 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-xs font-semibold text-emerald-400 rounded-xl transition flex items-center gap-1" aria-label="Jump to Juz or surah">
         <i class="ph ph-squares-four text-sm"></i>
         <span>Jump</span>
       </button>
-      <button type="button" id="btnNextSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Next surah">
-        <i class="ph ph-caret-right text-lg"></i>
+      <button type="button" id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Previous surah">
+        <i class="ph ph-caret-right text-lg" aria-hidden="true"></i>
       </button>
     </div>
     <div id="mushafPageNav" class="hidden items-center justify-center gap-1.5 sm:gap-2">
@@ -1970,7 +1970,7 @@
     const MUSHAF_PAGE_LAYOUT_ID = 6;
     const MUSHAF_PAGE_MAX = 610;
     const MUSHAF_PAGE_LINES = 15;
-    const MUSHAF_PAGE_CACHE_MAX = 36;
+    const MUSHAF_PAGE_CACHE_MAX = 52;
     const SURAH_VIEW_CACHE_MAX = 10;
     const SURAH_LIST_STORAGE_KEY = 'quran_surah_list_v1';
 
@@ -3146,7 +3146,13 @@
         hideSearchResults();
       }
       document.getElementById('readingOptionsTranslationBlock')?.classList.toggle('hidden', mushaf);
-      document.getElementById('btnCacheSurahOffline')?.classList.toggle('hidden', mushaf);
+      const offlineBtn = document.getElementById('btnCacheSurahOffline');
+      if (offlineBtn) {
+        offlineBtn.classList.remove('hidden');
+        offlineBtn.textContent = mushaf
+          ? 'Save this surah’s mushaf pages for offline'
+          : 'Save this surah for offline';
+      }
       const juzTitle = document.querySelector('#juzModalTitle span');
       if (juzTitle) {
         juzTitle.textContent = mushaf ? 'Jump — Juz or mushaf page' : 'Jump to Juz (Para)';
@@ -4061,8 +4067,51 @@
       await loadMushafPage(next.page, next.signal, next.loadId);
     }
 
+    async function collectMushafPagesForSurah(surahNum, signal) {
+      const pages = new Set();
+      let apiPage = 1;
+      const perPage = 50;
+      while (true) {
+        const data = await fetchQuranComJson(
+          `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=page_number&mushaf=${MUSHAF_PAGE_LAYOUT_ID}&page=${apiPage}&per_page=${perPage}`,
+          withFetchTimeout(signal),
+        );
+        for (const v of data.verses || []) {
+          if (v.page_number) pages.add(v.page_number);
+        }
+        const totalPages = data.pagination?.total_pages || 1;
+        if (apiPage >= totalPages) break;
+        apiPage += 1;
+      }
+      return [...pages].sort((a, b) => a - b);
+    }
+
+    async function cacheMushafSurahPagesForOffline(surahNum) {
+      if (!surahNum || surahNum < 1 || surahNum > 114) return;
+      showToast('Saving mushaf pages…');
+      const signal = AbortSignal.timeout(120000);
+      try {
+        await ensureQuranChaptersMeta(withFetchTimeout(signal));
+        const pages = await collectMushafPagesForSurah(surahNum, signal);
+        if (!pages.length) throw new Error('no pages');
+        for (const p of pages) {
+          if (state.mushafPageCache.has(p)) continue;
+          const verses = await fetchMushafPageVerses(p, signal);
+          if (verses.length) state.mushafPageCache.set(p, verses);
+        }
+        trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX);
+        showToast(`Saved ${pages.length} mushaf page${pages.length === 1 ? '' : 's'} for offline`);
+      } catch {
+        showToast('Could not save mushaf pages');
+      }
+    }
+
     async function cacheCurrentSurahForOffline() {
       if (!state.currentSurahNum) return;
+      if (isMushafPageScript(state.currentScriptKey)) {
+        await cacheMushafSurahPagesForOffline(state.currentSurahNum);
+        return;
+      }
       showToast('Saving surah…');
       try {
         const payload = await fetchSurahViewData(state.currentSurahNum, AbortSignal.timeout(12000));
@@ -4699,11 +4748,12 @@
       }
     }
 
-    function buildDeepLink({ surah, ayah, reciter, play }) {
+    function buildDeepLink({ surah, ayah, page, reciter, play }) {
       const u = new URL(window.location.href);
       u.search = '';
       if (surah) u.searchParams.set('surah', String(surah));
       if (ayah) u.searchParams.set('ayah', String(ayah));
+      if (page) u.searchParams.set('page', String(page));
       if (reciter) u.searchParams.set('reciter', normalizeReciterId(reciter));
       if (play === 'last') u.searchParams.set('play', 'last');
       else if (play) u.searchParams.set('play', '1');
@@ -4724,6 +4774,15 @@
         if (last) await resumeFromPlaybackState(last);
         history.replaceState({}, '', window.location.pathname);
         return;
+      }
+      const pageRaw = params.get('page');
+      if (pageRaw) {
+        const page = parseInt(pageRaw, 10);
+        if (Number.isFinite(page) && page >= 1 && page <= MUSHAF_PAGE_MAX) {
+          await jumpToMushafPage(page);
+          history.replaceState({}, '', window.location.pathname);
+          return;
+        }
       }
       const surahRaw = params.get('surah');
       if (surahRaw) {
