@@ -101,6 +101,81 @@
       min-height: -webkit-fill-available;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
+    #appStartupSplash {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: max(1.25rem, env(safe-area-inset-top, 0px)) 1.5rem max(1.25rem, env(safe-area-inset-bottom, 0px));
+      background: var(--app-bg);
+      color: var(--app-text);
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    #appStartupSplash.app-splash--hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .app-splash__inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 16rem;
+    }
+    .app-splash__logo {
+      width: 5.5rem;
+      height: 5.5rem;
+      border-radius: 1.35rem;
+      object-fit: cover;
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+    }
+    html:not(.dark) .app-splash__logo {
+      box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14);
+    }
+    .app-splash__title-ar {
+      margin-top: 1.15rem;
+      font-family: Amiri, 'Noto Naskh Arabic', serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #10b981;
+    }
+    html.dark .app-splash__title-ar {
+      color: #34d399;
+    }
+    .app-splash__title {
+      margin-top: 0.35rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--app-muted);
+    }
+    .app-splash__status {
+      margin-top: 1rem;
+      font-size: 0.8125rem;
+      color: var(--app-muted);
+      min-height: 1.25rem;
+    }
+    .app-splash__spinner {
+      margin-top: 1.15rem;
+      width: 1.65rem;
+      height: 1.65rem;
+      border: 2.5px solid rgba(100, 116, 139, 0.35);
+      border-top-color: #10b981;
+      border-radius: 50%;
+      animation: app-splash-spin 0.8s linear infinite;
+    }
+    @keyframes app-splash-spin {
+      to { transform: rotate(360deg); }
+    }
+    body.app-is-booting #appShell {
+      visibility: hidden;
+    }
     .verse-display-body--arabic {
       font-size: calc(clamp(1.35rem, 5vw, 1.65rem) * var(--reader-font-scale, 1));
       line-height: 2.15;
@@ -1428,7 +1503,17 @@
   </style>
 </head>
 
-<body class="bg-dark-bg text-slate-100 flex flex-col min-h-[100dvh] max-h-[100dvh] overflow-hidden antialiased">
+<body class="app-is-booting bg-dark-bg text-slate-100 flex flex-col min-h-[100dvh] max-h-[100dvh] overflow-hidden antialiased">
+
+  <div id="appStartupSplash" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Quran app">
+    <div class="app-splash__inner">
+      <img class="app-splash__logo" src="icons/icon-192.png" width="88" height="88" alt="">
+      <p class="app-splash__title-ar" dir="rtl" lang="ar">الْقُرْآنُ الْكَرِيمُ</p>
+      <p class="app-splash__title">Quran</p>
+      <p id="appSplashStatus" class="app-splash__status">Loading…</p>
+      <div class="app-splash__spinner" aria-hidden="true"></div>
+    </div>
+  </div>
 
   <div id="appUpdateBanner" class="hidden fixed bottom-20 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[70] bg-brand-700 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-brand-500 flex items-center justify-between gap-3">
     <span>New version available</span>
@@ -1446,7 +1531,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=28').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=29').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2222,6 +2307,36 @@
       setReaderNavBusy(false);
     }
 
+    const STARTUP_SPLASH_MIN_MS = 500;
+    let startupSplashShownAt = Date.now();
+
+    function setStartupSplashStatus(message) {
+      const el = document.getElementById('appSplashStatus');
+      if (el) el.textContent = message;
+    }
+
+    async function hideStartupSplash() {
+      const splash = document.getElementById('appStartupSplash');
+      if (!splash || splash.classList.contains('app-splash--hide')) return;
+      const wait = Math.max(0, STARTUP_SPLASH_MIN_MS - (Date.now() - startupSplashShownAt));
+      if (wait) await new Promise((r) => setTimeout(r, wait));
+      splash.classList.add('app-splash--hide');
+      splash.setAttribute('aria-busy', 'false');
+      document.body.classList.remove('app-is-booting');
+      setTimeout(() => splash.remove(), 450);
+    }
+
+    async function bootstrapApp() {
+      try {
+        setStartupSplashStatus('Loading surah list…');
+        await fetchSurahList();
+        setStartupSplashStatus('Opening reader…');
+        await handleDeepLinkQuery();
+      } finally {
+        await hideStartupSplash();
+      }
+    }
+
     async function fetchQuranComJson(url, signal) {
       const attempts = 3;
       let lastErr;
@@ -2839,7 +2954,7 @@
       scheduleIdle(() => {
         ensureQuranChaptersMeta(withFetchTimeout(null, 15000)).catch(() => {});
       });
-      fetchSurahList().then(() => handleDeepLinkQuery());
+      bootstrapApp();
       setupEventListeners();
       initAppearancePreferences();
       initAutoHideReaderChrome();
@@ -2957,6 +3072,7 @@
       let initialContentLoad = null;
       const startInitialContentLoad = () => {
         if (initialContentLoad) return initialContentLoad;
+        setStartupSplashStatus('Loading Quran…');
         setReaderLoading(true, { label: 'Loading Quran…' });
         initialContentLoad = loadSurah(state.currentSurahNum);
         return initialContentLoad;
@@ -3020,6 +3136,7 @@
         }
         setReaderLoading(false);
         setReaderNavBusy(false);
+        setStartupSplashStatus('Could not load — check connection');
         return false;
       }
     }

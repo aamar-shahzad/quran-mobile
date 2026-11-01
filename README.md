@@ -44,6 +44,8 @@ In the app: **More** → _Reading options_ for script, **appearance** (light/dar
 
 Open the live link on your phone → **More** → _Share & install_ → Add to Home Screen (iOS Safari) or Install app (Android Chrome).
 
+On first open, a splash screen shows while the surah list and reader load (matches light/dark theme). The installed PWA uses the same icon and background colors from the manifest.
+
 On Android/desktop Chrome, a green **Install** bar may appear when the app is installable; tap it to run the native install dialog. Chrome may log that its default mini-banner was deferred — that is expected when the app uses its own install button. You can also use **More → Install app** or **Share & install → Install app**.
 
 Serve the repo root locally (`python3 -m http.server 8080`); manifest scope is `./` so install and shortcuts work at `http://127.0.0.1:8080/` and on GitHub Pages.

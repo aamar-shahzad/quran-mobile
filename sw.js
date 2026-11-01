@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v28";
+const CACHE_NAME = "quran-mobile-v29";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
