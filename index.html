@@ -2310,7 +2310,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=77').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=78').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -5208,17 +5208,11 @@
       }
     }
 
-    function onContinuousEdgeLoadError(err, meta = {}) {
-      const msg = String(err?.message || err || '');
+    function onContinuousEdgeLoadError(_err, meta = {}) {
       const direction = meta.direction === -1 ? -1 : 1;
       const kind = meta.kind === 'mushaf' ? 'mushaf' : 'surah';
       state.lastEdgeLoadFailure = { direction, kind, at: Date.now() };
       showReaderEdgeRetryBanner(direction, kind);
-      if (/timeout|timed out/i.test(msg)) {
-        showToast('Load timed out — tap Retry or scroll again.');
-        return;
-      }
-      showToast('Could not load more — tap Retry.');
     }
 
     function showReaderEdgeRetryBanner(direction, kind) {
@@ -5236,11 +5230,21 @@
         }
       }
       el.classList.remove('hidden');
+      clearTimeout(state._edgeRetryHideTimer);
+      state._edgeRetryHideTimer = setTimeout(() => hideReaderEdgeRetry(), 45_000);
     }
 
     function hideReaderEdgeRetry() {
+      clearTimeout(state._edgeRetryHideTimer);
+      state._edgeRetryHideTimer = null;
       state.lastEdgeLoadFailure = null;
       document.getElementById('readerEdgeRetry')?.classList.add('hidden');
+    }
+
+    function dismissReaderEdgeRetryIfStale() {
+      const failure = state.lastEdgeLoadFailure;
+      if (!failure) return;
+      if (Date.now() - failure.at > 120_000) hideReaderEdgeRetry();
     }
 
     function retryLastEdgeLoad() {

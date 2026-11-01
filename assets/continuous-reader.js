@@ -142,12 +142,13 @@
     return timeout || undefined;
   }
 
-  function getEdgeLoadSignal(h) {
-    const nums = listedSurahNums();
-    if (!nums.length) return fallbackSurah;
-    const scrollSurah = pickActiveSurahFromViewport();
-    const rangeMid = Math.round((nums[0] + nums[nums.length - 1]) / 2);
-    return scrollSurah ?? rangeMid ?? fallbackSurah;
+  function pruneAnchorSurah(anchorSurah) {
+    const n = parseInt(anchorSurah, 10);
+    if (Number.isFinite(n)) return n;
+    const picked = pickActiveSurahFromViewport();
+    if (Number.isFinite(picked)) return picked;
+    const current = getHost()?.getState()?.currentSurahNum;
+    return Number.isFinite(current) ? current : 1;
   }
 
   function pruneWindowRadius(h) {
