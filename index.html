@@ -100,6 +100,50 @@
       text-align: center;
       letter-spacing: 0.01em;
     }
+    .mushaf-page-card {
+      background: linear-gradient(180deg, #faf6ee 0%, #f3ead8 100%);
+      color: #1a1510;
+      border: 2px solid #c4a574;
+      box-shadow: inset 0 0 0 4px #faf6ee, inset 0 0 0 6px #c4a574;
+      border-radius: 4px;
+    }
+    html.dark .mushaf-page-card {
+      background: linear-gradient(180deg, #1c1915 0%, #12100d 100%);
+      color: #e8e0d4;
+      border-color: #5c4a32;
+      box-shadow: inset 0 0 0 4px #1c1915, inset 0 0 0 6px #5c4a32;
+    }
+    .mushaf-page-header {
+      border-bottom: 1px solid rgba(120, 90, 50, 0.35);
+      padding: 0.5rem 0.75rem;
+      font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+    }
+    .mushaf-page-body {
+      padding: 1rem 0.85rem 1.25rem;
+      font-size: clamp(1.15rem, 4.2vw, 1.45rem);
+      line-height: 2.05;
+      text-align: justify;
+      text-align-last: center;
+      hyphens: manual;
+    }
+    .mushaf-ayah-marker {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.65em;
+      height: 1.65em;
+      margin-inline: 0.15em;
+      border-radius: 9999px;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #047857;
+      font-size: 0.72em;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    html.dark .mushaf-ayah-marker {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.55);
+    }
     /* Tajweed rule colors (Al Quran Cloud quran-tajweed markup) */
     .tj-h, .tj-s, .tj-l { color: #94a3b8; }
     .tj-n { color: #fb923c; }
@@ -858,6 +902,11 @@
         <i class="ph ph-caret-right text-lg"></i>
       </button>
     </div>
+    <div id="mushafPageNav" class="hidden flex items-center justify-center gap-2">
+      <button type="button" id="btnPrevMushafPage" class="p-2.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl" aria-label="Previous mushaf page"><i class="ph ph-caret-left text-lg"></i></button>
+      <span id="mushafPageLabel" class="text-xs font-semibold text-emerald-400 min-w-[7rem] text-center">Page 1 / 604</span>
+      <button type="button" id="btnNextMushafPage" class="p-2.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl" aria-label="Next mushaf page"><i class="ph ph-caret-right text-lg"></i></button>
+    </div>
 
     <div id="searchContainer" class="hidden transition-all duration-200 space-y-1.5">
       <div class="relative">
@@ -1226,6 +1275,7 @@
       currentScriptKey: null,
       currentReciter: 'ar.alafasy',
       currentTranslationKey: 'en.sahih',
+      currentMushafPage: Math.min(604, Math.max(1, parseInt(safeStorageGet('quran_mushaf_page', '1'), 10) || 1)),
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
       currentPlayingAyahIndex: -1,
@@ -1320,7 +1370,8 @@
 
     // Quran text formats (alquran.cloud — same families as Quran-in-Word / mushaf tools)
     const QURAN_TEXT_FORMATS = [
-      { key: 'quran-indopak-16line', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak Naskh (Hifzi-style, by ayah)', mode: 'indopak' },
+      { key: 'quran-indopak-16line', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak Naskh (by ayah)', mode: 'indopak' },
+      { key: 'quran-indopak-mushaf-page', edition: null, group: 'Indo-Pak Naskh', label: 'Indo-Pak Mushaf page (604 pages)', mode: 'mushaf_page' },
       { key: 'quran-uthmani', edition: 'quran-uthmani', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Madinah Mushaf (Hafs)', mode: 'arabic' },
       { key: 'quran-uthmani-min', edition: 'quran-uthmani-min', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — light diacritics', mode: 'arabic' },
       { key: 'quran-unicode', edition: 'quran-unicode', group: 'Mushaf — Uthmani (Rasm)', label: 'Uthmani — Unicode computer font', mode: 'arabic' },
@@ -1343,7 +1394,7 @@
       transliteration: 'en-transliteration',
       indopak: 'quran-indopak-16line',
       'quran-indopak': 'quran-indopak-16line',
-      'quran-indopak-mushaf-page': 'quran-indopak-16line',
+      'quran-indopak-mushaf-page': 'quran-indopak-mushaf-page',
     };
 
     function isIndopakAyahScript(scriptKey) {
@@ -1599,6 +1650,9 @@
       if (fmt.mode === 'indopak') {
         return 'Quran: Quran.com · Hifzi Indo-Pak Naskh (Hafs, text_indopak).';
       }
+      if (fmt.mode === 'mushaf_page') {
+        return 'Quran: Quran.com · Indo-Pak Mushaf page layout (604 pages, text_indopak).';
+      }
       if (fmt.mode === 'transliteration') {
         return `Quran: Al Quran Cloud · ${fmt.edition} (transliteration).`;
       }
@@ -1788,6 +1842,7 @@
       fetchSurahList().then(() => handleDeepLinkQuery());
       setupEventListeners();
       initAutoHideReaderChrome();
+      syncReaderLayoutChrome();
       setupJuzGrid();
       updateBookmarkIndicator();
       setupAudioPlayerEvents();
@@ -1978,6 +2033,135 @@
       return fallback;
     }
 
+    function isMushafPageScript(scriptKey) {
+      return getScriptFormat(scriptKey).mode === 'mushaf_page';
+    }
+
+    function syncReaderLayoutChrome() {
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      document.getElementById('mushafPageNav')?.classList.toggle('hidden', !mushaf);
+      document.getElementById('readerNavSecondary')?.classList.toggle('hidden', mushaf);
+    }
+
+    async function getStartPageForSurah(surahNum, signal) {
+      const data = await fetchQuranComJson(
+        `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=page_number&per_page=1`,
+        signal,
+      );
+      return data.verses?.[0]?.page_number || 1;
+    }
+
+    async function getPageForSurahAyah(surahNum, ayahNum, signal) {
+      const data = await fetchQuranComJson(
+        `https://api.quran.com/api/v4/verses/by_key/${surahNum}:${ayahNum}?words=false&fields=page_number`,
+        signal,
+      );
+      return data.verse?.page_number || (await getStartPageForSurah(surahNum, signal));
+    }
+
+    function chapterIdFromVerseKey(verseKey) {
+      const n = parseInt(String(verseKey || '').split(':')[0], 10);
+      return Number.isFinite(n) ? n : 1;
+    }
+
+    async function fetchMushafPageVerses(pageNum, signal) {
+      const data = await fetchQuranComJson(
+        `https://api.quran.com/api/v4/verses/by_page/${pageNum}?words=false&fields=text_indopak,verse_key,juz_number&per_page=50`,
+        signal,
+      );
+      return data.verses || [];
+    }
+
+    function renderMushafPage(verses, pageNum) {
+      if (!versesList) return;
+      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+      const juz = verses[0]?.juz_number;
+      const surahNums = [...new Set(verses.map((v) => chapterIdFromVerseKey(v.verse_key)))];
+      const surahLabels = surahNums
+        .map((n) => {
+          const s = state.surahs?.find((x) => x.number === n);
+          return s ? `${s.name} ${toArabicNumerals(n)}` : `سورة ${toArabicNumerals(n)}`;
+        })
+        .join(' · ');
+      const bodyHtml = verses
+        .map((v) => {
+          const text = (v.text_indopak || '').trim();
+          return `${escapeHtml(text)}<button type="button" class="mushaf-ayah-marker" data-surah="${chapterIdFromVerseKey(v.verse_key)}" data-ayah="${v.verse_number}" aria-label="Play ayah ${v.verse_number}">${toArabicNumerals(v.verse_number)}</button> `;
+        })
+        .join('');
+      versesList.innerHTML = `
+        <article class="mushaf-page-card mx-auto w-full max-w-lg shadow-lg">
+          <header class="mushaf-page-header grid grid-cols-3 items-center text-sm gap-1">
+            <span class="text-right truncate">${escapeHtml(surahLabels.split(' · ')[0] || '')}</span>
+            <span class="text-center font-bold text-base">${toArabicNumerals(pageNum)}</span>
+            <span class="text-left">${juz ? `جُزْء ${toArabicNumerals(juz)}` : ''}</span>
+          </header>
+          <div class="mushaf-page-body hifzi-naskh-text" dir="rtl">${bodyHtml}</div>
+          <p class="text-[10px] text-center opacity-70 px-3 pb-3 leading-snug">Indo-Pak 604-page layout · Quran.com <code class="text-[9px]">text_indopak</code> · tap verse number to play · not a scanned print</p>
+        </article>`;
+      document.getElementById('mushafPageLabel').textContent = `Page ${pageNum} / 604`;
+      document.getElementById('btnPrevMushafPage').disabled = pageNum <= 1;
+      document.getElementById('btnNextMushafPage').disabled = pageNum >= 604;
+      versesList.querySelectorAll('.mushaf-ayah-marker').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          playMushafAyah(parseInt(btn.getAttribute('data-surah'), 10), parseInt(btn.getAttribute('data-ayah'), 10));
+        });
+      });
+    }
+
+    async function loadMushafPage(pageNum, signal) {
+      const page = Math.min(604, Math.max(1, parseInt(pageNum, 10) || 1));
+      state.currentMushafPage = page;
+      safeStorageSet('quran_mushaf_page', String(page));
+      syncReaderLayoutChrome();
+      if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+      if (versesList) versesList.innerHTML = '';
+      try {
+        const verses = await fetchMushafPageVerses(page, signal);
+        if (!verses.length) throw new Error('empty page');
+        state.currentSurahNum = chapterIdFromVerseKey(verses[0].verse_key);
+        if (surahSelect) surahSelect.value = String(state.currentSurahNum);
+        updateNavigationButtons();
+        renderMushafPage(verses, page);
+        hideSearchResults();
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        if (versesList) {
+          versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not load this mushaf page.</p>';
+        }
+      } finally {
+        if (signal === state.surahLoadController?.signal && loadingSpinner) {
+          loadingSpinner.classList.add('hidden');
+        }
+      }
+    }
+
+    async function playMushafAyah(chapterId, verseNumber) {
+      try {
+        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${chapterId}:${verseNumber}/quran-uthmani`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        const data = await res.json();
+        if (data.code !== 200 || !data.data?.number) {
+          showToast('Could not play ayah');
+          return;
+        }
+        const globalNum = data.data.number;
+        const url = await resolveAyahAudioUrl(state.currentReciter, globalNum);
+        state.currentSurahNum = chapterId;
+        const surahMeta = state.surahs?.find((s) => s.number === chapterId);
+        if (audioVerseLabel) {
+          audioVerseLabel.textContent = `${surahMeta?.englishName || 'Surah'} ${verseNumber}`;
+        }
+        showAudioPlayerBar();
+        quranAudio.src = url;
+        await quranAudio.play();
+        if (globalPlayIcon) globalPlayIcon.className = 'ph ph-pause-fill';
+      } catch {
+        showToast('Could not play ayah');
+      }
+    }
+
     async function loadSurah(number, targetAyah = null) {
       state.currentSurahNum = parseInt(number, 10);
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
@@ -1987,6 +2171,25 @@
       state.surahLoadController?.abort();
       state.surahLoadController = new AbortController();
       const { signal } = state.surahLoadController;
+
+      if (isMushafPageScript(state.currentScriptKey)) {
+        let page = state.currentMushafPage;
+        try {
+          if (targetAyah) {
+            page = await getPageForSurahAyah(state.currentSurahNum, targetAyah, signal);
+          } else {
+            page = await getStartPageForSurah(state.currentSurahNum, signal);
+          }
+          await loadMushafPage(page, signal);
+        } catch (err) {
+          if (err?.name !== 'AbortError' && versesList) {
+            versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not open mushaf page.</p>';
+          }
+        }
+        return;
+      }
+
+      syncReaderLayoutChrome();
 
       if (loadingSpinner) loadingSpinner.classList.remove('hidden');
       if (versesList) versesList.innerHTML = '';
@@ -2386,23 +2589,16 @@
         showToast('Use page 1–604');
         return;
       }
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      try {
-        const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${page}?words=false`, { signal: controller.signal });
-        const data = await res.json();
-        const v = data.verses?.[0];
-        if (!v) {
-          showToast('Page not found');
-          return;
-        }
-        closeAppModal('juzModal');
-        await loadSurah(v.chapter_id, v.verse_number);
-      } catch {
-        showToast('Could not load page');
-      } finally {
-        clearTimeout(timer);
+      closeAppModal('juzModal');
+      if (!isMushafPageScript(state.currentScriptKey)) {
+        state.currentScriptKey = 'quran-indopak-mushaf-page';
+        safeStorageSet('quran_script_pref', state.currentScriptKey);
+        if (scriptSelect) scriptSelect.value = state.currentScriptKey;
+        updateContentSourceHints();
       }
+      state.surahLoadController?.abort();
+      state.surahLoadController = new AbortController();
+      await loadMushafPage(page, state.surahLoadController.signal);
     }
 
     async function cacheCurrentSurahForOffline() {
@@ -3119,10 +3315,24 @@
           state.currentScriptKey = e.target.value;
           safeStorageSet('quran_script_pref', state.currentScriptKey);
           updateContentSourceHints();
+          syncReaderLayoutChrome();
           loadSurah(state.currentSurahNum);
           syncReaderFocusMode();
         });
       }
+
+      document.getElementById('btnPrevMushafPage')?.addEventListener('click', () => {
+        if (state.currentMushafPage <= 1) return;
+        state.surahLoadController?.abort();
+        state.surahLoadController = new AbortController();
+        loadMushafPage(state.currentMushafPage - 1, state.surahLoadController.signal);
+      });
+      document.getElementById('btnNextMushafPage')?.addEventListener('click', () => {
+        if (state.currentMushafPage >= 604) return;
+        state.surahLoadController?.abort();
+        state.surahLoadController = new AbortController();
+        loadMushafPage(state.currentMushafPage + 1, state.surahLoadController.signal);
+      });
 
       if (reciterSelect) {
         reciterSelect.addEventListener('change', (e) => {

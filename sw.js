@@ -132,7 +132,8 @@ async function cacheFirstAudio(request) {
   if (cached) return cached;
   try {
     const res = await fetch(request);
-    if (res.ok && res.status === 200) await cachePut(request, res.clone(), AUDIO_CACHE);
+    if (res.ok && res.status === 200)
+      await cachePut(request, res.clone(), AUDIO_CACHE);
     return res;
   } catch {
     return Response.error();
@@ -201,9 +202,14 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          const response = await fetchWithTimeout(event.request, NETWORK_TIMEOUT_MS);
+          const response = await fetchWithTimeout(
+            event.request,
+            NETWORK_TIMEOUT_MS,
+          );
           if (response.ok && isAppShellRequest(url)) {
-            event.waitUntil(cachePut(event.request, response.clone(), CACHE_NAME));
+            event.waitUntil(
+              cachePut(event.request, response.clone(), CACHE_NAME),
+            );
           }
           return response;
         } catch {
