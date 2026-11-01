@@ -652,6 +652,11 @@
     body.mushaf-reading-mode #surahViewport {
       touch-action: pan-y;
     }
+    #surahViewport.reader-is-loading #versesList,
+    #surahViewport.reader-is-loading #surahHeaderCard {
+      opacity: 0.55;
+      transition: opacity 0.18s ease;
+    }
     .mushaf-page-card {
       max-width: min(100%, 28rem);
     }
@@ -1166,7 +1171,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=23').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=24').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -1675,6 +1680,9 @@
     const MUSHAF_PAGE_LAYOUT_ID = 6;
     const MUSHAF_PAGE_MAX = 610;
     const MUSHAF_PAGE_LINES = 15;
+    const MUSHAF_PAGE_CACHE_MAX = 36;
+    const SURAH_VIEW_CACHE_MAX = 10;
+    const SURAH_LIST_STORAGE_KEY = 'quran_surah_list_v1';
 
     const state = {
       surahs: [],
@@ -1688,6 +1696,11 @@
       currentMushafPage: Math.min(MUSHAF_PAGE_MAX, Math.max(1, parseInt(safeStorageGet('quran_mushaf_page', '1'), 10) || 1)),
       quranChaptersById: null,
       mushafLoadSeq: 0,
+      mushafPageCache: new Map(),
+      surahViewCache: new Map(),
+      mushafSurahStartPageCache: new Map(),
+      mushafAyahPageCache: new Map(),
+      readerNavBusy: false,
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
       currentPlayingAyahIndex: -1,
@@ -1815,6 +1828,52 @@
       return getScriptFormat(scriptKey).mode === 'indopak';
     }
 
+    function trimMapCache(map, maxEntries) {
+      while (map.size > maxEntries) {
+        const oldest = map.keys().next().value;
+        map.delete(oldest);
+      }
+    }
+
+    function surahViewCacheKey(surahNum) {
+      return `${surahNum}:${state.currentScriptKey}:${state.currentTranslationKey}`;
+    }
+
+    function setReaderNavBusy(busy) {
+      state.readerNavBusy = busy;
+      const mushaf = isMushafPageScript(state.currentScriptKey);
+      const prevSurah = document.getElementById('btnPrevSurah');
+      const nextSurah = document.getElementById('btnNextSurah');
+      if (prevSurah) prevSurah.disabled = busy || state.currentSurahNum <= 1;
+      if (nextSurah) nextSurah.disabled = busy || state.currentSurahNum >= 114;
+      if (mushaf) {
+        const page = state.currentMushafPage;
+        const prevP = document.getElementById('btnPrevMushafPage');
+        const nextP = document.getElementById('btnNextMushafPage');
+        if (prevP) prevP.disabled = busy || page <= 1;
+        if (nextP) nextP.disabled = busy || page >= MUSHAF_PAGE_MAX;
+      }
+    }
+
+    function setReaderLoading(active, { keepContent = false } = {}) {
+      document.getElementById('surahViewport')?.classList.toggle('reader-is-loading', active);
+      if (!loadingSpinner) return;
+      if (!active) {
+        loadingSpinner.classList.add('hidden');
+        return;
+      }
+      if (keepContent) loadingSpinner.classList.add('hidden');
+      else loadingSpinner.classList.remove('hidden');
+    }
+
+    function scheduleIdle(task) {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => task(), { timeout: 2500 });
+      } else {
+        setTimeout(task, 400);
+      }
+    }
+
     async function fetchQuranComJson(url, signal) {
       const attempts = 3;
       let lastErr;
@@ -1824,7 +1883,6 @@
           const res = await fetch(url, {
             signal,
             headers: { Accept: 'application/json' },
-            cache: 'no-store',
           });
           if (!res.ok) {
             throw new Error(`Quran.com HTTP ${res.status}`);
@@ -2453,12 +2511,35 @@
         surahSelect.innerHTML = '<option value="" disabled selected>Loading Surahs...</option>';
       }
       try {
+        const cachedRaw = sessionStorage.getItem(SURAH_LIST_STORAGE_KEY);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          if (Array.isArray(cached?.data) && cached.data.length === 114) {
+            state.surahs = cached.data;
+            populateSurahDropdown(state.surahs);
+          }
+        }
+      } catch {
+        /* ignore corrupt cache */
+      }
+
+      try {
         const res = await fetch('https://api.alquran.cloud/v1/surah');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data && data.data) {
           state.surahs = data.data;
+          try {
+            sessionStorage.setItem(SURAH_LIST_STORAGE_KEY, JSON.stringify({ data: data.data, at: Date.now() }));
+          } catch {
+            /* quota */
+          }
           populateSurahDropdown(state.surahs);
+          await loadSurah(state.currentSurahNum);
+          showResumeReadingBanner();
+          return true;
+        }
+        if (state.surahs.length === 114) {
           await loadSurah(state.currentSurahNum);
           showResumeReadingBanner();
           return true;
@@ -2466,6 +2547,11 @@
         throw new Error('Invalid surah list');
       } catch (err) {
         console.error('Error fetching Surah list:', err);
+        if (state.surahs.length === 114) {
+          await loadSurah(state.currentSurahNum);
+          showResumeReadingBanner();
+          return true;
+        }
         if (surahSelect) {
           surahSelect.innerHTML = '<option value="" disabled selected>Could not load surahs</option>';
         }
@@ -2613,19 +2699,30 @@
     }
 
     async function getStartPageForSurah(surahNum, signal) {
+      if (state.mushafSurahStartPageCache.has(surahNum)) {
+        return state.mushafSurahStartPageCache.get(surahNum);
+      }
       const data = await fetchQuranComJson(
         `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=page_number&mushaf=${MUSHAF_PAGE_LAYOUT_ID}&per_page=1`,
         signal,
       );
-      return data.verses?.[0]?.page_number || 1;
+      const page = data.verses?.[0]?.page_number || 1;
+      state.mushafSurahStartPageCache.set(surahNum, page);
+      return page;
     }
 
     async function getPageForSurahAyah(surahNum, ayahNum, signal) {
+      const key = `${surahNum}:${ayahNum}`;
+      if (state.mushafAyahPageCache.has(key)) {
+        return state.mushafAyahPageCache.get(key);
+      }
       const data = await fetchQuranComJson(
         `https://api.quran.com/api/v4/verses/by_key/${surahNum}:${ayahNum}?words=false&fields=page_number&mushaf=${MUSHAF_PAGE_LAYOUT_ID}`,
         signal,
       );
-      return data.verse?.page_number || (await getStartPageForSurah(surahNum, signal));
+      const page = data.verse?.page_number || (await getStartPageForSurah(surahNum, signal));
+      state.mushafAyahPageCache.set(key, page);
+      return page;
     }
 
     const MUSHAF_BISMILLAH_INDOPAK = 'بِسۡمِ اللّٰهِ الرَّحۡمٰنِ الرَّحِيۡمِ';
@@ -2741,6 +2838,100 @@
       return data.verses || [];
     }
 
+    async function fetchSurahViewData(surahNum, signal) {
+      const scriptEdition = getScriptEdition(state.currentScriptKey);
+      const enPromise = fetch(
+        `https://api.alquran.cloud/v1/surah/${surahNum}/${state.currentTranslationKey}`,
+        { signal },
+      ).then((r) => r.json());
+
+      if (isIndopakAyahScript(state.currentScriptKey)) {
+        const metaPromise = fetch(`https://api.alquran.cloud/v1/surah/${surahNum}`, { signal }).then((r) => r.json());
+        const [enData, metaData, indopakAyahs] = await Promise.all([
+          enPromise,
+          metaPromise,
+          fetchIndopakChapterAyahs(surahNum, signal),
+        ]);
+        if (metaData.code !== 200) throw new Error(`Surah meta ${metaData.code}`);
+        return { enData, arSurahPayload: { ...metaData.data, ayahs: indopakAyahs } };
+      }
+
+      const [enData, arData] = await Promise.all([
+        enPromise,
+        fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/${scriptEdition}`, { signal }).then((r) => r.json()),
+      ]);
+      if (arData.code !== 200) throw new Error(`Surah Arabic ${arData.code}`);
+      return { enData, arSurahPayload: arData.data };
+    }
+
+    function cloneViewPayload(payload) {
+      return JSON.parse(JSON.stringify(payload));
+    }
+
+    function applySurahViewData(arSurahPayload, enData, targetAyah) {
+      if (enData.code !== 200) throw new Error(`Surah translation ${enData.code}`);
+      const scriptMode = getScriptFormat(state.currentScriptKey).mode;
+      arSurahPayload.ayahs = arSurahPayload.ayahs.map((ayah) => ({
+        ...ayah,
+        text: normalizeAyahText(ayah.text, state.currentSurahNum, ayah.numberInSurah, scriptMode),
+      }));
+      state.currentSurahData = arSurahPayload;
+      state.currentSurahEnData = enData.data;
+      renderSurahHeader(arSurahPayload);
+      renderVerses(arSurahPayload.ayahs, enData.data.ayahs);
+      closeAllTafsirPanelsExcept();
+      syncReaderFocusMode();
+      const searchInputEl = document.getElementById('searchInput');
+      if (searchInputEl?.value) searchInputEl.value = '';
+      if (targetAyah) {
+        setTimeout(() => {
+          const ayah = arSurahPayload.ayahs.find((a) => a.numberInSurah === targetAyah);
+          const element = ayah ? document.getElementById(`verse-card-${ayah.number}`) : null;
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+      } else {
+        scrollReaderToTop();
+      }
+    }
+
+    function storeSurahViewCache(surahNum, payload) {
+      state.surahViewCache.set(surahViewCacheKey(surahNum), payload);
+      trimMapCache(state.surahViewCache, SURAH_VIEW_CACHE_MAX);
+    }
+
+    function prefetchMushafNeighbors(page) {
+      scheduleIdle(() => {
+        [page - 1, page + 1]
+          .filter((p) => p >= 1 && p <= MUSHAF_PAGE_MAX && !state.mushafPageCache.has(p))
+          .forEach((p) => {
+            fetchMushafPageVerses(p, AbortSignal.timeout(15000))
+              .then((verses) => {
+                if (verses?.length) {
+                  state.mushafPageCache.set(p, verses);
+                  trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX);
+                }
+              })
+              .catch(() => {});
+          });
+      });
+    }
+
+    function prefetchSurahNeighbors(surahNum) {
+      scheduleIdle(() => {
+        [surahNum - 1, surahNum + 1]
+          .filter((n) => n >= 1 && n <= 114)
+          .forEach((n) => {
+            const key = surahViewCacheKey(n);
+            if (state.surahViewCache.has(key)) return;
+            fetchSurahViewData(n, AbortSignal.timeout(20000))
+              .then((payload) => {
+                if (payload?.enData?.code === 200) storeSurahViewCache(n, payload);
+              })
+              .catch(() => {});
+          });
+      });
+    }
+
     function renderMushafPage(verses, pageNum, chaptersById) {
       if (!versesList) return;
       if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
@@ -2803,12 +2994,36 @@
       state.currentMushafPage = page;
       safeStorageSet('quran_mushaf_page', String(page));
       syncReaderLayoutChrome();
-      if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-      if (versesList) versesList.innerHTML = '';
+      setReaderNavBusy(true);
+
+      const cachedVerses = state.mushafPageCache.get(page);
+      const hadCachedView = !!(cachedVerses?.length && versesList);
+      if (hadCachedView) {
+        try {
+          const chaptersById = await ensureQuranChaptersMeta(signal);
+          if (seq !== state.mushafLoadSeq) return;
+          state.currentSurahNum = chapterIdFromVerseKey(cachedVerses[0].verse_key);
+          if (surahSelect) surahSelect.value = String(state.currentSurahNum);
+          updateNavigationButtons();
+          renderMushafPage(cachedVerses, page, chaptersById);
+          hideSearchResults();
+          scrollReaderToTop();
+          document.getElementById('resumeReadingBanner')?.classList.add('hidden');
+          setReaderLoading(true, { keepContent: true });
+        } catch {
+          /* fall through to network load */
+        }
+      } else {
+        setReaderLoading(true);
+        if (versesList) versesList.innerHTML = '';
+      }
+
       try {
         const verses = await fetchMushafPageVerses(page, signal);
         if (seq !== state.mushafLoadSeq) return;
         if (!verses.length) throw new Error('empty page');
+        state.mushafPageCache.set(page, verses);
+        trimMapCache(state.mushafPageCache, MUSHAF_PAGE_CACHE_MAX);
         const chaptersById = await ensureQuranChaptersMeta(signal);
         if (seq !== state.mushafLoadSeq) return;
         state.currentSurahNum = chapterIdFromVerseKey(verses[0].verse_key);
@@ -2818,8 +3033,10 @@
         hideSearchResults();
         scrollReaderToTop();
         document.getElementById('resumeReadingBanner')?.classList.add('hidden');
+        prefetchMushafNeighbors(page);
       } catch (err) {
         if (err?.name === 'AbortError' || seq !== state.mushafLoadSeq) return;
+        if (hadCachedView) return;
         if (versesList) {
           versesList.innerHTML = `
             <div class="text-center py-10 px-4 space-y-3">
@@ -2832,8 +3049,9 @@
           });
         }
       } finally {
-        if (seq === state.mushafLoadSeq && signal === state.surahLoadController?.signal && loadingSpinner) {
-          loadingSpinner.classList.add('hidden');
+        if (seq === state.mushafLoadSeq && signal === state.surahLoadController?.signal) {
+          setReaderLoading(false);
+          setReaderNavBusy(false);
         }
       }
     }
@@ -2877,6 +3095,7 @@
       state.surahLoadController?.abort();
       state.surahLoadController = new AbortController();
       const { signal } = state.surahLoadController;
+      setReaderNavBusy(true);
 
       if (isMushafPageScript(state.currentScriptKey)) {
         let page = state.currentMushafPage;
@@ -2893,75 +3112,47 @@
           if (err?.name !== 'AbortError' && versesList) {
             versesList.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Could not open mushaf page.</p>';
           }
+        } finally {
+          setReaderNavBusy(false);
         }
         return;
       }
 
       syncReaderLayoutChrome();
 
-      if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-      if (versesList) versesList.innerHTML = '';
-      if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+      const cacheKey = surahViewCacheKey(state.currentSurahNum);
+      const cachedView = state.surahViewCache.get(cacheKey);
+      const hadCachedView = !!cachedView;
+      if (hadCachedView) {
+        if (surahHeaderCard) surahHeaderCard.classList.remove('hidden');
+        applySurahViewData(
+          cloneViewPayload(cachedView.arSurahPayload),
+          cloneViewPayload(cachedView.enData),
+          targetAyah,
+        );
+        setReaderLoading(true, { keepContent: true });
+      } else {
+        setReaderLoading(true);
+        if (versesList) versesList.innerHTML = '';
+        if (surahHeaderCard) surahHeaderCard.classList.add('hidden');
+      }
 
       try {
-        const scriptEdition = getScriptEdition(state.currentScriptKey);
-        const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${state.currentTranslationKey}`, { signal });
-        const enData = await enRes.json();
-
-        let arSurahPayload;
-        if (isIndopakAyahScript(state.currentScriptKey)) {
-          const metaRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}`, { signal });
-          const metaData = await metaRes.json();
-          if (metaData.code !== 200) {
-            throw new Error(`Surah meta ${metaData.code}`);
-          }
-          const indopakAyahs = await fetchIndopakChapterAyahs(state.currentSurahNum, signal);
-          arSurahPayload = { ...metaData.data, ayahs: indopakAyahs };
-        } else {
-          const arRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${scriptEdition}`, { signal });
-          const arData = await arRes.json();
-          if (arData.code !== 200) {
-            throw new Error(`Surah Arabic ${arData.code}`);
-          }
-          arSurahPayload = arData.data;
-        }
-
-        if (enData.code === 200) {
-          const scriptMode = getScriptFormat(state.currentScriptKey).mode;
-          arSurahPayload.ayahs = arSurahPayload.ayahs.map((ayah) => ({
-            ...ayah,
-            text: normalizeAyahText(ayah.text, state.currentSurahNum, ayah.numberInSurah, scriptMode),
-          }));
-          state.currentSurahData = arSurahPayload;
-          state.currentSurahEnData = enData.data;
-          renderSurahHeader(arSurahPayload);
-          renderVerses(arSurahPayload.ayahs, enData.data.ayahs);
-          closeAllTafsirPanelsExcept();
-          syncReaderFocusMode();
-          const searchInputEl = document.getElementById('searchInput');
-          if (searchInputEl?.value) searchInputEl.value = '';
-
-          if (targetAyah) {
-            setTimeout(() => {
-              const ayah = arSurahPayload.ayahs.find((a) => a.numberInSurah === targetAyah);
-              const element = ayah ? document.getElementById(`verse-card-${ayah.number}`) : null;
-              if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
-          } else {
-            scrollReaderToTop();
-          }
-        } else {
-          throw new Error(`Surah translation ${enData.code || enRes.status}`);
-        }
+        const payload = await fetchSurahViewData(state.currentSurahNum, signal);
+        storeSurahViewCache(state.currentSurahNum, payload);
+        applySurahViewData(payload.arSurahPayload, payload.enData, targetAyah);
+        prefetchSurahNeighbors(state.currentSurahNum);
       } catch (err) {
         if (err?.name === 'AbortError') return;
+        if (hadCachedView) return;
         console.error('Error loading Surah:', err);
         if (versesList) {
           versesList.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load Surah. Please check internet connection.</div>`;
         }
       } finally {
-        if (signal === state.surahLoadController?.signal && loadingSpinner) {
-          loadingSpinner.classList.add('hidden');
+        if (signal === state.surahLoadController?.signal) {
+          setReaderLoading(false);
+          setReaderNavBusy(false);
         }
       }
     }
@@ -3392,6 +3583,12 @@
     async function cacheCurrentSurahForOffline() {
       if (!state.currentSurahNum) return;
       showToast('Saving surah…');
+      try {
+        const payload = await fetchSurahViewData(state.currentSurahNum, AbortSignal.timeout(12000));
+        storeSurahViewCache(state.currentSurahNum, payload);
+      } catch {
+        /* continue with URL warms below */
+      }
       const edition = getScriptEdition(state.currentScriptKey);
       const urls = [
         `https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${edition}`,
@@ -3594,8 +3791,7 @@
     }
 
     async function loadJuz(juzNum) {
-      document.getElementById('juzModal')?.classList.add('hidden');
-      if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+      closeAppModal('juzModal');
       try {
         const res = await fetch(`https://api.alquran.cloud/v1/juz/${juzNum}/${getScriptEdition(state.currentScriptKey)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -3611,8 +3807,6 @@
       } catch (err) {
         console.error('Failed to load Juz mapping', err);
         showToast('Failed to load Juz');
-      } finally {
-        if (loadingSpinner) loadingSpinner.classList.add('hidden');
       }
     }
 

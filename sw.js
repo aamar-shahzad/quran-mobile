@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v23";
+const CACHE_NAME = "quran-mobile-v24";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -96,17 +96,24 @@ async function cachePut(request, response, cacheName) {
   if (cacheName === AUDIO_CACHE) await trimCache(AUDIO_CACHE, AUDIO_CACHE_MAX);
 }
 
-async function networkFirstApi(request) {
-  try {
-    const networkRes = await fetchWithTimeout(request, NETWORK_TIMEOUT_MS);
-    if (networkRes.ok && !isAyahAudioLookup(request.url)) {
-      await cachePut(request, networkRes.clone(), API_CACHE);
-    }
-    return networkRes;
-  } catch {
-    const cached = await caches.match(request);
-    return cached || Response.error();
+async function staleWhileRevalidateApi(request, event) {
+  const cached = await caches.match(request);
+  const revalidate = fetchWithTimeout(request, NETWORK_TIMEOUT_MS)
+    .then(async (networkRes) => {
+      if (networkRes.ok && !isAyahAudioLookup(request.url)) {
+        await cachePut(request, networkRes.clone(), API_CACHE);
+      }
+      return networkRes;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    if (event) event.waitUntil(revalidate.then(() => {}));
+    return cached;
   }
+
+  const networkRes = await revalidate;
+  return networkRes || Response.error();
 }
 
 async function staleWhileRevalidateAsset(request) {
@@ -236,6 +243,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isQuranApiRequest(url)) {
-    event.respondWith(networkFirstApi(event.request));
+    event.respondWith(staleWhileRevalidateApi(event.request, event));
   }
 });
