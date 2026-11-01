@@ -3549,6 +3549,7 @@
     }
 
     async function bootstrapApp() {
+      document.getElementById('readerEdgeRetry')?.remove();
       await window.QuranReaderCacheDb?.open?.().catch(() => {});
       const layoutReload = consumeLayoutReloadContext();
       try {
