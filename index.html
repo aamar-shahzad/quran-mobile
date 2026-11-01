@@ -282,6 +282,55 @@
     body.mushaf-reading-mode .mushaf-page-line {
       border-color: rgba(120, 90, 50, 0.28);
     }
+    body.indopak-ayah-reading-mode #surahViewport {
+      background-color: #e8e2d6;
+      padding-left: max(0.35rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+    }
+    html.dark body.indopak-ayah-reading-mode #surahViewport {
+      background-color: #14110e;
+    }
+    body.indopak-ayah-reading-mode #versesList {
+      gap: 0.65rem;
+    }
+    body.indopak-ayah-reading-mode .indopak-ayah-card {
+      border-radius: 4px;
+    }
+    body.indopak-ayah-reading-mode .verse-display-body--indopak {
+      text-align: center;
+      line-height: 1.85;
+      font-size: calc(clamp(1rem, 3.6vw, 1.4rem) * var(--reader-font-scale, 1));
+      color: #1a1510;
+    }
+    html.dark body.indopak-ayah-reading-mode .verse-display-body--indopak {
+      color: #e8e0d4;
+    }
+    body.indopak-ayah-reading-mode .indopak-ayah-marker {
+      color: #5c4a32;
+    }
+    html.dark body.indopak-ayah-reading-mode .indopak-ayah-marker {
+      color: #c4a574;
+    }
+    body.indopak-ayah-reading-mode .verse-card-header {
+      border-bottom-color: rgba(120, 90, 50, 0.35);
+    }
+    body.indopak-ayah-reading-mode .verse-translation {
+      color: #5c4a32;
+      opacity: 0.92;
+    }
+    html.dark body.indopak-ayah-reading-mode .verse-translation {
+      color: #c4b896;
+      opacity: 0.95;
+    }
+    body.indopak-ayah-reading-mode .verse-card-toolbar button {
+      color: #5c4a32;
+    }
+    html.dark body.indopak-ayah-reading-mode .verse-card-toolbar button {
+      color: #c4a574;
+    }
+    body.indopak-ayah-reading-mode .verse-card-toolbar button:hover {
+      background: rgba(120, 90, 50, 0.12);
+    }
     #versesList,
     #versesList .text-sm,
     #surahHeaderCard,
@@ -1598,7 +1647,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=36').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=37').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2435,7 +2484,7 @@
       const verses = [];
       while (true) {
         const data = await fetchQuranComJson(
-          `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=text_indopak,verse_key,page_number&page=${page}&per_page=${perPage}`,
+          `https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?words=false&fields=text_indopak_nastaleeq,text_indopak,verse_key,page_number&page=${page}&per_page=${perPage}`,
           signal
         );
         verses.push(...(data.verses || []));
@@ -2456,7 +2505,7 @@
       return verses.map((v) => ({
         number: globalByInSurah.get(v.verse_number) ?? v.id,
         numberInSurah: v.verse_number,
-        text: (v.text_indopak || '').trim(),
+        text: (v.text_indopak_nastaleeq || v.text_indopak || '').trim(),
         page: v.page_number,
       }));
     }
@@ -2660,7 +2709,7 @@
         return `<span class="leading-loose text-emerald-200/90">${buildTajweedHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span></span>`;
       }
       if (fmt.mode === 'indopak') {
-        return `${escapeHtml(text)} <span class="text-brand-500 font-bold text-base">۝${toArabicNumerals(ayahNum)}</span>`;
+        return `${escapeHtml(text)} <span class="indopak-ayah-marker font-bold text-base">۝${toArabicNumerals(ayahNum)}</span>`;
       }
       return `${escapeHtml(text)} <span class="text-brand-500 font-bold text-lg">۝${toArabicNumerals(ayahNum)}</span>`;
     }
@@ -2668,7 +2717,7 @@
     function getScriptSourceAttribution(scriptKey) {
       const fmt = getScriptFormat(scriptKey);
       if (fmt.mode === 'indopak') {
-        return 'Quran: Quran.com · Hifzi Indo-Pak Naskh (Hafs, text_indopak).';
+        return 'Quran: Quran.com · Indo-Pak 15-line mushaf text (Hafs, text_indopak_nastaleeq).';
       }
       if (fmt.mode === 'mushaf_page') {
         return `Quran: Quran.com · Indo-Pak 15-line mushaf (mushaf=${MUSHAF_PAGE_LAYOUT_ID}, ${MUSHAF_PAGE_MAX} pages, text_indopak_nastaleeq).`;
@@ -3065,7 +3114,7 @@
         return 'mb-3';
       }
       if (fmt.mode === 'indopak') {
-        return 'hifzi-naskh-text verse-display-body verse-display-body--indopak text-right text-emerald-800 mb-3';
+        return 'indopak-nastaleeq-text verse-display-body verse-display-body--indopak text-right mb-3';
       }
       return 'arabic-text verse-display-body verse-display-body--arabic text-right text-emerald-700 mb-3';
     }
@@ -3397,7 +3446,9 @@
 
     function syncReaderLayoutChrome() {
       const mushaf = isMushafPageScript(state.currentScriptKey);
+      const indopakAyah = isIndopakAyahScript(state.currentScriptKey);
       document.body.classList.toggle('mushaf-reading-mode', mushaf);
+      document.body.classList.toggle('indopak-ayah-reading-mode', indopakAyah && !mushaf);
       document.getElementById('readerNavSecondary')?.classList.toggle('hidden', mushaf);
       const mushafNav = document.getElementById('mushafPageNav');
       if (mushafNav) {
@@ -3933,6 +3984,10 @@
 
     function renderSurahHeader(surah) {
       if (!surahHeaderCard) return;
+      if (isIndopakAyahScript(state.currentScriptKey)) {
+        surahHeaderCard.classList.add('hidden');
+        return;
+      }
       surahTitleAr.textContent = surah.name;
       surahTitleEn.textContent = surah.englishName;
       surahMeta.textContent = `${surah.revelationType} • ${surah.numberOfAyahs} Verses`;
@@ -3951,6 +4006,13 @@
       
       const scriptKey = state.currentScriptKey;
       const ayahBodyClass = getAyahDisplayContainerClass(scriptKey);
+      const indopakAyahUi = isIndopakAyahScript(scriptKey);
+      const verseCardClass = indopakAyahUi
+        ? 'indopak-ayah-card mushaf-page-card p-3 sm:p-4 transition-all duration-200'
+        : 'bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
+      const ayahNumBadgeClass = indopakAyahUi
+        ? 'indopak-ayah-num w-7 h-7 shrink-0 rounded-sm font-bold text-[11px] flex items-center justify-center border border-[#c4a574]/70 text-[#5c4a32] bg-[#faf6ee]/90'
+        : 'w-7 h-7 shrink-0 rounded-lg bg-slate-900 text-brand-400 font-bold text-xs flex items-center justify-center border border-slate-800';
 
       versesList.innerHTML = arabicAyahs.map((ayah, i) => {
         const ayahNum = ayah.numberInSurah;
@@ -3961,9 +4023,9 @@
         const ayahDisplayHtml = buildAyahDisplayHtml(ayah.text, scriptKey, ayahNum);
 
         return `
-          <div id="verse-card-${ayah.number}" data-ayah-global="${ayah.number}" class="bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200">
+          <div id="verse-card-${ayah.number}" data-ayah-global="${ayah.number}" class="${verseCardClass}">
             <div class="verse-card-header">
-              <span class="w-7 h-7 shrink-0 rounded-lg bg-slate-900 text-brand-400 font-bold text-xs flex items-center justify-center border border-slate-800">
+              <span class="${ayahNumBadgeClass}">
                 ${ayahNum}
               </span>
 
