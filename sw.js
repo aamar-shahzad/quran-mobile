@@ -1,4 +1,4 @@
-const CACHE_NAME = "quran-mobile-v19";
+const CACHE_NAME = "quran-mobile-v20";
 const PRECACHE_TIMEOUT_MS = 6000;
 const ASSETS_CACHE = "quran-mobile-assets-v1";
 const API_CACHE = "quran-mobile-api-v1";
@@ -25,7 +25,8 @@ function isAppShellRequest(url) {
     if (
       path.endsWith("/sw.js") ||
       path.includes("manifest.webmanifest") ||
-      path.includes("/icons/")
+      path.includes("/icons/") ||
+      path.includes("/assets/")
     ) {
       return true;
     }
@@ -143,6 +144,7 @@ function precacheShellUrls() {
   return [
     `${base}index.html`,
     `${base}manifest.webmanifest`,
+    `${base}assets/app.css`,
     `${base}icons/icon-192.png`,
     `${base}icons/icon-512.png`,
   ];

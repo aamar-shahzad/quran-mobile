@@ -33,37 +33,8 @@
   
   <title>Quran</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#ecfdf5',
-              100: '#d1fae5',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
-              900: '#064e3b',
-            },
-            dark: {
-              bg: '#0f172a',
-              card: '#1e293b',
-              border: '#334155'
-            }
-          },
-          fontFamily: {
-            amiri: ['Amiri', 'serif'],
-            nastaliq: ['Noto Nastaliq Urdu', 'Amiri', 'serif'],
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
-          }
-        }
-      }
-    }
-  </script>
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/app.css">
 
   <!-- Google Fonts for Typography & Multilingual Support -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -768,7 +739,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=19').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=20').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -894,6 +865,7 @@
           class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
         <button type="button" id="btnClearSearch" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-lg" aria-label="Clear search"><i class="ph ph-x text-sm"></i></button>
       </div>
+      <div id="searchResults" class="hidden max-h-52 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 text-xs" role="listbox" aria-label="Search results"></div>
     </div>
   </div>
   </div>
@@ -925,6 +897,10 @@
       <div class="relative">
         <select id="scriptSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-6 appearance-none focus:outline-none focus:border-brand-500 font-medium"></select>
       </div>
+      <label class="block text-xs text-slate-400" for="translationSelect">Translation</label>
+      <div class="relative">
+        <select id="translationSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate"></select>
+      </div>
       <label class="block text-xs text-slate-400" for="reciterSelect">Reciter</label>
       <div class="relative">
         <select id="reciterSelect" class="w-full bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 px-2 pr-5 appearance-none focus:outline-none focus:border-brand-500 font-medium truncate">
@@ -950,6 +926,9 @@
         <input type="checkbox" id="chkContinueNextSurah" class="rounded border-slate-600">
         Continue to next surah after last ayah
       </label>
+      <button type="button" id="btnCacheSurahOffline" class="w-full mt-2 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-emerald-300 hover:bg-slate-700">
+        Save this surah for offline
+      </button>
     </div>
   </div>
 
@@ -968,6 +947,10 @@
         <button type="button" id="closeJuzModal" class="text-slate-400 hover:text-white p-1" aria-label="Close">
           <i class="ph ph-x text-lg"></i>
         </button>
+      </div>
+      <div class="flex gap-2 mb-3">
+        <input type="number" id="pageJumpInput" min="1" max="604" inputmode="numeric" placeholder="Mushaf page 1–604" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500" aria-label="Mushaf page number">
+        <button type="button" id="btnJumpMushafPage" class="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl shrink-0">Page</button>
       </div>
       <div id="juzGrid" class="grid grid-cols-5 gap-2 overflow-y-auto p-1">
         <!-- 30 Juz Buttons Generated via JS -->
@@ -1242,6 +1225,7 @@
       currentTafsirKey: 'en_ibn_kathir',
       currentScriptKey: null,
       currentReciter: 'ar.alafasy',
+      currentTranslationKey: 'en.sahih',
       tafsirCache: {}, // In-memory cache for verse commentaries
       wordByWordCache: {},
       currentPlayingAyahIndex: -1,
@@ -1638,7 +1622,7 @@
       if (!el) return;
       el.textContent = [
         getScriptSourceAttribution(state.currentScriptKey),
-        'Translation: Al Quran Cloud · en.sahih (Sahih International).',
+        `Translation: Al Quran Cloud · ${getTranslationLabel(state.currentTranslationKey)}.`,
         getTafsirSourceAttribution(state.currentTafsirKey),
         'Tap ℹ️ for full source list.',
       ].join(' ');
@@ -1784,6 +1768,11 @@
       state.currentReciter = normalizeReciterId(safeStorageGet('quran_reciter_pref', 'ar.alafasy'));
       safeStorageSet('quran_reciter_pref', state.currentReciter);
       populateScriptFormats();
+      populateTranslationSelect();
+      state.currentTranslationKey = normalizeTranslationKey(safeStorageGet('quran_translation_pref', 'en.sahih'));
+      safeStorageSet('quran_translation_pref', state.currentTranslationKey);
+      const translationSelectEl = document.getElementById('translationSelect');
+      if (translationSelectEl) translationSelectEl.value = state.currentTranslationKey;
       initPwaInstaller();
       state.currentTafsirKey = normalizeTafsirKey(safeStorageGet('quran_tafsir_pref', 'en_ibn_kathir'));
       safeStorageSet('quran_tafsir_pref', state.currentTafsirKey);
@@ -1904,6 +1893,36 @@
       'ar.husarymujawwad',
     ]);
 
+    const TRANSLATION_OPTIONS = [
+      { id: 'en.sahih', label: 'Sahih International' },
+      { id: 'en.asad', label: 'Muhammad Asad' },
+      { id: 'en.pickthall', label: 'Pickthall' },
+      { id: 'en.yusufali', label: 'Yusuf Ali' },
+      { id: 'en.hilali', label: 'Hilali & Khan' },
+      { id: 'en.itani', label: 'Clear Quran (Itani)' },
+      { id: 'fr.hamidullah', label: 'French (Hamidullah)' },
+      { id: 'ur.jalandhry', label: 'Urdu (Jalandhry)' },
+    ];
+
+    const VALID_TRANSLATION_IDS = new Set(TRANSLATION_OPTIONS.map((t) => t.id));
+
+    function normalizeTranslationKey(key) {
+      return VALID_TRANSLATION_IDS.has(key) ? key : 'en.sahih';
+    }
+
+    function populateTranslationSelect() {
+      const sel = document.getElementById('translationSelect');
+      if (!sel) return;
+      sel.innerHTML = TRANSLATION_OPTIONS.map(
+        (t) => `<option value="${t.id}">${escapeHtml(t.label)}</option>`,
+      ).join('');
+      sel.value = state.currentTranslationKey;
+    }
+
+    function getTranslationLabel(key) {
+      return TRANSLATION_OPTIONS.find((t) => t.id === key)?.label || key;
+    }
+
     function normalizeReciterId(reciterId) {
       const id = RECITER_ID_ALIASES[reciterId] || reciterId;
       return VALID_RECITER_IDS.has(id) ? id : 'ar.alafasy';
@@ -1957,7 +1976,7 @@
 
       try {
         const scriptEdition = getScriptEdition(state.currentScriptKey);
-        const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/en.sahih`, { signal });
+        const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${state.currentTranslationKey}`, { signal });
         const enData = await enRes.json();
 
         let arSurahPayload;
@@ -2284,6 +2303,197 @@
 
     function copyAyahLink(surahNum, ayahNum) {
       copyTextToClipboard(buildDeepLink({ surah: surahNum, ayah: ayahNum }), 'Link copied');
+    }
+
+    function normalizeSearchText(s) {
+      try {
+        return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+      } catch {
+        return s.toLowerCase();
+      }
+    }
+
+    function parseSurahAyahRef(raw) {
+      const q = raw.trim();
+      const m = q.match(/^(\d{1,3})\s*[:\-.]\s*(\d{1,3})$/);
+      if (!m) return null;
+      const surah = parseInt(m[1], 10);
+      const ayah = parseInt(m[2], 10);
+      if (surah < 1 || surah > 114 || ayah < 1) return null;
+      return { surah, ayah };
+    }
+
+    function hideSearchResults() {
+      const el = document.getElementById('searchResults');
+      if (!el) return;
+      el.classList.add('hidden');
+      el.innerHTML = '';
+    }
+
+    function showSearchResults(html) {
+      const el = document.getElementById('searchResults');
+      if (!el) return;
+      el.innerHTML = html;
+      el.classList.toggle('hidden', !html);
+    }
+
+    let globalSearchController = null;
+
+    async function fetchGlobalSearchResults(query) {
+      globalSearchController?.abort();
+      globalSearchController = new AbortController();
+      const { signal } = globalSearchController;
+      const timer = setTimeout(() => globalSearchController.abort(), 8000);
+      try {
+        const res = await fetch(
+          `https://api.quran.com/api/v4/search?q=${encodeURIComponent(query)}&size=20&page=0`,
+          { signal },
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.search?.results || []).map((r) => ({
+          verseKey: r.verse_key,
+          snippet: r.translated_name || r.text || '',
+        }));
+      } catch {
+        return [];
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function jumpToMushafPage(pageNum) {
+      const page = parseInt(pageNum, 10);
+      if (!Number.isFinite(page) || page < 1 || page > 604) {
+        showToast('Use page 1–604');
+        return;
+      }
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${page}?words=false`, { signal: controller.signal });
+        const data = await res.json();
+        const v = data.verses?.[0];
+        if (!v) {
+          showToast('Page not found');
+          return;
+        }
+        closeAppModal('juzModal');
+        await loadSurah(v.chapter_id, v.verse_number);
+      } catch {
+        showToast('Could not load page');
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function cacheCurrentSurahForOffline() {
+      if (!state.currentSurahNum) return;
+      showToast('Saving surah…');
+      const edition = getScriptEdition(state.currentScriptKey);
+      const urls = [
+        `https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${edition}`,
+        `https://api.alquran.cloud/v1/surah/${state.currentSurahNum}/${state.currentTranslationKey}`,
+        `https://api.alquran.cloud/v1/surah/${state.currentSurahNum}`,
+      ];
+      await Promise.allSettled(
+        urls.map((url) => fetch(url, { signal: AbortSignal.timeout(8000) })),
+      );
+      showToast('Surah saved for offline');
+    }
+
+    async function runReaderSearch(queryRaw) {
+      const query = queryRaw.trim();
+      if (!query) {
+        hideSearchResults();
+        if (state.currentSurahData && state.currentSurahEnData) {
+          renderVerses(state.currentSurahData.ayahs, state.currentSurahEnData.ayahs);
+        }
+        return;
+      }
+
+      const ref = parseSurahAyahRef(query);
+      if (ref) {
+        showSearchResults(
+          `<button type="button" id="searchJumpRef" class="w-full text-left px-3 py-2 hover:bg-slate-900 text-emerald-300">Go to ${ref.surah}:${ref.ayah}</button>`,
+        );
+        document.getElementById('searchJumpRef')?.addEventListener('click', () => {
+          hideSearchResults();
+          loadSurah(ref.surah, ref.ayah);
+        });
+        return;
+      }
+
+      const qNorm = normalizeSearchText(query);
+      const catalogHits = (state.surahs || []).filter((s) => {
+        const blob = `${s.number} ${s.englishName} ${s.name}`;
+        return normalizeSearchText(blob).includes(qNorm) || String(s.number) === query;
+      }).slice(0, 10);
+
+      if (catalogHits.length) {
+        showSearchResults(
+          catalogHits
+            .map(
+              (s) =>
+                `<button type="button" class="search-surah-pick w-full text-left px-3 py-2 hover:bg-slate-900 border-b border-slate-800" data-surah="${s.number}"><span class="text-emerald-400 font-semibold">${s.number}.</span> ${escapeHtml(s.englishName)}</button>`,
+            )
+            .join(''),
+        );
+        document.querySelectorAll('.search-surah-pick').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            hideSearchResults();
+            loadSurah(btn.getAttribute('data-surah'));
+          });
+        });
+        return;
+      }
+
+      if (state.currentSurahData && state.currentSurahEnData) {
+        const filteredAr = [];
+        const filteredEn = [];
+        state.currentSurahData.ayahs.forEach((ayah, i) => {
+          const enAyah = state.currentSurahEnData.ayahs[i];
+          if (
+            normalizeSearchText(ayah.text).includes(qNorm) ||
+            (enAyah && normalizeSearchText(enAyah.text).includes(qNorm)) ||
+            String(ayah.numberInSurah) === query
+          ) {
+            filteredAr.push(ayah);
+            filteredEn.push(enAyah);
+          }
+        });
+        if (filteredAr.length) {
+          hideSearchResults();
+          renderVerses(filteredAr, filteredEn);
+          return;
+        }
+      }
+
+      if (query.length < 3) {
+        hideSearchResults();
+        return;
+      }
+
+      showSearchResults('<p class="px-3 py-2 text-slate-500">Searching…</p>');
+      const global = await fetchGlobalSearchResults(query);
+      if (!global.length) {
+        showSearchResults('<p class="px-3 py-2 text-slate-500">No matches</p>');
+        return;
+      }
+      showSearchResults(
+        global
+          .map((g) => {
+            const parts = (g.verseKey || '').split(':');
+            return `<button type="button" class="search-ayah-pick w-full text-left px-3 py-2 hover:bg-slate-900 border-b border-slate-800" data-surah="${parts[0]}" data-ayah="${parts[1]}"><span class="text-emerald-400">${escapeHtml(g.verseKey || '')}</span><span class="block text-slate-400 truncate">${escapeHtml(g.snippet || '')}</span></button>`;
+          })
+          .join(''),
+      );
+      document.querySelectorAll('.search-ayah-pick').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          hideSearchResults();
+          loadSurah(btn.getAttribute('data-surah'), parseInt(btn.getAttribute('data-ayah'), 10));
+        });
+      });
     }
 
     function showResumeReadingBanner() {
@@ -2800,16 +3010,48 @@
     }
 
     let modalFocusTrap = null;
+
+    function getFocusableElements(root) {
+      return [...root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
+        (el) => !el.disabled && el.getAttribute('aria-hidden') !== 'true',
+      );
+    }
+
+    function trapFocusInModal(modal) {
+      modalFocusTrap?.();
+      const onKeyDown = (e) => {
+        if (e.key !== 'Tab') return;
+        const focusables = getFocusableElements(modal);
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      };
+      modal.addEventListener('keydown', onKeyDown);
+      modalFocusTrap = () => {
+        modal.removeEventListener('keydown', onKeyDown);
+        modalFocusTrap = null;
+      };
+    }
+
     function openAppModal(id) {
       const modal = document.getElementById(id);
       if (!modal) return;
       state.modalReturnFocus = document.activeElement;
       document.getElementById('appShell')?.setAttribute('inert', '');
       modal.classList.remove('hidden');
-      const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      trapFocusInModal(modal);
+      const focusable = getFocusableElements(modal)[0];
       focusable?.focus();
     }
     function closeAppModal(id) {
+      modalFocusTrap?.();
       document.getElementById(id)?.classList.add('hidden');
       if (!document.querySelector('[id$="Modal"]:not(.hidden)')) {
         document.getElementById('appShell')?.removeAttribute('inert');
@@ -3024,7 +3266,8 @@
       if (btnClearSearch && searchInput) {
         btnClearSearch.addEventListener('click', () => {
           searchInput.value = '';
-          if (state.currentSurahData) {
+          hideSearchResults();
+          if (state.currentSurahData && state.currentSurahEnData) {
             renderVerses(state.currentSurahData.ayahs, state.currentSurahEnData.ayahs);
           }
         });
@@ -3034,29 +3277,27 @@
         searchInput.addEventListener('input', (e) => {
           clearTimeout(state.searchDebounceTimer);
           state.searchDebounceTimer = setTimeout(() => {
-            const query = e.target.value.toLowerCase().trim();
-            if (!state.currentSurahData || !state.currentSurahEnData) return;
-            if (!query) {
-              renderVerses(state.currentSurahData.ayahs, state.currentSurahEnData.ayahs);
-              return;
-            }
-            const filteredAr = [];
-            const filteredEn = [];
-            state.currentSurahData.ayahs.forEach((ayah, i) => {
-              const enAyah = state.currentSurahEnData.ayahs[i];
-              if (
-                ayah.text.includes(query) ||
-                (enAyah && enAyah.text.toLowerCase().includes(query)) ||
-                ayah.numberInSurah.toString() === query
-              ) {
-                filteredAr.push(ayah);
-                filteredEn.push(enAyah);
-              }
-            });
-            renderVerses(filteredAr, filteredEn);
-          }, 180);
+            runReaderSearch(e.target.value);
+          }, 280);
         });
       }
+
+      document.getElementById('translationSelect')?.addEventListener('change', (e) => {
+        state.currentTranslationKey = normalizeTranslationKey(e.target.value);
+        safeStorageSet('quran_translation_pref', state.currentTranslationKey);
+        updateContentSourceHints();
+        loadSurah(state.currentSurahNum);
+      });
+      document.getElementById('btnCacheSurahOffline')?.addEventListener('click', () => {
+        closeAppModal('readingOptionsModal');
+        cacheCurrentSurahForOffline();
+      });
+      document.getElementById('btnJumpMushafPage')?.addEventListener('click', () => {
+        jumpToMushafPage(document.getElementById('pageJumpInput')?.value);
+      });
+      document.getElementById('pageJumpInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') jumpToMushafPage(e.target.value);
+      });
 
     }
   </script>

@@ -39,8 +39,11 @@ Open the live link on your phone → **More** → _Share & install_ → Add to H
 ## Local preview
 
 ```bash
+npm ci && npm run build:css
 python3 -m http.server 8080
 ```
+
+After changing Tailwind classes in `index.html`, run `npm run build:css` and commit `assets/app.css`.
 
 ## Icons
 

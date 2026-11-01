@@ -1,0 +1,26 @@
+{
+  "name": "quran-mobile",
+  "version": "1.0.0",
+  "description": "PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. The service worker caches the app shell and pages or audio you have already opened.",
+  "main": "sw.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/app.css -o ./assets/app.css --minify",
+    "build": "npm run build:css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aamar-shahzad/quran-mobile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aamar-shahzad/quran-mobile/issues"
+  },
+  "homepage": "https://github.com/aamar-shahzad/quran-mobile#readme",
+  "devDependencies": {
+    "autoprefixer": "~10.6.2",
+    "postcss": "~8.5.32",
+    "tailwindcss": "~3.4.17"
+  }
+}
