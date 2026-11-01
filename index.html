@@ -904,9 +904,69 @@
     }
     body.mushaf-reading-mode #versesList {
       margin-top: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: stretch;
+      width: 100%;
+      max-width: none !important;
+      min-height: 0;
     }
     body.mushaf-reading-mode .mushaf-page-card {
       margin-top: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: min(100%, 32rem);
+      min-height: 0;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    body.mushaf-reading-mode .mushaf-page-header {
+      flex-shrink: 0;
+    }
+    body.mushaf-reading-mode .mushaf-page-body,
+    body.mushaf-reading-mode .mushaf-page-body--lines {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    body.mushaf-reading-mode .mushaf-page-lines {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    body.mushaf-reading-mode .mushaf-page-line {
+      flex: 1 1 0;
+      min-height: 1.65rem;
+    }
+    body.mushaf-reading-mode #surahViewport {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding-top: 0.25rem;
+      padding-bottom: 0.35rem;
+    }
+    body.mushaf-reading-mode #appShell {
+      max-width: min(100%, 52rem);
+    }
+    @media (min-width: 768px) {
+      body.mushaf-reading-mode .mushaf-page-card {
+        max-width: min(100%, 44rem);
+      }
+      body.mushaf-reading-mode #appShell {
+        max-width: min(100%, 48rem);
+      }
+    }
+    @media (min-width: 1024px) {
+      body.mushaf-reading-mode .mushaf-page-card {
+        max-width: min(100%, 520px);
+      }
     }
     #mushafPageNav {
       display: none;
@@ -1002,9 +1062,6 @@
       padding-top: 1.25rem;
       padding-bottom: 1.25rem;
       min-height: 0;
-    }
-    .mushaf-page-card {
-      max-width: min(100%, 28rem);
     }
     body.audio-bar-visible #surahViewport {
       padding-bottom: calc(var(--audio-bar-h, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
@@ -1531,7 +1588,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=31').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=32').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -3545,7 +3602,7 @@
         ? 'mushaf-page-body mushaf-page-body--lines px-1 sm:px-2'
         : 'mushaf-page-body indopak-nastaleeq-text';
       versesList.innerHTML = `
-        <article class="mushaf-page-card mx-auto w-full max-w-lg shadow-lg">
+        <article class="mushaf-page-card mx-auto w-full shadow-lg">
           <header class="mushaf-page-header grid grid-cols-3 items-center text-sm gap-1 indopak-nastaleeq-text">
             <span class="text-right truncate">${escapeHtml(headerLeft)}</span>
             <span class="text-center font-bold text-base">${toArabicNumerals(pageNum)}</span>
