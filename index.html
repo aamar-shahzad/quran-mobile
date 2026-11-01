@@ -602,6 +602,21 @@
         max-height: min(60vh, 32rem);
       }
     }
+    #tafsirSheetModal .tafsir-content-scroll {
+      max-height: none;
+      flex: 1;
+      min-height: 0;
+    }
+    #tafsirSheetModal .tafsir-sheet-panel {
+      max-height: min(78vh, 640px);
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--audio-bar-h, 0px));
+    }
+    #tafsirSheetModal .tafsir-sheet-grab {
+      flex-shrink: 0;
+    }
+    body.tafsir-sheet-open #audioPlayerBar:not(.player-hidden) {
+      z-index: 60;
+    }
     .tafsir-content {
       user-select: text;
       -webkit-user-select: text;
@@ -1700,7 +1715,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=39').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=40').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1927,6 +1942,33 @@
 
   <div id="tapToPlayOverlay" class="hidden fixed inset-x-0 bottom-0 z-[65] p-4 pb-safe">
     <button type="button" id="btnTapToPlayOverlay" class="w-full py-4 rounded-2xl bg-brand-600 text-white font-semibold text-sm shadow-xl">Tap to play</button>
+  </div>
+
+  <!-- TAFSIR BOTTOM SHEET (phones) -->
+  <div id="tafsirSheetModal" class="hidden fixed inset-0 z-[55] flex flex-col justify-end pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="tafsirSheetBadge">
+    <button type="button" id="tafsirSheetBackdrop" class="tafsir-sheet-backdrop flex-1 w-full bg-slate-950/75 backdrop-blur-sm pointer-events-auto min-h-[12vh]" aria-label="Close tafsir"></button>
+    <div class="tafsir-sheet-panel pointer-events-auto bg-dark-card border-t border-dark-border rounded-t-2xl shadow-2xl flex flex-col w-full max-h-[min(78vh,640px)]">
+      <div class="tafsir-sheet-grab w-10 h-1 rounded-full bg-slate-600 mx-auto mt-2.5 mb-1" aria-hidden="true"></div>
+      <div class="tafsir-panel-toolbar flex flex-wrap items-center gap-2 px-4 pt-1 pb-2 border-b border-slate-800/90">
+        <div class="min-w-0 flex-1">
+          <p id="tafsirSheetBadge" class="text-[10px] font-bold text-brand-400 uppercase tracking-wider truncate">Tafsir</p>
+          <p id="tafsirSheetAyahLabel" class="text-xs text-slate-400 tabular-nums">Ayah</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" id="tafsirSheetPrev" class="tafsir-nav-btn" data-tafsir-nav="prev" aria-label="Previous ayah tafsir" title="Previous ayah">
+            <i class="ph ph-caret-left text-base" aria-hidden="true"></i>
+          </button>
+          <button type="button" id="tafsirSheetNext" class="tafsir-nav-btn" data-tafsir-nav="next" aria-label="Next ayah tafsir" title="Next ayah">
+            <i class="ph ph-caret-right text-base" aria-hidden="true"></i>
+          </button>
+          <button type="button" id="tafsirSheetClose" class="tafsir-close-btn" aria-label="Close tafsir">
+            <i class="ph ph-x text-base" aria-hidden="true"></i>
+            <span>Close</span>
+          </button>
+        </div>
+      </div>
+      <div id="tafsirSheetContent" class="tafsir-content tafsir-content-scroll tafsir-content--en font-sans px-4 py-3"></div>
+    </div>
   </div>
 
   <!-- JUZ SELECTION MODAL -->
@@ -2263,6 +2305,7 @@
       audioPreloader: null,
       audioErrorRetries: 0,
       modalReturnFocus: null,
+      openTafsirAyahNum: null,
       bookmarks: readJsonArray('quran_bookmarks_v2')
     };
 
@@ -2873,7 +2916,17 @@
       return window.matchMedia('(max-width: 640px) and (pointer: coarse)').matches;
     }
 
+    function useTafsirBottomSheet() {
+      return isMobileReaderViewport() && !isMushafPageScript(state.currentScriptKey);
+    }
+
+    function isTafsirSheetOpen() {
+      const modal = document.getElementById('tafsirSheetModal');
+      return modal && !modal.classList.contains('hidden');
+    }
+
     function isAnyTafsirPanelOpen() {
+      if (isTafsirSheetOpen()) return true;
       return [...document.querySelectorAll('[id^="tafsir-box-"]')].some((box) => !box.classList.contains('hidden'));
     }
 
@@ -3144,6 +3197,18 @@
         const word = btn.querySelector('.verse-tafsir-word');
         if (word) word.textContent = 'Tafsir';
       });
+      if (isTafsirSheetOpen() && state.openTafsirAyahNum != null) {
+        const ayahObj = state.currentSurahData?.ayahs?.find((a) => a.numberInSurah === state.openTafsirAyahNum);
+        const btn = ayahObj
+          ? document.getElementById(`verse-card-${ayahObj.number}`)?.querySelector('.verse-tafsir-btn')
+          : null;
+        if (btn) {
+          btn.classList.add('is-tafsir-open');
+          const word = btn.querySelector('.verse-tafsir-word');
+          if (word) word.textContent = 'Close';
+        }
+        return;
+      }
       document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
         if (box.classList.contains('hidden')) return;
         const btn = box.closest('[id^="verse-card-"]')?.querySelector('.verse-tafsir-btn');
@@ -3152,6 +3217,33 @@
         const word = btn.querySelector('.verse-tafsir-word');
         if (word) word.textContent = 'Close';
       });
+    }
+
+    function updateTafsirSheetToolbar(surahNum, ayahNum) {
+      const len = state.currentSurahData?.ayahs?.length ?? 0;
+      const label = document.getElementById('tafsirSheetAyahLabel');
+      if (label) label.textContent = `Ayah ${ayahNum}`;
+      const prev = document.getElementById('tafsirSheetPrev');
+      const next = document.getElementById('tafsirSheetNext');
+      if (prev) prev.disabled = ayahNum <= 1;
+      if (next) next.disabled = !len || ayahNum >= len;
+      if (prev) {
+        prev.onclick = () => navigateTafsirView(surahNum, ayahNum, -1);
+      }
+      if (next) {
+        next.onclick = () => navigateTafsirView(surahNum, ayahNum, 1);
+      }
+    }
+
+    function closeTafsirSheet() {
+      if (!isTafsirSheetOpen()) {
+        state.openTafsirAyahNum = null;
+        document.body.classList.remove('tafsir-sheet-open');
+        syncTafsirButtonStates();
+        syncReaderFocusMode();
+        return;
+      }
+      closeAppModal('tafsirSheetModal');
     }
 
     function updateTafsirToolbar(surahNum, ayahNum) {
@@ -3165,6 +3257,10 @@
     }
 
     function closeTafsirView(ayahNum) {
+      if (isTafsirSheetOpen()) {
+        closeTafsirSheet();
+        return;
+      }
       const box = document.getElementById(`tafsir-box-${ayahNum}`);
       if (box) box.classList.add('hidden');
       state.readerControlsPinnedOpen = false;
@@ -3173,23 +3269,21 @@
     }
     window.closeTafsirView = closeTafsirView;
 
-    async function loadTafsirIntoPanel(surahNum, ayahNum) {
-      const box = document.getElementById(`tafsir-box-${ayahNum}`);
-      const content = document.getElementById(`tafsir-content-${ayahNum}`);
-      const badge = document.getElementById(`tafsir-badge-${ayahNum}`);
-      if (!box || !content) return;
+    async function loadTafsirContent(surahNum, ayahNum, contentEl, badgeEl) {
+      if (!contentEl) return;
 
       const tafsirMeta = TAFSIR_ENDPOINTS[state.currentTafsirKey] || TAFSIR_ENDPOINTS.en_ibn_kathir;
-      if (badge) badge.textContent = tafsirMeta.name;
-      content.className = `${getTafsirContentClassName(tafsirMeta.lang)} tafsir-content-scroll`;
+      if (badgeEl) badgeEl.textContent = tafsirMeta.name;
+      const sheetPad = contentEl.id === 'tafsirSheetContent' ? ' px-4 pb-4 pt-1' : '';
+      contentEl.className = `${getTafsirContentClassName(tafsirMeta.lang)} tafsir-content-scroll${sheetPad}`;
 
       const cacheKey = `${state.currentTafsirKey}_${surahNum}_${ayahNum}`;
       if (state.tafsirCache[cacheKey]) {
-        content.innerHTML = wrapTafsirWithSourceFooter(state.tafsirCache[cacheKey]);
+        contentEl.innerHTML = wrapTafsirWithSourceFooter(state.tafsirCache[cacheKey]);
         return;
       }
 
-      content.innerHTML = `
+      contentEl.innerHTML = `
         <div class="flex items-center space-x-2 py-2 text-slate-400">
           <div class="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
           <span>Loading ${escapeHtml(tafsirMeta.name)}…</span>
@@ -3205,20 +3299,51 @@
         }
 
         if (!text) {
-          content.innerHTML = '<span class="text-slate-400">Tafsir unavailable for this verse.</span>';
+          contentEl.innerHTML = '<span class="text-slate-400">Tafsir unavailable for this verse.</span>';
           return;
         }
 
         const safeText = sanitizeTafsirHtml(text);
         state.tafsirCache[cacheKey] = safeText;
-        content.innerHTML = wrapTafsirWithSourceFooter(safeText);
+        contentEl.innerHTML = wrapTafsirWithSourceFooter(safeText);
       } catch (err) {
         console.warn('Tafsir load failed', err);
-        content.innerHTML = '<span class="text-red-400">Failed to load Tafsir. Please check connection.</span>';
+        contentEl.innerHTML = '<span class="text-red-400">Failed to load Tafsir. Please check connection.</span>';
       }
     }
 
+    async function loadTafsirIntoPanel(surahNum, ayahNum) {
+      const content = document.getElementById(`tafsir-content-${ayahNum}`);
+      const badge = document.getElementById(`tafsir-badge-${ayahNum}`);
+      if (!content) return;
+      await loadTafsirContent(surahNum, ayahNum, content, badge);
+    }
+
     async function openTafsirView(surahNum, ayahNum) {
+      state.openTafsirAyahNum = ayahNum;
+      if (useTafsirBottomSheet()) {
+        document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => box.classList.add('hidden'));
+        if (isMobileReaderViewport()) {
+          state.readerControlsExpanded = false;
+          state.readerControlsPinnedOpen = false;
+        }
+        updateTafsirSheetToolbar(surahNum, ayahNum);
+        syncTafsirButtonStates();
+        syncReaderFocusMode();
+        const sheetContent = document.getElementById('tafsirSheetContent');
+        const sheetBadge = document.getElementById('tafsirSheetBadge');
+        await loadTafsirContent(surahNum, ayahNum, sheetContent, sheetBadge);
+        if (sheetContent) sheetContent.scrollTop = 0;
+        document.body.classList.add('tafsir-sheet-open');
+        measureAudioBarHeight();
+        if (!isTafsirSheetOpen()) {
+          openAppModal('tafsirSheetModal');
+        }
+        syncAudioUi();
+        syncReaderFocusMode();
+        return;
+      }
+
       const box = document.getElementById(`tafsir-box-${ayahNum}`);
       if (!box) return;
 
@@ -4173,6 +4298,7 @@
       state.currentSurahNum = parseInt(number, 10);
       if (surahSelect) surahSelect.value = String(state.currentSurahNum);
       updateNavigationButtons();
+      if (isTafsirSheetOpen()) closeTafsirSheet();
       const willLoadMushaf = isMushafPageScript(state.currentScriptKey);
       const audioSnapshot = !targetAyah && !willLoadMushaf ? captureAudioSession() : null;
       if (willLoadMushaf || !audioSnapshot) {
@@ -5227,6 +5353,14 @@
     }
 
     async function toggleTafsirView(surahNum, ayahNum) {
+      if (useTafsirBottomSheet()) {
+        if (isTafsirSheetOpen() && state.openTafsirAyahNum === ayahNum) {
+          closeTafsirSheet();
+          return;
+        }
+        await openTafsirView(surahNum, ayahNum);
+        return;
+      }
       const box = document.getElementById(`tafsir-box-${ayahNum}`);
       if (!box) return;
       if (!box.classList.contains('hidden')) {
@@ -5463,6 +5597,13 @@
     function closeAppModal(id) {
       modalFocusTrap?.();
       document.getElementById(id)?.classList.add('hidden');
+      if (id === 'tafsirSheetModal') {
+        state.openTafsirAyahNum = null;
+        document.body.classList.remove('tafsir-sheet-open');
+        state.readerControlsPinnedOpen = false;
+        syncTafsirButtonStates();
+        syncReaderFocusMode();
+      }
       if (!document.querySelector('[id$="Modal"]:not(.hidden)')) {
         setReaderChromeInert(false);
       }
@@ -5491,6 +5632,7 @@
           safeStorageSet('quran_tafsir_pref', state.currentTafsirKey);
           state.tafsirCache = {};
           updateContentSourceHints();
+          if (isTafsirSheetOpen()) closeTafsirSheet();
           document.querySelectorAll('[id^="tafsir-box-"]').forEach((box) => {
             if (!box.classList.contains('hidden')) box.classList.add('hidden');
           });
@@ -5578,6 +5720,8 @@
       document.getElementById('btnMenuReadingOptions')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('readingOptionsModal'); updateContentSourceHints(); });
       document.getElementById('closeReadingOptionsModal')?.addEventListener('click', () => closeAppModal('readingOptionsModal'));
       bindModalBackdropClose(document.getElementById('readingOptionsModal'), () => closeAppModal('readingOptionsModal'));
+      document.getElementById('tafsirSheetBackdrop')?.addEventListener('click', () => closeTafsirSheet());
+      document.getElementById('tafsirSheetClose')?.addEventListener('click', () => closeTafsirSheet());
       document.getElementById('btnMenuAzkar')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); loadAzkarCategory('morning'); openAppModal('azkarModal'); });
       document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
       document.getElementById('btnMenuShareInstall')?.addEventListener('click', async () => {

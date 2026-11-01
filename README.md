@@ -38,7 +38,7 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar. Th
 | Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                              |
 | Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API                       |
 
-In the app: **More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. **More** → _Data sources_ for the full list.
+In the app: **More** → _Reading options_ for script, **appearance** (light/dark/system), text size, reciter, and translation. On phones, **Tafsir** opens in a bottom sheet (swipe-friendly scroll, prev/next ayah, Close) so long commentary does not bury the ayah list. **More** → _Data sources_ for the full list.
 
 ## Install
 
