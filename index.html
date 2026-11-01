@@ -3058,11 +3058,20 @@
       };
     }
 
+    function setReaderChromeInert(inert) {
+      ['topReaderChrome', 'surahViewport'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (inert) el.setAttribute('inert', '');
+        else el.removeAttribute('inert');
+      });
+    }
+
     function openAppModal(id) {
       const modal = document.getElementById(id);
       if (!modal) return;
       state.modalReturnFocus = document.activeElement;
-      document.getElementById('appShell')?.setAttribute('inert', '');
+      setReaderChromeInert(true);
       modal.classList.remove('hidden');
       trapFocusInModal(modal);
       const focusable = getFocusableElements(modal)[0];
@@ -3072,7 +3081,7 @@
       modalFocusTrap?.();
       document.getElementById(id)?.classList.add('hidden');
       if (!document.querySelector('[id$="Modal"]:not(.hidden)')) {
-        document.getElementById('appShell')?.removeAttribute('inert');
+        setReaderChromeInert(false);
       }
       if (state.modalReturnFocus?.focus) state.modalReturnFocus.focus();
     }
@@ -3206,7 +3215,7 @@
 
       bindModalBackdropClose(bookmarksModal, () => closeAppModal('bookmarksModal'));
       bindModalBackdropClose(azkarModal, () => closeAppModal('azkarModal'));
-      bindModalBackdropClose(pwaGuideModal, () => pwaGuideModal.classList.add('hidden'));
+      bindModalBackdropClose(pwaGuideModal, () => closeAppModal('pwaGuideModal'));
 
       document.getElementById('btnOpenBookmarksModal')?.addEventListener('click', () => {
         renderBookmarksModalList();
@@ -3271,9 +3280,9 @@
       refreshShareInstallModal();
       document.getElementById('btnOpenPwaGuide')?.addEventListener('click', () => {
         refreshShareInstallModal();
-        pwaGuideModal.classList.remove('hidden');
+        openAppModal('pwaGuideModal');
       });
-      document.getElementById('closePwaGuideModal')?.addEventListener('click', () => pwaGuideModal.classList.add('hidden'));
+      document.getElementById('closePwaGuideModal')?.addEventListener('click', () => closeAppModal('pwaGuideModal'));
       document.getElementById('btnCopyPwaLink')?.addEventListener('click', () => copyAppPublicLink(document.getElementById('btnCopyPwaLink')));
       document.getElementById('btnNativeShareApp')?.addEventListener('click', () => nativeShareAppLink());
 
