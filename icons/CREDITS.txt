@@ -1,5 +1,5 @@
 App icons (icon-192.png, icon-512.png, apple-touch-icon.png, icon-512-maskable.png):
-Custom artwork for this project — open-book motif on slate (#0f172a) with emerald accents, matching the app theme.
+Custom artwork — open book with emerald covers and gold spine/page edges on slate (#0f172a).
 
 Regenerate maskable padding from icon-512.png:
   python3 scripts/generate-maskable-icon.py
