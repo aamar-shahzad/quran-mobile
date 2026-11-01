@@ -234,7 +234,11 @@
     }
     /* Safe area padding for standalone mobile notch */
     .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom, 1rem);
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem) !important;
+    }
+    body {
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
     }
     .pt-safe {
       padding-top: env(safe-area-inset-top, 0px);
@@ -707,7 +711,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=15').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=16').then((registration) => {
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
             if (!worker) return;
@@ -848,7 +852,7 @@
       <div class="relative">
         <input type="text" id="searchInput" placeholder="Search Surah, translation keywords, or Ayah..." 
           class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
-        <i class="ph ph-x absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer text-sm" id="btnClearSearch"></i>
+        <button type="button" id="btnClearSearch" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-lg" aria-label="Clear search"><i class="ph ph-x text-sm"></i></button>
       </div>
     </div>
   </div>
@@ -935,7 +939,7 @@
   </div>
 
   <!-- JUZ SELECTION MODAL -->
-  <div id="juzModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="juzModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="juzModalTitle" flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-sm w-full shadow-2xl relative max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -953,7 +957,7 @@
   </div>
 
   <!-- BOOKMARKS & REFLECTION NOTES MODAL -->
-  <div id="bookmarksModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="bookmarksModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="bookmarksModalTitle" flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -971,7 +975,7 @@
   </div>
 
   <!-- AUTHENTIC AZKAR MODAL -->
-  <div id="azkarModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="azkarModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="azkarModalTitle" flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -996,7 +1000,7 @@
   </div>
 
   <!-- DATA SOURCES -->
-  <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="sourcesModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="sourcesModalTitle" flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 shrink-0">
         <h3 class="font-bold text-sm text-white flex items-center gap-2"><i class="ph ph-database text-emerald-400"></i> Verified data sources</h3>
@@ -1045,7 +1049,7 @@
   </div>
 
   <!-- PWA INSTALLATION GUIDE MODAL -->
-  <div id="pwaGuideModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="pwaGuideModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50" role="dialog" aria-modal="true" aria-labelledby="pwaGuideModalTitle" flex items-center justify-center p-4">
     <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-md w-full shadow-2xl relative max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -1175,7 +1179,7 @@
     </div>
 
     <!-- Audio Progress Bar -->
-    <div class="w-full bg-slate-800 h-1 mt-2 rounded-full overflow-hidden cursor-pointer" id="audioProgressContainer">
+    <div class="w-full bg-slate-800 h-1 mt-2 rounded-full overflow-hidden cursor-pointer" id="audioProgressContainer" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
       <div id="audioProgressBar" class="bg-brand-500 h-full w-0 transition-all duration-100"></div>
     </div>
   </footer>
@@ -2610,18 +2614,22 @@
       const modal = document.getElementById(id);
       if (!modal) return;
       state.modalReturnFocus = document.activeElement;
+      document.getElementById('appShell')?.setAttribute('inert', '');
       modal.classList.remove('hidden');
       const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       focusable?.focus();
     }
     function closeAppModal(id) {
       document.getElementById(id)?.classList.add('hidden');
+      if (!document.querySelector('[id$="Modal"]:not(.hidden)')) {
+        document.getElementById('appShell')?.removeAttribute('inert');
+      }
       if (state.modalReturnFocus?.focus) state.modalReturnFocus.focus();
     }
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach((m) => m.classList.add('hidden'));
+      document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach((m) => { m.classList.add('hidden'); }); document.getElementById('appShell')?.removeAttribute('inert');
     });
 
     // EVENT LISTENERS & MODAL HANDLERS
@@ -2654,15 +2662,6 @@
           syncReaderFocusMode();
         });
       }
-
-      document.getElementById('btnToggleReaderControlsMobile')?.addEventListener('click', () => {
-        const advanced = document.getElementById('readerAdvancedControls');
-        const collapsed = advanced?.classList.contains('is-collapsed');
-        setReaderControlsExpanded(Boolean(collapsed), { pin: Boolean(collapsed) });
-      });
-      document.getElementById('btnExpandReaderControls')?.addEventListener('click', () => {
-        setReaderControlsExpanded(true, { pin: true });
-      });
 
       if (reciterSelect) {
         reciterSelect.addEventListener('change', (e) => {
@@ -2699,9 +2698,9 @@
       const pwaGuideModal = document.getElementById('pwaGuideModal');
       const sourcesModal = document.getElementById('sourcesModal');
 
-      document.getElementById('btnOpenSourcesModal')?.addEventListener('click', () => sourcesModal?.classList.remove('hidden'));
-      document.getElementById('closeSourcesModal')?.addEventListener('click', () => sourcesModal?.classList.add('hidden'));
-      bindModalBackdropClose(sourcesModal, () => sourcesModal?.classList.add('hidden'));
+      document.getElementById('btnOpenSourcesModal')?.addEventListener('click', () => openAppModal('sourcesModal'));
+      document.getElementById('closeSourcesModal')?.addEventListener('click', () => closeAppModal('sourcesModal'));
+      bindModalBackdropClose(sourcesModal, () => closeAppModal('sourcesModal'));
 
       document.getElementById('btnOpenSurahNavModal')?.addEventListener('click', () => openAppModal('juzModal'));
       document.getElementById('btnOpenMoreMenu')?.addEventListener('click', () => openAppModal('moreMenuModal'));
@@ -2716,7 +2715,6 @@
       bindModalBackdropClose(document.getElementById('assistantModal'), () => closeAppModal('assistantModal'));
       document.getElementById('btnMenuSources')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('sourcesModal'); });
       document.getElementById('btnMenuShareInstall')?.addEventListener('click', () => { closeAppModal('moreMenuModal'); openAppModal('pwaGuideModal'); refreshShareInstallModal?.(); });
-      document.getElementById('btnOpenSurahNavModal')?.addEventListener('click', () => openAppModal('juzModal'));
       document.getElementById('btnTapToPlayOverlay')?.addEventListener('click', () => {
         if (state.pendingAutoplayIndex != null) {
           state.isPlayingContinuous = true;
@@ -2740,24 +2738,24 @@
         showToast('Continue link copied');
       });
 
-      document.getElementById('closeJuzModal')?.addEventListener('click', () => juzModal.classList.add('hidden'));
-      bindModalBackdropClose(juzModal, () => juzModal.classList.add('hidden'));
+      document.getElementById('closeJuzModal')?.addEventListener('click', () => closeAppModal('juzModal'));
+      bindModalBackdropClose(juzModal, () => closeAppModal('juzModal'));
 
-      bindModalBackdropClose(bookmarksModal, () => bookmarksModal.classList.add('hidden'));
-      bindModalBackdropClose(azkarModal, () => azkarModal.classList.add('hidden'));
+      bindModalBackdropClose(bookmarksModal, () => closeAppModal('bookmarksModal'));
+      bindModalBackdropClose(azkarModal, () => closeAppModal('azkarModal'));
       bindModalBackdropClose(pwaGuideModal, () => pwaGuideModal.classList.add('hidden'));
 
       document.getElementById('btnOpenBookmarksModal')?.addEventListener('click', () => {
         renderBookmarksModalList();
-        bookmarksModal.classList.remove('hidden');
+        openAppModal('bookmarksModal');
       });
-      document.getElementById('closeBookmarksModal')?.addEventListener('click', () => bookmarksModal.classList.add('hidden'));
+      document.getElementById('closeBookmarksModal')?.addEventListener('click', () => closeAppModal('bookmarksModal'));
 
       document.getElementById('btnOpenAzkarModal')?.addEventListener('click', () => {
         loadAzkarCategory('morning');
-        azkarModal.classList.remove('hidden');
+        openAppModal('azkarModal');
       });
-      document.getElementById('closeAzkarModal')?.addEventListener('click', () => azkarModal.classList.add('hidden'));
+      document.getElementById('closeAzkarModal')?.addEventListener('click', () => closeAppModal('azkarModal'));
 
       // Share & install modal
       const APP_PUBLIC_URL = 'https://aamar-shahzad.github.io/quran-mobile/';

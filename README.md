@@ -9,8 +9,8 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar.
 ## Background audio & voice assistants
 
 - Lock-screen **play / pause / next / previous** use the Media Session API while recitation is playing.
-- **Continue listening:** open `?play=last` or use the Android home-screen shortcut *Continue*.
-- **Play a surah by voice (iOS):** More → *Siri & Assistant* → copy a link → create a Shortcuts “Open URL” action → “Hey Siri, [shortcut name]”.
+- **Continue listening:** open `?play=last` or use the Android home-screen shortcut _Continue_.
+- **Play a surah by voice (iOS):** More → _Siri & Assistant_ → copy a link → create a Shortcuts “Open URL” action → “Hey Siri, [shortcut name]”.
 - **iOS note:** Shortcut links open in Safari; audio still plays in the background. iOS may stop audio if the app is force-quit.
 
 ## Data sources (authentic APIs)
@@ -25,11 +25,11 @@ PWA Quran reader with translations, tafsir, recitation, bookmarks, and azkar.
 | Word-by-word        | Quran.com API                                       | Uthmani + English gloss                                   |
 | Azkar               | In-app (referenced)                                 | Hisn al-Muslim / Bukhari-Muslim refs — not API            |
 
-In the app: **More** → *Data sources* for the full list.
+In the app: **More** → _Data sources_ for the full list.
 
 ## Install
 
-Open the live link on your phone → **More** → *Share & install* → Add to Home Screen (iOS Safari) or Install app (Android Chrome).
+Open the live link on your phone → **More** → _Share & install_ → Add to Home Screen (iOS Safari) or Install app (Android Chrome).
 
 ## Local preview
 
