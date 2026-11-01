@@ -174,11 +174,19 @@
     card?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  function resetSectionObserver() {
+    sectionObserver?.disconnect();
+    sectionObserver = null;
+  }
+
   async function loadSurahWindow(centerSurah, targetAyah, signal, replaceAll) {
     const h = getHost();
     const versesList = document.getElementById("versesList");
     if (!versesList) return;
-    if (replaceAll) versesList.innerHTML = "";
+    if (replaceAll) {
+      resetSectionObserver();
+      versesList.innerHTML = "";
+    }
     document.getElementById("surahHeaderCard")?.classList.add("hidden");
 
     const nums = [];
@@ -340,7 +348,10 @@
     const page = Math.min(maxPage, Math.max(1, parseInt(centerPage, 10) || 1));
     const versesList = document.getElementById("versesList");
     if (!versesList) return;
-    if (replaceAll) versesList.innerHTML = "";
+    if (replaceAll) {
+      resetSectionObserver();
+      versesList.innerHTML = "";
+    }
     document.getElementById("surahHeaderCard")?.classList.add("hidden");
 
     const nums = [];

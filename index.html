@@ -1998,7 +1998,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=65').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=66').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -2827,21 +2827,24 @@
       const ctx = { surah: state.currentSurahNum };
       if (isMushafPageScript(state.currentScriptKey)) {
         ctx.mushafPage = state.currentMushafPage;
-      } else if (state.openTafsirAyahNum) {
-        ctx.ayah = state.openTafsirAyahNum;
-      } else if (state.currentPlayingAyahIndex >= 0) {
-        const ayah = getPlaybackAyah();
-        if (ayah) ctx.ayah = ayah.numberInSurah;
       }
       const snap = captureAudioSession();
       if (snap) {
         ctx.audio = {
+          surah: snap.surah,
           ayahNumberInSurah: snap.ayahNumberInSurah,
           time: snap.time,
           continuous: snap.continuous,
           wasPlaying: snap.wasPlaying,
           reciter: state.currentReciter,
         };
+        ctx.surah = snap.surah;
+        ctx.ayah = snap.ayahNumberInSurah;
+      } else if (state.openTafsirAyahNum) {
+        ctx.ayah = state.openTafsirAyahNum;
+      } else if (state.currentPlayingAyahIndex >= 0) {
+        const ayah = getPlaybackAyah();
+        if (ayah) ctx.ayah = ayah.numberInSurah;
       }
       return ctx;
     }
@@ -2859,12 +2862,47 @@
       }
     }
 
+    function trimReaderMemoryCaches() {
+      state.surahViewCache.clear();
+      state.mushafPageCache.clear();
+      state.mushafSurahStartPageCache.clear();
+      state.mushafAyahPageCache.clear();
+      state.tafsirCache = {};
+      state.wordByWordCache = {};
+      state.audioUrlCache = {};
+    }
+
+    function releaseReaderResourcesBeforeReload() {
+      if (state.searchDebounceTimer) {
+        clearTimeout(state.searchDebounceTimer);
+        state.searchDebounceTimer = null;
+      }
+      globalSearchController?.abort();
+      globalSearchController = null;
+      state.surahLoadController?.abort();
+      state.surahLoadController = null;
+      state.mushafLoadSeq += 1;
+      state.audioPlayId += 1;
+      if (isTafsirSheetOpen()) closeTafsirSheet();
+      softPauseAudioForReload();
+      if (state.audioPreloader) {
+        try {
+          state.audioPreloader.pause();
+        } catch {
+          /* ignore */
+        }
+        state.audioPreloader.removeAttribute('src');
+      }
+      trimReaderMemoryCaches();
+    }
+
     function scheduleReaderLayoutReload(statusMessage = 'Applying reading options…') {
       try {
         safeStorageSet(LAYOUT_RELOAD_STORAGE_KEY, JSON.stringify(captureReaderReloadContext()));
       } catch (err) {
         console.warn('Could not save layout reload context', err);
       }
+      releaseReaderResourcesBeforeReload();
       closeAppModal('readingOptionsModal');
       closeAppModal('moreMenuModal');
       document.body.classList.add('app-is-booting');
@@ -2886,16 +2924,22 @@
         safeStorageSet('quran_mushaf_page', String(state.currentMushafPage));
       }
       const targetAyah = ctx.ayah && ctx.ayah > 0 ? ctx.ayah : null;
-      await loadSurah(ctx.surah, targetAyah, { mushafPage: ctx.mushafPage });
+      await loadSurah(ctx.surah, targetAyah, {
+        mushafPage: ctx.mushafPage,
+        skipAudioCapture: true,
+      });
       if (ctx.audio?.ayahNumberInSurah) {
         state.currentReciter = normalizeReciterId(ctx.audio.reciter || state.currentReciter);
         if (reciterSelect) reciterSelect.value = state.currentReciter;
         await resumeAudioSession({
+          surah: ctx.audio.surah ?? ctx.surah,
           ayahNumberInSurah: ctx.audio.ayahNumberInSurah,
           time: ctx.audio.time || 0,
           continuous: !!ctx.audio.continuous,
           wasPlaying: !!ctx.audio.wasPlaying,
         });
+      } else {
+        resetAudioForReadingLayoutChange();
       }
       syncReaderLayoutChrome();
       syncReaderFocusMode();
@@ -4689,6 +4733,7 @@
     function resetAudioForReadingLayoutChange() {
       state.pendingAutoplayIndex = null;
       hideTapToPlayOverlay();
+      state.audioPlayId += 1;
       stopAudio(true);
       if (quranAudio) {
         quranAudio.removeAttribute('src');
@@ -6624,7 +6669,11 @@
           setAudioReciterLabel(reciterName);
           if (state.currentPlayingAyahIndex >= 0) {
             if (quranAudio && !quranAudio.paused) {
-              playSingleVerse(state.currentPlayingAyahIndex);
+              playSingleVerse(
+                state.currentPlayingAyahIndex,
+                getPlaybackSurahNum(),
+                getPlaybackSurahData(),
+              );
             } else {
               syncAudioUi();
             }
