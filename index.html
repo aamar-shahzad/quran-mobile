@@ -76,6 +76,14 @@
       --app-border: #e2e8f0;
       --app-muted: #64748b;
       --app-text: #0f172a;
+      --accent: #059669;
+      --accent-bright: #10b981;
+      --accent-soft: rgba(5, 150, 105, 0.1);
+      --accent-border: rgba(5, 150, 105, 0.28);
+      --accent-text: #047857;
+      --icon-muted: #64748b;
+      --icon-default: #64748b;
+      --icon-strong: #334155;
     }
     html.dark {
       --app-bg: #0f172a;
@@ -83,6 +91,14 @@
       --app-border: #334155;
       --app-muted: #94a3b8;
       --app-text: #f1f5f9;
+      --accent: #34d399;
+      --accent-bright: #6ee7b7;
+      --accent-soft: rgba(52, 211, 153, 0.12);
+      --accent-border: rgba(52, 211, 153, 0.3);
+      --accent-text: #34d399;
+      --icon-muted: #64748b;
+      --icon-default: #94a3b8;
+      --icon-strong: #e2e8f0;
     }
     html {
       height: 100%;
@@ -91,6 +107,36 @@
     }
     html.dark {
       color-scheme: dark light;
+    }
+    .ui-accent-text {
+      color: var(--accent-text);
+    }
+    .ui-accent-btn {
+      color: var(--accent-text);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+    }
+    .ui-accent-btn:hover {
+      filter: brightness(1.06);
+    }
+    .reader-chrome-btn {
+      color: var(--icon-default);
+    }
+    .reader-chrome-btn:hover {
+      color: var(--icon-strong);
+    }
+    .continuous-surah-header .surah-title-ar {
+      color: var(--accent-text);
+    }
+    .continuous-surah-header .surah-play-all-btn {
+      color: var(--accent-text);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+    }
+    .verse-ayah-num {
+      color: var(--accent-text);
+      border-color: var(--accent-border);
+      background: var(--accent-soft);
     }
     body {
       touch-action: manipulation;
@@ -831,9 +877,9 @@
       text-transform: uppercase;
       padding: 0.15rem 0.45rem;
       border-radius: 9999px;
-      color: #6ee7b7;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: var(--accent-text);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
     }
     .player-progress-wrap {
       display: flex;
@@ -859,13 +905,13 @@
       height: 0.375rem;
       width: 0%;
       border-radius: 9999px;
-      background: linear-gradient(90deg, #34d399, #10b981);
+      background: linear-gradient(90deg, var(--accent), var(--accent-bright));
       transition: width 0.1s linear;
       pointer-events: none;
       position: relative;
     }
     .player-progress-track.is-seeking .player-progress-fill {
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+      box-shadow: 0 0 0 2px var(--accent-soft);
     }
     .player-progress-track:focus-visible {
       outline: 2px solid rgba(16, 185, 129, 0.55);
@@ -945,14 +991,14 @@
       align-items: center;
       justify-content: center;
       border-radius: 0.6rem;
-      color: #cbd5e1;
-      background: rgba(30, 41, 59, 0.65);
-      border: 1px solid rgba(51, 65, 85, 0.85);
+      color: var(--icon-default);
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(51, 65, 85, 0.75);
       transition: color 0.15s, background-color 0.15s, border-color 0.15s, transform 0.1s;
     }
     .player-control-btn:hover:not(:disabled) {
-      color: #f8fafc;
-      background: rgba(51, 65, 85, 0.85);
+      color: var(--icon-strong);
+      background: rgba(51, 65, 85, 0.75);
     }
     .player-control-btn:active:not(:disabled) {
       transform: scale(0.94);
@@ -964,12 +1010,12 @@
     .player-control-btn--play {
       width: 2.75rem;
       height: 2.75rem;
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.35);
+      color: var(--accent-text);
+      border-color: var(--accent-border);
     }
     .player-control-btn--play.is-playing {
-      background: rgba(16, 185, 129, 0.14);
-      color: #6ee7b7;
+      background: var(--accent-soft);
+      color: var(--accent-bright);
     }
     .player-control-btn--speed {
       width: auto;
@@ -980,7 +1026,7 @@
       font-size: 0.6875rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
-      color: #34d399;
+      color: var(--accent-text);
     }
     html:not(.dark) .player-control-btn {
       background: #f1f5f9;
@@ -1049,7 +1095,7 @@
         margin-top: -0.5rem;
         margin-right: -0.5rem;
         border-radius: 9999px;
-        background: #34d399;
+        background: var(--accent-bright);
         border: 2px solid #0f172a;
         box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
       }
@@ -1121,21 +1167,21 @@
       align-items: center;
       justify-content: center;
       background: transparent;
-      color: #94a3b8;
+      color: var(--icon-default);
       border: 1px solid transparent;
       transition: background 0.15s, color 0.15s, transform 0.1s;
     }
     .verse-play-btn:hover {
-      background: rgba(51, 65, 85, 0.55);
-      color: #e2e8f0;
+      background: rgba(51, 65, 85, 0.45);
+      color: var(--icon-strong);
     }
     .verse-play-btn:active {
       transform: scale(0.94);
     }
     .verse-play-btn.is-active {
-      background: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.3);
+      background: var(--accent-soft);
+      color: var(--accent-text);
+      border-color: var(--accent-border);
     }
     .verse-play-continuous-btn {
       min-width: 2.25rem;
@@ -1145,13 +1191,22 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #94a3b8;
+      color: var(--icon-muted);
       border: 1px solid transparent;
     }
     .verse-play-continuous-btn:hover {
-      color: #e2e8f0;
-      background: rgba(51, 65, 85, 0.6);
-      border-color: rgba(71, 85, 105, 0.8);
+      color: var(--icon-strong);
+      background: rgba(51, 65, 85, 0.45);
+      border-color: rgba(71, 85, 105, 0.6);
+    }
+    .verse-tafsir-btn {
+      color: var(--icon-default);
+    }
+    .verse-tafsir-btn:hover {
+      color: var(--icon-strong);
+    }
+    .verse-bookmark-btn.is-saved {
+      color: var(--accent-text);
     }
     body.mushaf-reading-mode.chrome-auto-hide #topReaderChrome {
       position: fixed;
@@ -1406,13 +1461,13 @@
     }
     /* Pulse animation for playing audio */
     @keyframes audioPulse {
-      0%, 100% { box-shadow: inset 3px 0 0 #10b981; }
-      50% { box-shadow: inset 3px 0 0 #34d399, 0 0 12px rgba(16, 185, 129, 0.12); }
+      0%, 100% { box-shadow: inset 3px 0 0 var(--accent); }
+      50% { box-shadow: inset 3px 0 0 var(--accent-bright), 0 0 10px var(--accent-soft); }
     }
     .playing-verse {
       animation: audioPulse 2.4s infinite ease-in-out;
-      border-color: rgba(16, 185, 129, 0.45) !important;
-      background-color: rgba(16, 185, 129, 0.06) !important;
+      border-color: var(--accent-border) !important;
+      background-color: var(--accent-soft) !important;
     }
     .reader-advanced-controls {
       display: grid;
@@ -1881,7 +1936,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('sw.js?v=58').then((registration) => {
+        navigator.serviceWorker.register('sw.js?v=59').then((registration) => {
           registration.update().catch(() => {});
           registration.addEventListener('updatefound', () => {
             const worker = registration.installing;
@@ -1983,23 +2038,23 @@
         </select>
         <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-base"></i>
       </div>
-      <button type="button" id="btnToggleSearch" class="p-2.5 shrink-0 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-xl transition" title="Search" aria-label="Search Quran">
+      <button type="button" id="btnToggleSearch" class="reader-chrome-btn p-2.5 shrink-0 bg-slate-900 border border-slate-700 hover:text-white rounded-xl transition" title="Search" aria-label="Search Quran">
         <i class="ph ph-magnifying-glass text-lg"></i>
       </button>
-      <button type="button" id="btnOpenBookmarksModal" class="p-2.5 shrink-0 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-xl transition relative" title="Bookmarks" aria-label="Bookmarks">
-        <i class="ph ph-bookmark-simple text-lg"></i>
-        <span id="bookmarkDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full"></span>
+      <button type="button" id="btnOpenBookmarksModal" class="reader-chrome-btn p-2.5 shrink-0 bg-slate-900 border border-slate-700 hover:text-white rounded-xl transition relative" title="Bookmarks" aria-label="Bookmarks">
+        <i class="ph ph-bookmarks text-lg"></i>
+        <span id="bookmarkDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style="background: var(--accent-bright);"></span>
       </button>
-      <button type="button" id="btnOpenMoreMenu" class="p-2.5 shrink-0 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-xl transition" title="More" aria-label="More menu">
-        <i class="ph ph-dots-three-circle text-lg"></i>
+      <button type="button" id="btnOpenMoreMenu" class="reader-chrome-btn p-2.5 shrink-0 bg-slate-900 border border-slate-700 hover:text-white rounded-xl transition" title="More" aria-label="More menu">
+        <i class="ph ph-list text-lg"></i>
       </button>
     </div>
     <div id="readerNavSecondary" class="flex items-center justify-center gap-2 sm:justify-start">
       <button type="button" id="btnNextSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Next surah">
         <i class="ph ph-caret-left text-lg" aria-hidden="true"></i>
       </button>
-      <button type="button" id="btnOpenSurahNavModal" class="px-3 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-xs font-semibold text-emerald-400 rounded-xl transition flex items-center gap-1" aria-label="Jump to Juz or surah">
-        <i class="ph ph-squares-four text-sm"></i>
+      <button type="button" id="btnOpenSurahNavModal" class="ui-accent-btn px-3 py-2.5 bg-slate-900 hover:border-slate-600 text-xs font-semibold rounded-xl transition flex items-center gap-1.5" aria-label="Jump to Juz or surah">
+        <i class="ph ph-compass text-base" aria-hidden="true"></i>
         <span>Jump</span>
       </button>
       <button type="button" id="btnPrevSurah" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-xl transition disabled:opacity-40" aria-label="Previous surah">
@@ -2426,7 +2481,7 @@
           <i class="ph ph-skip-back text-lg" aria-hidden="true"></i>
         </button>
         <button type="button" id="btnPlaySurahContinuous" class="player-control-btn player-control-btn--play" aria-label="Play or pause">
-          <i id="globalPlayIcon" class="ph ph-play-fill text-xl" aria-hidden="true"></i>
+          <i id="globalPlayIcon" class="ph ph-play-circle text-2xl" aria-hidden="true"></i>
         </button>
         <button type="button" id="btnNextVerse" class="player-control-btn" aria-label="Next ayah" disabled>
           <i class="ph ph-skip-forward text-lg" aria-hidden="true"></i>
@@ -4809,7 +4864,7 @@
         : 'bg-dark-card border border-dark-border rounded-2xl p-4 transition-all duration-200';
       const ayahNumBadgeClass = indopakAyahUi
         ? 'indopak-ayah-num w-7 h-7 shrink-0 rounded-sm font-bold text-[11px] flex items-center justify-center border border-[#c4a574]/70 text-[#5c4a32] bg-[#faf6ee]/90'
-        : 'w-7 h-7 shrink-0 rounded-lg bg-slate-900 text-brand-400 font-bold text-xs flex items-center justify-center border border-slate-800';
+        : 'w-7 h-7 shrink-0 rounded-lg verse-ayah-num font-bold text-xs flex items-center justify-center border';
 
       return arabicAyahs
         .map((ayah, i) => {
@@ -4830,14 +4885,14 @@
                   <i class="ph ph-play verse-play-icon text-base"></i>
                 </button>
                 <button type="button" class="verse-play-continuous-btn" onclick="playVerseAudio(${Number(ayah.number)}, true)" aria-label="Play from ayah ${ayahNum} through surah" title="Play from here">
-                  <i class="ph ph-playlist text-base"></i>
+                  <i class="ph ph-queue text-base" aria-hidden="true"></i>
                 </button>
-                <button type="button" onclick="toggleTafsirView(${Number(surahNum)}, ${Number(ayahNum)})" class="verse-tafsir-btn inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg" aria-label="Tafsir">
-                  <i class="ph ph-book-open-text text-base"></i>
+                <button type="button" onclick="toggleTafsirView(${Number(surahNum)}, ${Number(ayahNum)})" class="verse-tafsir-btn inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-xs rounded-lg" aria-label="Tafsir">
+                  <i class="ph ph-book-open text-base" aria-hidden="true"></i>
                   <span class="verse-tafsir-word">Tafsir</span>
                 </button>
-                <button type="button" data-bookmark-btn onclick="toggleBookmarkPrompt(${Number(surahNum)}, ${Number(ayahNum)})" class="p-2 ${isBookmarked ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark" aria-label="Bookmark">
-                  <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl"></i>
+                <button type="button" data-bookmark-btn onclick="toggleBookmarkPrompt(${Number(surahNum)}, ${Number(ayahNum)})" class="verse-bookmark-btn p-2 ${isBookmarked ? 'is-saved' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition" title="Bookmark" aria-label="Bookmark">
+                  <i class="${isBookmarked ? 'ph-fill' : 'ph'} ph-bookmark-simple text-lg" aria-hidden="true"></i>
                 </button>
                 <details class="relative">
                   <summary class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 list-none cursor-pointer" aria-label="More actions"><i class="ph ph-dots-three-vertical text-xl"></i></summary>
@@ -4879,10 +4934,13 @@
       return `
         <section class="continuous-surah-section space-y-3 sm:space-y-4" data-continuous-surah="${surahNum}">
           <header class="continuous-surah-header" data-continuous-surah="${surahNum}">
-            <h2 class="arabic-text text-xl font-bold text-brand-500 text-center leading-snug">${escapeHtml(titleAr)}</h2>
+            <h2 class="arabic-text surah-title-ar text-xl font-bold text-center leading-snug">${escapeHtml(titleAr)}</h2>
             <p class="text-sm font-semibold text-slate-200 text-center">${escapeHtml(titleEn)}</p>
             <p class="text-[11px] text-slate-400 text-center">${escapeHtml(metaLine)}</p>
-            <button type="button" class="mt-2 w-full py-2 rounded-xl bg-brand-500/15 border border-brand-500/40 text-brand-300 text-xs font-semibold active:scale-[0.98]" onclick="playSurahFromStart(${surahNum})">Play surah</button>
+            <button type="button" class="surah-play-all-btn mt-2 w-full py-2 rounded-xl text-xs font-semibold active:scale-[0.98] inline-flex items-center justify-center gap-1.5" onclick="playSurahFromStart(${surahNum})">
+              <i class="ph ph-play-circle text-base" aria-hidden="true"></i>
+              Play surah
+            </button>
           </header>
           ${buildVerseCardsHtml(surahNum, arPayload.ayahs, englishAyahs)}
         </section>`;
@@ -4940,7 +4998,7 @@
     function syncGlobalPlayIcon() {
       if (!globalPlayIcon) return;
       const active = state.currentPlayingAyahIndex >= 0 && quranAudio && !quranAudio.paused;
-      globalPlayIcon.className = active ? 'ph ph-pause-fill text-xl' : 'ph ph-play-fill text-xl';
+      globalPlayIcon.className = active ? 'ph ph-pause-circle text-2xl' : 'ph ph-play-circle text-2xl';
       const playBtn = document.getElementById('btnPlaySurahContinuous');
       playBtn?.classList.toggle('is-playing', active);
       if (playBtn) playBtn.setAttribute('aria-label', active ? 'Pause' : 'Play');
@@ -5043,7 +5101,7 @@
         playBtn.classList.add('is-active');
         const icon = playBtn.querySelector('.verse-play-icon');
         const paused = !quranAudio || quranAudio.paused;
-        if (icon) icon.className = paused ? 'ph ph-play verse-play-icon text-base' : 'ph ph-pause-fill verse-play-icon text-base';
+        if (icon) icon.className = paused ? 'ph ph-play verse-play-icon text-base' : 'ph ph-pause verse-play-icon text-base';
         playBtn.setAttribute('aria-label', paused ? `Play ayah ${ayah.numberInSurah}` : `Pause ayah ${ayah.numberInSurah}`);
       }
     }
@@ -5136,9 +5194,9 @@
       const btn = card?.querySelector('[data-bookmark-btn]');
       if (!btn) return;
       const isOn = state.bookmarks.some((b) => b.verseKey === verseKey);
-      btn.className = `p-2 ${isOn ? 'text-brand-500' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition`;
+      btn.className = `verse-bookmark-btn p-2 ${isOn ? 'is-saved' : 'text-slate-400 hover:text-white'} rounded-lg hover:bg-slate-800 transition`;
       const icon = btn.querySelector('i');
-      if (icon) icon.className = `${isOn ? 'ph-fill' : 'ph'} ph-bookmark-simple text-xl`;
+      if (icon) icon.className = `${isOn ? 'ph-fill' : 'ph'} ph-bookmark-simple text-lg`;
     }
 
     function openBookmarkNoteModal(surahNum, ayahNum) {
