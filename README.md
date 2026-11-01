@@ -61,4 +61,4 @@ After changing Tailwind classes in `index.html`, run `npm run build:css` and com
 
 ## Icons
 
-See `icons/CREDITS.txt` (Font Awesome, CC BY 4.0).
+Custom open-book app icons in `icons/` (192, 512, maskable, Apple touch). See `icons/CREDITS.txt`.

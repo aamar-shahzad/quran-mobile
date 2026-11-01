@@ -1,3 +1,7 @@
-App icons derived from Font Awesome Free 5.4.1 "quran" icon (solid).
-License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
-Source: Wikimedia Commons — Font Awesome 5 solid quran.svg
+App icons (icon-192.png, icon-512.png, apple-touch-icon.png, icon-512-maskable.png):
+Custom artwork for this project — open-book motif on slate (#0f172a) with emerald accents, matching the app theme.
+
+Regenerate maskable padding from icon-512.png:
+  python3 scripts/generate-maskable-icon.py
+
+Previous icons used Font Awesome “quran” (CC BY 4.0); replaced for clearer home-screen branding.
